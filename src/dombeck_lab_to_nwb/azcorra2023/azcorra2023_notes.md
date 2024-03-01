@@ -41,14 +41,6 @@ The variables in Picoscope (e.g. `20200129-0001_01.mat`)  are as follows:
 - `G` = licking sensor ourput
 - `H` = air puff delivery trigger
 
-Each channel’s data is stored in an array variable named by the channel. So, the sampled data for channels A to D would
-be in four arrays named A, B, C and D. There is only one set of time data for all channels and this is loaded in
-one of two possible formats:
-· A start time, an interval and a length. The variables are named Tstart, Tinterval and Length.
-· An array of times (sometimes used for ETS data). The time array is named T.
-If the times are loaded in as Tstart, Tinterval and Length then you can use the following command to create the equivalent array of times:
-T = [Tstart : Tinterval : Tstart + (Length – 1) * Tinterval];
-
 ### Concatenated recordings
 
 Based on this preprocessing script, they are concatenating the raw recordings (fluorescence and behavior) and
@@ -127,6 +119,11 @@ Variables
 fibers = {'chGreen' 'chRed'};
 ```
 
+### NWB mapping
+
+The following table describes the initial mapping between the source data and the NWB file:
+
+![Alt text](azcorra2023_uml.png)
 
 ### References
 - Azcorra 2023 [manuscript](https://www.nature.com/articles/s41593-023-01401-9)
