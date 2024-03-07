@@ -68,17 +68,21 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
         device_name = "Picoscope"
         device_metadata.update(
             name=device_name,
-            description="The Picoscope 6 device used to record the data.",  # TODO update placeholder description
+            description="The Picoscope 6 device used to record the data.",
+            manufacturer="Pico Technology",
         )
 
         electrode_group_metadata = ecephys_metadata["ElectrodeGroup"][0]
         electrode_group_metadata.update(
-            description="The group of electrodes used to record the data.",  # TODO update placeholder description
+            description="The group of electrodes used to record the data.",
             device=device_name,
         )
 
         ecephys_metadata[self.es_key].update(
-            description="The acquisition traces from the Picoscope device acquired at 4000 Hz.",
+            description="The acquisition traces (velocity from rotary encoder, trigger signals for reward, "
+            "air puff and light stimuli delivery, licking from a lick sensor, fluorescence and "
+            "waveform generator output (used to alternate 405-nm and 470-nm illumination every 10 ms)"
+            "collected at 4000 Hz by Picoscope 6.",
         )
 
         return metadata
