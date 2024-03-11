@@ -10,6 +10,14 @@ from dombeck_lab_to_nwb.azcorra2023.extractors import PicoscopeRecordingExtracto
 
 
 class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
+    """
+    Data interface class for converting PicoScope signals.
+    """
+
+    display_name = "Picoscope Recording"
+    associated_suffixes = ".mat"
+    info = "Interface for PicoScope acquisition signals."
+
     Extractor = ConcatenateSegmentRecording
 
     def __init__(
