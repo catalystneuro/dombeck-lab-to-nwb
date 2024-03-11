@@ -54,6 +54,8 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
         self.recording_extractor.set_property(
             key="custom_channel_name", ids=extractor_channel_ids, values=custom_channel_names
         )
+        group_names = ["PicoscopeChannelGroup"] * len(extractor_channel_ids)
+        self.recording_extractor.set_property(key="group_name", ids=extractor_channel_ids, values=group_names)
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -74,6 +76,7 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
 
         electrode_group_metadata = ecephys_metadata["ElectrodeGroup"][0]
         electrode_group_metadata.update(
+            name="PicoscopeChannelGroup",
             description="The group of electrodes used to record the data.",
             device=device_name,
         )
@@ -83,6 +86,13 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
             "air puff and light stimuli delivery, licking from a lick sensor, fluorescence and "
             "waveform generator output (used to alternate 405-nm and 470-nm illumination every 10 ms)"
             "collected at 4000 Hz by Picoscope 6.",
+        )
+
+        # Add electrodes and electrode groups
+        ecephys_metadata.update(
+            Electrodes=[
+                dict(name="group_name", description="The name of the ElectrodeGroup this electrode is a part of."),
+            ]
         )
 
         return metadata
