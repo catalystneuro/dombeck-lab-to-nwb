@@ -41,6 +41,14 @@ class PicoscopeRecordingExtractor(BaseRecording):
 
         super().__init__(sampling_frequency, channel_names, dtype)
 
+        # TODO: confirm the gain and offset
+        # Based on visual inspection the traces are in Volts
+        gain_to_uV = 1e6
+        self.set_channel_gains(gain_to_uV)
+        # Based on the Picoscope 6 User Guide the offset is 0
+        offset_to_uV = 0.0
+        self.set_channel_offsets(offset_to_uV)
+
         rec_segment = PicoscopeRecordingSegment(sampling_frequency=sampling_frequency, data=data)
         self.add_recording_segment(rec_segment)
 
