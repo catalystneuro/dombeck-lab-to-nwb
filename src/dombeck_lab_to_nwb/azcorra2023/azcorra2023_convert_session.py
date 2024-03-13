@@ -44,9 +44,7 @@ def session_to_nwb(
             FluorescenceGreenRecording=dict(
                 folder_path=str(picoscope_folder_path), channel_name="C", es_key="ElectricalSeriesFluorescenceGreen"
             ),
-            LickingRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="G", es_key="ElectricalSeriesLicking"
-            ),
+            Events=dict(folder_path=str(picoscope_folder_path)),
         )
     )
 
@@ -55,7 +53,6 @@ def session_to_nwb(
             VelocityRecording=dict(stub_test=stub_test),
             FluorescenceRedRecording=dict(stub_test=stub_test),
             FluorescenceGreenRecording=dict(stub_test=stub_test),
-            LickingRecording=dict(stub_test=stub_test),
         )
     )
 

@@ -28,5 +28,3 @@ Ecephys:
     description: The electrical series of fluorescence from Red channel collected at 4000 Hz by Picoscope.
   ElectricalSeriesFluorescenceGreen:
     description: The electrical series of fluorescence from Green channel collected at 4000 Hz by Picoscope.
-  ElectricalSeriesLicking:
-    description: The electrical series of licking from a lick sensor collected at 4000 Hz by Picoscope.

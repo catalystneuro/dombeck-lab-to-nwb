@@ -12,7 +12,7 @@ class PicoscopeRecordingExtractor(BaseRecording):
     mode = "file"
     name = "picoscope"
 
-    def __init__(self, file_path: FilePathType, channel_name: str):
+    def __init__(self, file_path: FilePathType, channel_name: Optional[str] = None):
         """
         Recording extractor for analog signals from PicoScope.
 
@@ -21,8 +21,9 @@ class PicoscopeRecordingExtractor(BaseRecording):
 
         file_path : FilePathType
             The MAT file from PicoScope.
-        channel_name : str
-            The name of the channel to load from the MAT file.
+        channel_name : str, optional
+            The name of the channel to load.
+            When not specified, all channels are loaded from the MAT file.
         """
 
         file_path = Path(file_path)
@@ -31,17 +32,18 @@ class PicoscopeRecordingExtractor(BaseRecording):
         mat_data = read_mat(file_path)
 
         # The channel names are single letter variables in the MAT file
-        available_channels = [chan for chan in list(mat_data.keys()) if len(chan) == 1]
-        assert (
-            channel_name in available_channels
-        ), f"The channel {channel_name} is not available in the file {file_path}."
+        channel_ids = [chan for chan in list(mat_data.keys()) if len(chan) == 1]
+        if channel_name:
+            assert channel_name in channel_ids, f"The channel {channel_name} is not available in the file {file_path}."
+            channel_ids = [channel_name]
+            data = mat_data[channel_name][:, np.newaxis]
+        else:
+            data = np.concatenate([mat_data[chan][:, np.newaxis] for chan in channel_ids], axis=1)
 
         assert "Tinterval" in mat_data, f"The file {file_path} does not contain a 'Tinterval' key."
         sampling_frequency = 1 / mat_data["Tinterval"]
 
-        data = mat_data[channel_name][:, np.newaxis]
         dtype = data.dtype
-        channel_ids = [channel_name]
 
         super().__init__(sampling_frequency, channel_ids, dtype)
 
