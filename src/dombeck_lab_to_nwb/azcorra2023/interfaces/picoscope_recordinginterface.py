@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from typing import List, Optional
 
 from natsort import natsorted
 from neuroconv.datainterfaces.ecephys.baserecordingextractorinterface import BaseRecordingExtractorInterface
@@ -23,8 +24,9 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
     def __init__(
         self,
         folder_path: FolderPathType,
+        channel_name: str,
         verbose: bool = True,
-        es_key: str = "ElectricalSeriesSync",
+        es_key: str = "ElectricalSeries",
     ):
         """
         Load and prepare raw data and corresponding metadata from the Piscoscope (.mat files).
@@ -33,10 +35,12 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
         ----------
         folder_path : FolderPathType
             The folder containing the .mat files from the Picoscope.
+        channel_name: str
+            The name of the channel to load from the MAT file.
         verbose : bool, optional
             Allows for verbose output, by default True.
         es_key : str, optional
-            The key to use for the ElectricalSeries, by default "ElectricalSeriesSync".
+            The key to use for the ElectricalSeries, by default "ElectricalSeries".
         """
 
         self.folder_path = Path(folder_path)
@@ -44,24 +48,13 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
         mat_files = natsorted(self.folder_path.glob(f"{session_name}_*.mat"))
         assert mat_files, f"The .mat files are missing from {folder_path}."
 
-        recording_list = [PicoscopeRecordingExtractor(file_path=str(file_path)) for file_path in mat_files]
+        recording_list = [
+            PicoscopeRecordingExtractor(file_path=str(file_path), channel_name=channel_name) for file_path in mat_files
+        ]
 
         super().__init__(recording_list=recording_list, verbose=verbose, es_key=es_key)
 
-        custom_channel_names = [
-            "chMov",
-            "chRed",
-            "chGreen",
-            "Light",
-            "ch470",
-            "Reward",
-            "Licking",
-            "AirPuff",
-        ]
         extractor_channel_ids = self.recording_extractor.get_channel_ids()
-        self.recording_extractor.set_property(
-            key="custom_channel_name", ids=extractor_channel_ids, values=custom_channel_names
-        )
         group_names = ["PicoscopeChannelGroup"] * len(extractor_channel_ids)
         self.recording_extractor.set_property(key="group_name", ids=extractor_channel_ids, values=group_names)
 
@@ -78,22 +71,15 @@ class PicoscopeRecordingInterface(BaseRecordingExtractorInterface):
         device_name = "Picoscope"
         device_metadata.update(
             name=device_name,
-            description="The Picoscope 6 device used to record the data.",
+            description="The Picoscope oscilloscope used to record the data.",
             manufacturer="Pico Technology",
         )
 
         electrode_group_metadata = ecephys_metadata["ElectrodeGroup"][0]
         electrode_group_metadata.update(
             name="PicoscopeChannelGroup",
-            description="The group of electrodes used to record the data.",
+            description="The group of channels used to record the data.",
             device=device_name,
-        )
-
-        ecephys_metadata[self.es_key].update(
-            description="The acquisition traces (velocity from rotary encoder, trigger signals for reward, "
-            "air puff and light stimuli delivery, licking from a lick sensor, fluorescence and "
-            "waveform generator output (used to alternate 405-nm and 470-nm illumination every 10 ms)"
-            "collected at 4000 Hz by Picoscope 6.",
         )
 
         # Add electrodes and electrode groups

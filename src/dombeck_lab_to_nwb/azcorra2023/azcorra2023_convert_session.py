@@ -33,8 +33,31 @@ def session_to_nwb(
     conversion_options = dict()
 
     # Add Picoscope data
-    source_data.update(dict(Recording=dict(folder_path=str(picoscope_folder_path))))
-    conversion_options.update(dict(Recording=dict(stub_test=stub_test)))
+    source_data.update(
+        dict(
+            VelocityRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="A", es_key="ElectricalSeriesVelocity"
+            ),
+            FluorescenceRedRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="B", es_key="ElectricalSeriesFluorescenceRed"
+            ),
+            FluorescenceGreenRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="C", es_key="ElectricalSeriesFluorescenceGreen"
+            ),
+            LickingRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="G", es_key="ElectricalSeriesLicking"
+            ),
+        )
+    )
+
+    conversion_options.update(
+        dict(
+            VelocityRecording=dict(stub_test=stub_test),
+            FluorescenceRedRecording=dict(stub_test=stub_test),
+            FluorescenceGreenRecording=dict(stub_test=stub_test),
+            LickingRecording=dict(stub_test=stub_test),
+        )
+    )
 
     converter = Azcorra2023NWBConverter(source_data=source_data)
 
@@ -59,7 +82,10 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
+    # The folder containing the Picoscope output (.mat files) for a single session of data.
     picoscope_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2020-02-26 Vglut2/VGlut-A997/20200129-0001")
+
+    # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200129-0001.nwb")
     stub_test = False
 

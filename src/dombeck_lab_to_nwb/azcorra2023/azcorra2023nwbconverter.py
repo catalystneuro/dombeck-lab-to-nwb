@@ -8,5 +8,8 @@ class Azcorra2023NWBConverter(NWBConverter):
     """Primary conversion class for the Azcorra2023 Fiber photometry dataset."""
 
     data_interface_classes = dict(
-        Recording=PicoscopeRecordingInterface,
+        VelocityRecording=PicoscopeRecordingInterface,
+        FluorescenceRedRecording=PicoscopeRecordingInterface,
+        FluorescenceGreenRecording=PicoscopeRecordingInterface,
+        LickingRecording=PicoscopeRecordingInterface,
     )
