@@ -1,14 +1,30 @@
 NWBFile:
   related_publications:
-    https://doi.org/### or link to APA or MLA citation of the publication
-  session_description:
-    A rich text description of the experiment. Can also just be the abstract of the publication.
-  institution: Institution where the lab is located
+    - https://doi.org/10.1038/s41593-023-01401-9
+  experiment_description: |
+    Dopamine neurons are characterized by their response to unexpected rewards, but they also fire during movement and
+    aversive stimuli. Dopamine neuron diversity has been observed based on molecular expression profiles; however,
+    whether different functions map onto such genetic subtypes remains unclear. In this study, we established that
+    three genetic dopamine neuron subtypes within the substantia nigra pars compacta, characterized by the expression
+    of Slc17a6 (Vglut2), Calb1 and Anxa1, each have a unique set of responses to rewards, aversive stimuli and
+    accelerations and decelerations, and these signaling patterns are highly correlated between somas and axons within
+    subtypes. Remarkably, reward responses were almost entirely absent in the Anxa1+ subtype, which instead displayed
+    acceleration-correlated signaling. Our findings establish a connection between functional and genetic dopamine
+    neuron subtypes and demonstrate that molecular expression patterns can serve as a common framework to dissect
+    dopaminergic functions.
+  session_description: |
+    This session contains the acquisition traces (velocity from rotary encoder, trigger signals for reward, air puff
+    and light stimuli delivery, licking from a lick sensor, fluorescence and waveform generator output (used to
+    alternate 405-nm and 470-nm illumination every 10 ms) collected at 4000 Hz by Picoscope 6.
+  institution: Northwestern University
   lab: Dombeck
   experimenter:
-    - Last, First Middle
-    - Last, First Middle
-Subject:
-  species: Rattus norvegicus
-  age: TBD  # in ISO 8601, such as "P1W2D"
-  sex: TBD  # One of M, F, U, or O
+    - Azcorra, Maite
+
+Ecephys:
+  ElectricalSeriesVelocity:
+    description: The electrical series of the velocity from rotary encoder collected at 4000 Hz by Picoscope.
+  ElectricalSeriesFluorescenceRed:
+    description: The electrical series of fluorescence from Red channel collected at 4000 Hz by Picoscope.
+  ElectricalSeriesFluorescenceGreen:
+    description: The electrical series of fluorescence from Green channel collected at 4000 Hz by Picoscope.

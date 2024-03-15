@@ -1,56 +1,76 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
 from pathlib import Path
 from typing import Union
-import datetime
-from zoneinfo import ZoneInfo
 
+from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
 from dombeck_lab_to_nwb.azcorra2023 import Azcorra2023NWBConverter
 
 
-def session_to_nwb(data_dir_path: Union[str, Path], output_dir_path: Union[str, Path], stub_test: bool = False):
+def session_to_nwb(
+    picoscope_folder_path: Union[str, Path],
+    nwbfile_path: Union[str, Path],
+    stub_test: bool = False,
+):
+    """
+    Convert a session of data to NWB format.
 
-    data_dir_path = Path(data_dir_path)
-    output_dir_path = Path(output_dir_path)
-    if stub_test:
-        output_dir_path = output_dir_path / "nwb_stub"
-    output_dir_path.mkdir(parents=True, exist_ok=True)
+    Parameters
+    ----------
+    picoscope_folder_path : Union[str, Path]
+        The folder containing the Picoscope data (.mat files).
+    nwbfile_path : Union[str, Path]
+        The path to the NWB file to be created.
+    stub_test : bool, optional
+        Whether to run a stub test, by default False.
 
-    session_id = "subject_identifier_usually"
-    nwbfile_path = output_dir_path / f"{session_id}.nwb"
+    """
+    picoscope_folder_path = Path(picoscope_folder_path)
+    nwbfile_path = Path(nwbfile_path)
 
     source_data = dict()
     conversion_options = dict()
 
-    # Add Recording
-    source_data.update(dict(Recording=dict()))
-    conversion_options.update(dict(Recording=dict()))
+    # Add Picoscope data
+    source_data.update(
+        dict(
+            VelocityRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="A", es_key="ElectricalSeriesVelocity"
+            ),
+            FluorescenceRedRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="B", es_key="ElectricalSeriesFluorescenceRed"
+            ),
+            FluorescenceGreenRecording=dict(
+                folder_path=str(picoscope_folder_path), channel_name="C", es_key="ElectricalSeriesFluorescenceGreen"
+            ),
+            Events=dict(folder_path=str(picoscope_folder_path)),
+        )
+    )
 
-    # Add LFP
-    source_data.update(dict(LFP=dict()))
-    conversion_options.update(dict(LFP=dict()))
-
-    # Add Sorting
-    source_data.update(dict(Sorting=dict()))
-    conversion_options.update(dict(Sorting=dict()))
-
-    # Add Behavior
-    source_data.update(dict(Behavior=dict()))
-    conversion_options.update(dict(Behavior=dict()))
+    conversion_options.update(
+        dict(
+            VelocityRecording=dict(stub_test=stub_test),
+            FluorescenceRedRecording=dict(stub_test=stub_test),
+            FluorescenceGreenRecording=dict(stub_test=stub_test),
+        )
+    )
 
     converter = Azcorra2023NWBConverter(source_data=source_data)
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
-    datetime.datetime(year=2020, month=1, day=1, tzinfo=ZoneInfo("US/Eastern"))
-    date = datetime.datetime.today()  # TO-DO: Get this from author
-    metadata["NWBFile"]["session_start_time"] = date
+    session_start_time = metadata["NWBFile"]["session_start_time"]
+    tzinfo = tz.gettz("US/Central")
+    metadata["NWBFile"].update(session_start_time=session_start_time.replace(tzinfo=tzinfo))
 
     # Update default metadata with the editable in the corresponding yaml file
     editable_metadata_path = Path(__file__).parent / "azcorra2023_metadata.yaml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
+
+    session_id = picoscope_folder_path.name
+    metadata["NWBFile"].update(session_id=session_id)
 
     # Run conversion
     converter.run_conversion(metadata=metadata, nwbfile_path=nwbfile_path, conversion_options=conversion_options)
@@ -59,12 +79,15 @@ def session_to_nwb(data_dir_path: Union[str, Path], output_dir_path: Union[str, 
 if __name__ == "__main__":
 
     # Parameters for conversion
-    data_dir_path = Path("/Directory/With/Raw/Formats/")
-    output_dir_path = Path("~/conversion_nwb/")
+    # The folder containing the Picoscope output (.mat files) for a single session of data.
+    picoscope_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2020-02-26 Vglut2/VGlut-A997/20200129-0001")
+
+    # The path to the NWB file to be created.
+    nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200129-0001.nwb")
     stub_test = False
 
     session_to_nwb(
-        data_dir_path=data_dir_path,
-        output_dir_path=output_dir_path,
+        picoscope_folder_path=picoscope_folder_path,
+        nwbfile_path=nwbfile_path,
         stub_test=stub_test,
     )
