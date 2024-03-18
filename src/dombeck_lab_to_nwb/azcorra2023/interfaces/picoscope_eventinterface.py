@@ -1,7 +1,9 @@
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 from natsort import natsorted
+from ndx_events import EventsTable, TtlsTable, EventTypesTable, TtlTypesTable
 from neuroconv import BaseDataInterface
 from neuroconv.tools.signal_processing import get_falling_frames_from_ttl, get_rising_frames_from_ttl
 from neuroconv.utils import FolderPathType
@@ -33,8 +35,17 @@ class PicoscopeEventInterface(BaseDataInterface):
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
         metadata["Events"] = dict(
-            name="PicoscopeEvents",
-            description="Contains the onset times of binary signals from the PicoScope.",
+            EventTypesTable=dict(
+                name="PicosScopeEventTypes",
+                description="Contains the type of binary signals from PicoScope.",
+            ),
+            EventsTable=dict(
+                name="PicoscopeEvents",
+                description="Contains the onset times of binary signals from PicoScope.",
+            ),
+            TtlsTable=dict(
+                description="Contains the 405 nm and 470 nm illumination onset times.",
+            ),
         )
 
         return metadata
@@ -53,16 +64,13 @@ class PicoscopeEventInterface(BaseDataInterface):
         return extractor
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict) -> None:
-        from ndx_events import AnnotatedEventsTable
+        from ndx_events import EventsTable
 
         events_metadata = metadata["Events"]
-        events_table_name = events_metadata["name"]
+        events_table_name = events_metadata["EventsTable"]["name"]
         assert events_table_name not in nwbfile.acquisition, f"The {events_metadata['name']} is already in nwbfile."
 
-        events = AnnotatedEventsTable(
-            name=events_table_name,
-            description=events_metadata["description"],
-        )
+        event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
 
         channel_names_mapping = dict(
             D="Light stimulus trigger",
@@ -71,37 +79,71 @@ class PicoscopeEventInterface(BaseDataInterface):
             H="Airpuff delivery trigger",
         )
 
+        for event_name in channel_names_mapping.values():
+            event_types_table.add_row(
+                event_name=event_name,
+                event_type_description=f"The onset times of the {event_name} event.",
+            )
+
+        nwbfile.add_acquisition(event_types_table)
+
+        events = EventsTable(
+            **events_metadata["EventsTable"],
+            target_tables={"event_type": event_types_table},  # sets the dynamic table region link
+        )
+
         extractor = self.get_picoscope_extractor_for_binary_traces()
         times = extractor.get_times()
 
-        for channel_name, renamed_channel_name in channel_names_mapping.items():
+        for event_id, (channel_name, renamed_channel_name) in enumerate(channel_names_mapping.items()):
             traces = extractor.get_traces(channel_ids=[channel_name])
             # Using the same threshold as in
             # https://github.com/DombeckLab/Azcorra2023/blob/2819bd5b7a6021243c44dfd45b5b25fd24ae8122/Fiber%20photometry%20data%20analysis/Data%20pre%20processing/selectSignals_paper.m#L110C1-L110C22
             event_times = get_rising_frames_from_ttl(traces, threshold=0.05)
 
             if len(event_times):
-                events.add_event_type(
-                    label=renamed_channel_name,
-                    event_description=f"The onset times of the {renamed_channel_name} event.",
-                    event_times=times[event_times],
-                )
-        # LEDs are alternated at 100Hz, as reported by variable E (output of waveform generator)
-        # <0.5 for 405, >0.5 5 for 470.
-        waveform_traces = extractor.get_traces(channel_ids=["E"])
-
-        ch405_event_times = get_falling_frames_from_ttl(waveform_traces, threshold=0.5)
-        events.add_event_type(
-            label="Ch405",
-            event_description=f"The event times when the 405 nm LED was on.",
-            event_times=times[ch405_event_times],
-        )
-
-        ch470_event_times = get_rising_frames_from_ttl(waveform_traces, threshold=0.5)
-        events.add_event_type(
-            label="Ch470",
-            event_description=f"The event times when the 470 nm LED was on.",
-            event_times=times[ch470_event_times],
-        )
+                for timestamp in times[event_times]:
+                    events.add_row(
+                        event_type=event_id,
+                        timestamp=timestamp,
+                    )
 
         nwbfile.add_acquisition(events)
+
+        ttl_types_table = TtlTypesTable(**events_metadata["TtlsTable"])
+        ttl_types_table.add_column(name="duration", description="The duration of the TTL pulse.")
+
+        ttl_types_table.add_row(
+            event_name="Ch405",
+            event_type_description="The times when the 405 nm LED was on.",
+            pulse_value=0,
+            duration=0.005,
+        )
+        ttl_types_table.add_row(
+            event_name="Ch470",
+            event_type_description="The times when the 470 nm LED was on.",
+            pulse_value=1,
+            duration=0.005,
+        )
+
+        ttls_table = TtlsTable(**events_metadata["TtlsTable"], target_tables={"ttl_type": ttl_types_table})
+
+        waveform_traces = extractor.get_traces(channel_ids=["E"])
+        ch405_event_times = get_falling_frames_from_ttl(waveform_traces, threshold=0.5)
+        for timestamp in times[ch405_event_times]:
+            ttls_table.add_row(
+                timestamp=timestamp,
+                ttl_type=0,  # NOT the pulse value, but a row index into the ttl_types_table
+                duration=0.005,
+            )
+
+        ch470_event_times = get_rising_frames_from_ttl(waveform_traces, threshold=0.5)
+        for timestamp in times[ch470_event_times]:
+            ttls_table.add_row(
+                timestamp=timestamp,
+                ttl_type=1,
+                duration=0.005,
+            )
+
+        nwbfile.add_acquisition(ttl_types_table)
+        nwbfile.add_acquisition(ttls_table)
