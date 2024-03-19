@@ -4,9 +4,11 @@ from typing import Optional
 from hdmf.backends.hdf5 import H5DataIO
 from hdmf.common import DynamicTableRegion
 from neuroconv.basedatainterface import BaseDataInterface
+from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 from pynwb import NWBFile
+from pynwb.ophys import Fluorescence
 
 
 class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
@@ -96,12 +98,13 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         fibers_metadata = fiber_photometry_metadata["Fibers"]
         fibers_description = fibers_metadata.pop("description")
         fibers_table = FibersTable(description=fibers_description)
+        location = "SNc" if self._depth > 3.0 else "striatum"
         for fiber_metadata in fibers_metadata.values():
             fiber_name = fiber_metadata.pop("name")
             if fiber_name in self.column_names:
                 fibers_table.add_row(
                     **fiber_metadata,
-                    location="SNc" if self._depth > 3.0 else "striatum",  # TBD
+                    location=location,
                 )
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
@@ -118,6 +121,12 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 photodetectors=photodetectors_table,
                 fluorophores=fluorophores_table,
             )
+        )
+
+        ophys_module = get_module(
+            nwbfile=nwbfile,
+            name="ophys",
+            description=f"Fiber photometry data from {location}.",
         )
 
         for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
@@ -166,4 +175,4 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 fluorophore=fluorophore_ref,
             )
 
-            nwbfile.add_acquisition(response_series)
+            ophys_module.add(response_series)
