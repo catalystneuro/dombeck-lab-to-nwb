@@ -43,6 +43,9 @@ class PicoscopeEventInterface(BaseDataInterface):
                 name="PicoscopeEvents",
                 description="Contains the onset times of binary signals from PicoScope.",
             ),
+            TtlTypesTable=dict(
+                description="Contains the TTL event types from PicoScope.",
+            ),
             TtlsTable=dict(
                 description="Contains the 405 nm and 470 nm illumination onset times.",
             ),
@@ -110,7 +113,7 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         nwbfile.add_acquisition(events)
 
-        ttl_types_table = TtlTypesTable(**events_metadata["TtlsTable"])
+        ttl_types_table = TtlTypesTable(**events_metadata["TtlTypesTable"])
         ttl_types_table.add_column(name="duration", description="The duration of the TTL pulse.")
 
         ttl_types_table.add_row(
