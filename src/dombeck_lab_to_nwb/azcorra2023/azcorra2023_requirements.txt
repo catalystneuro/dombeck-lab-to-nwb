@@ -1,1 +1,2 @@
 ndx-events @ git+https://github.com/rly/ndx-events.git # Until 0.3.0 is released
+ndx-photometry @ git+https://github.com/catalystneuro/ndx-photometry.git@array-excitation-sources # Until new release is made
