@@ -19,7 +19,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
     def __init__(
         self,
         file_path: FilePathType,
-        channel_name_mapping: Optional[dict] = None,
+        depth_id: str,
         verbose: bool = False,
     ):
         """
@@ -27,8 +27,6 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         ----------
         file_path : FilePathType
             The path that points to the .mat file containing the binned photometry data.
-        channel_name_mapping: dict, optional
-            A dictionary that maps the channel names in the .mat file to the names of the photometry response series.
         """
         file_path = Path(file_path)
         assert file_path.exists(), f"File {file_path} does not exist."
@@ -36,26 +34,21 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self.verbose = verbose
         binned_photometry_data = read_mat(filename=str(self.file_path))
 
-        column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
-        self.column_names = column_names
+        depth_ids = binned_photometry_data["#subsystem#"]["MCOS"][5]
+        assert depth_id in depth_ids, f"The depth_id {depth_id} is not in the file {file_path}."
+        depth_index = depth_ids.index(depth_id)
+        self.depth_index = depth_index
 
-        channel_names = channel_name_mapping.keys()
-        self.channel_name_mapping = channel_name_mapping
-        assert all(
-            channel_name in column_names for channel_name in channel_names
-        ), f"The channel names {channel_names} are not in the file {file_path}."
-
+        self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
+        assert "Depth" in self.column_names, f"The column 'Depth' is not in the file {file_path}."
         self._photometry_data = binned_photometry_data["#subsystem#"]["MCOS"][2]
-
-        assert "Depth" in column_names, f"The column 'Depth' is not in the file {file_path}."
-        depth_index = column_names.index("Depth")
-        self.depths = self._photometry_data[depth_index]
-        self.depth_ids = binned_photometry_data["#subsystem#"]["MCOS"][5]
+        self._depth = self._photometry_data[self.column_names.index("Depth")][depth_index]
 
     def add_to_nwbfile(
         self,
         nwbfile: NWBFile,
         metadata: dict,
+        channel_name_to_photometry_series_name_mapping: dict,
         stub_test: Optional[bool] = False,
     ) -> None:
         """
@@ -67,6 +60,8 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             The NWBFile to add the raw photometry data to.
         metadata : dict
             The metadata for the photometry data.
+        channel_name_to_photometry_series_name_mapping: dict
+            A dictionary that maps the channel names in the .mat file to the names of the photometry response series.
         stub_test : bool, optional
             Whether to run the conversion as a stub test by writing 1-minute of data, by default False.
         """
@@ -78,6 +73,11 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             FiberPhotometry,
             FiberPhotometryResponseSeries,
         )
+
+        channel_names = list(channel_name_to_photometry_series_name_mapping.keys())
+        assert all(
+            channel_name in self.column_names for channel_name in channel_names
+        ), f"Not all channel names are in {self.source_data['file_path']}."
 
         fiber_photometry_metadata = metadata["FiberPhotometry"]
 
@@ -101,7 +101,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             if fiber_name in self.column_names:
                 fibers_table.add_row(
                     **fiber_metadata,
-                    location="SNc" if self.depths[0] > 3.0 else "striatum",  # TBD
+                    location="SNc" if self._depth > 3.0 else "striatum",  # TBD
                 )
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
@@ -120,11 +120,11 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             )
         )
 
-        for channel_name, photometry_response_series_name in self.channel_name_mapping.items():
+        for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
             photometry_response_series_metadata = next(
                 fiber
                 for fiber in fiber_photometry_metadata["FiberPhotometryResponseSeries"]
-                if fiber["name"] == photometry_response_series_name
+                if fiber["name"] == series_name
             )
 
             fiber_ref = DynamicTableRegion(
@@ -147,24 +147,20 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             )
 
             channel_index = self.column_names.index(channel_name)
-            for depth_index, depth in enumerate(self.depths):
-                # E.g. 'VGlut-A997-20200205-0001'
-                depth_id = self.depth_ids[depth_index].split("-")[-1]
+            description = photometry_response_series_metadata["description"]
+            description += f" obtained at {self._depth} mm depth."
 
-                description = photometry_response_series_metadata["description"]
-                description += f" obtained at {depth} mm depth."
+            data = self._photometry_data[channel_index][self.depth_index]
+            response_series = FiberPhotometryResponseSeries(
+                name=series_name,
+                description=description,
+                data=H5DataIO(data, compression=True) if not stub_test else data[:6000],
+                unit="Volts",  # TODO: double check units
+                rate=100.0,
+                fiber=fiber_ref,
+                excitation_source=excitation_ref,
+                photodetector=photodetector_ref,
+                fluorophore=fluorophore_ref,
+            )
 
-                data = self._photometry_data[channel_index][depth_index]
-                response_series = FiberPhotometryResponseSeries(
-                    name=photometry_response_series_name + depth_id,
-                    description=description,
-                    data=H5DataIO(data, compression=True) if not stub_test else data[:6000],
-                    unit="Volts",  # TODO: double check units
-                    rate=100.0,
-                    fiber=fiber_ref,
-                    excitation_source=excitation_ref,
-                    photodetector=photodetector_ref,
-                    fluorophore=fluorophore_ref,
-                )
-
-                nwbfile.add_acquisition(response_series)
+            nwbfile.add_acquisition(response_series)
