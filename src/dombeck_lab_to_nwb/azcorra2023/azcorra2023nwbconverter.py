@@ -1,7 +1,11 @@
 """Primary NWBConverter class for this dataset."""
 from neuroconv import NWBConverter
 
-from dombeck_lab_to_nwb.azcorra2023.interfaces import PicoscopeRecordingInterface, PicoscopeEventInterface
+from dombeck_lab_to_nwb.azcorra2023.interfaces import (
+    PicoscopeRecordingInterface,
+    PicoscopeEventInterface,
+    Azcorra2023FiberPhotometryInterface,
+)
 
 
 class Azcorra2023NWBConverter(NWBConverter):
@@ -12,4 +16,5 @@ class Azcorra2023NWBConverter(NWBConverter):
         FluorescenceRedRecording=PicoscopeRecordingInterface,
         FluorescenceGreenRecording=PicoscopeRecordingInterface,
         Events=PicoscopeEventInterface,
+        FiberPhotometry=Azcorra2023FiberPhotometryInterface,
     )

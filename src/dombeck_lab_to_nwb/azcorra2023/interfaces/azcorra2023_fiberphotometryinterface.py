@@ -19,7 +19,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
     def __init__(
         self,
         file_path: FilePathType,
-        depth_id: str,
+        session_id: str,
         verbose: bool = False,
     ):
         """
@@ -35,8 +35,8 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         binned_photometry_data = read_mat(filename=str(self.file_path))
 
         depth_ids = binned_photometry_data["#subsystem#"]["MCOS"][5]
-        assert depth_id in depth_ids, f"The depth_id {depth_id} is not in the file {file_path}."
-        depth_index = depth_ids.index(depth_id)
+        assert session_id in depth_ids, f"{session_id} is not in the file {file_path}."
+        depth_index = depth_ids.index(session_id)
         self.depth_index = depth_index
 
         self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
@@ -143,7 +143,10 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 name="photodetector", description="photodetector", data=[0], table=excitation_sources_table
             )
             fluorophore_ref = DynamicTableRegion(
-                name="fluorophore", description="fluorophore", data=[0], table=fluorophores_table
+                name="fluorophore",
+                description="fluorophore",
+                data=[photometry_response_series_metadata["fluorophore"]],
+                table=fluorophores_table,
             )
 
             channel_index = self.column_names.index(channel_name)
