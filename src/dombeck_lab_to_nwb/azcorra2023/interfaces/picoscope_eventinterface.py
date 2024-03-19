@@ -66,7 +66,7 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         return extractor
 
-    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict) -> None:
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False) -> None:
         from ndx_events import EventsTable
 
         events_metadata = metadata["Events"]
@@ -104,8 +104,9 @@ class PicoscopeEventInterface(BaseDataInterface):
             # https://github.com/DombeckLab/Azcorra2023/blob/2819bd5b7a6021243c44dfd45b5b25fd24ae8122/Fiber%20photometry%20data%20analysis/Data%20pre%20processing/selectSignals_paper.m#L110C1-L110C22
             event_times = get_rising_frames_from_ttl(traces, threshold=0.05)
 
+            timestamps = times[event_times] if not stub_test else times[event_times][:100]
             if len(event_times):
-                for timestamp in times[event_times]:
+                for timestamp in timestamps:
                     events.add_row(
                         event_type=event_id,
                         timestamp=timestamp,
@@ -133,7 +134,8 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         waveform_traces = extractor.get_traces(channel_ids=["E"])
         ch405_event_times = get_falling_frames_from_ttl(waveform_traces, threshold=0.5)
-        for timestamp in times[ch405_event_times]:
+        ch405_timestamps = times[ch405_event_times] if not stub_test else times[ch405_event_times][:100]
+        for timestamp in ch405_timestamps:
             ttls_table.add_row(
                 timestamp=timestamp,
                 ttl_type=0,  # NOT the pulse value, but a row index into the ttl_types_table
@@ -141,7 +143,8 @@ class PicoscopeEventInterface(BaseDataInterface):
             )
 
         ch470_event_times = get_rising_frames_from_ttl(waveform_traces, threshold=0.5)
-        for timestamp in times[ch470_event_times]:
+        ch470_timestamps = times[ch470_event_times] if not stub_test else times[ch470_event_times][:100]
+        for timestamp in ch470_timestamps:
             ttls_table.add_row(
                 timestamp=timestamp,
                 ttl_type=1,
