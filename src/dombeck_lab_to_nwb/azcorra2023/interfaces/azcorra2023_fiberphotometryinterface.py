@@ -22,6 +22,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self,
         file_path: FilePathType,
         session_id: str,
+        fiber_depth_red: Optional[float] = None,
         verbose: bool = False,
     ):
         """
@@ -29,12 +30,17 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         ----------
         file_path : FilePathType
             The path that points to the .mat file containing the binned photometry data.
+        session_id : str
+            The session id to extract from the .mat file.
+        fiber_depth_red : float, optional
+            The depth of the red fiber in the unit of millimeters, by default None.
         """
         file_path = Path(file_path)
         assert file_path.exists(), f"File {file_path} does not exist."
         self.file_path = file_path
         self.verbose = verbose
         binned_photometry_data = read_mat(filename=str(self.file_path))
+        self._photometry_data = binned_photometry_data["#subsystem#"]["MCOS"][2]
 
         depth_ids = binned_photometry_data["#subsystem#"]["MCOS"][5]
         assert session_id in depth_ids, f"{session_id} is not in the file {file_path}."
@@ -42,9 +48,15 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self.depth_index = depth_index
 
         self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
+
+        # Record the depth of the fiber
+        # The script that used to create the concatenated and binned photometry data only
+        # records the depth of the green fiber.
         assert "Depth" in self.column_names, f"The column 'Depth' is not in the file {file_path}."
-        self._photometry_data = binned_photometry_data["#subsystem#"]["MCOS"][2]
-        self._depth_in_mm = self._photometry_data[self.column_names.index("Depth")][depth_index]
+        fiber_depth_green_in_mm = self._photometry_data[self.column_names.index("Depth")][depth_index]
+        self.fiber_depth = dict(chGreen=fiber_depth_green_in_mm)
+        if fiber_depth_red is not None:
+            self.fiber_depth.update(chRed=fiber_depth_red)
 
     def add_to_nwbfile(
         self,
@@ -99,15 +111,15 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         fibers_description = fibers_metadata.pop("description")
         fibers_table = FibersTable(description=fibers_description)
         fibers_table.add_column(name="depth", description="The depth of fiber in the unit of meters.")
-        location = "SNc" if self._depth_in_mm > 3.0 else "striatum"
 
-        for fiber_metadata in fibers_metadata.values():
-            fiber_name = fiber_metadata.pop("name")
+        for fiber_name, fiber_metadata in fibers_metadata.items():
             if fiber_name in self.column_names:
+                fiber_depth_in_mm = self.fiber_depth[fiber_name]
+                location = "SNc" if fiber_depth_in_mm > 3.0 else "striatum"
                 fibers_table.add_row(
                     **fiber_metadata,
+                    depth=fiber_depth_in_mm / 1000,
                     location=location,
-                    depth=self._depth_in_mm / 1000.0,
                 )
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
@@ -133,10 +145,11 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         )
 
         for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
+            # Get photometry response series metadata
             photometry_response_series_metadata = next(
-                fiber
-                for fiber in fiber_photometry_metadata["FiberPhotometryResponseSeries"]
-                if fiber["name"] == series_name
+                series_metadata
+                for series_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]
+                if series_metadata["name"] == series_name
             )
 
             fiber_ref = DynamicTableRegion(
@@ -163,7 +176,11 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
 
             channel_index = self.column_names.index(channel_name)
             description = photometry_response_series_metadata["description"]
-            description += f" obtained at {self._depth_in_mm / 1000} meters depth."
+            # add more information about the fiber depth
+            # could be changed to reference name instead
+            fiber_name = list(fibers_metadata.keys())[photometry_response_series_metadata["fiber"]]
+            fiber_depth_in_mm = self.fiber_depth[fiber_name]
+            description += f" obtained at {fiber_depth_in_mm / 1000} meters depth."
 
             data = self._photometry_data[channel_index][self.depth_index]
             response_series = FiberPhotometryResponseSeries(

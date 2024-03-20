@@ -31,15 +31,11 @@ FiberPhotometry:
       until transients were detected. From there, a 15 minutes recording was obtained, and the fiber was moved further down
       in the same increments. Subsequent recordings were obtained until a depth was reached where transients were no
       longer detected, at which point the fiber was pulled out of the brain slowly (5 μm s−1).
-    Fiber1:
-      name: chGreen # the name of the fiber in the .mat file
-      # location: striatum or SNc depending on recording depth
+    chGreen: # the name of the fiber in the .mat file
       notes: The optical fiber used to record the GCaMP fluorescence.
       fiber_model_number: Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
       dichroic_model_number: Chroma Technology, T425lpxr
-    Fiber2:
-      name: chRed # the name of the fiber in the .mat file
-      # location: striatum or SNc depending on recording depth
+    chRed: # the name of the fiber in the .mat file
       notes: The optical fiber used to record the red fluorescence.
       fiber_model_number: Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
       dichroic_model_number: Chroma Technology, T425lpxr
