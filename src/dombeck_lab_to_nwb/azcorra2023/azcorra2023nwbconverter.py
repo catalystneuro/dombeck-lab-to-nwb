@@ -1,15 +1,23 @@
 """Primary NWBConverter class for this dataset."""
-from neuroconv import NWBConverter
+from typing import Optional
 
-from dombeck_lab_to_nwb.azcorra2023.interfaces import PicoscopeRecordingInterface, PicoscopeEventInterface
+from neuroconv import NWBConverter
+from neuroconv.tools.nwb_helpers import get_default_backend_configuration, configure_backend
+from pynwb import NWBFile
+
+from dombeck_lab_to_nwb.azcorra2023.interfaces import PicoscopeTimeSeriesInterface, PicoscopeEventInterface
 
 
 class Azcorra2023NWBConverter(NWBConverter):
     """Primary conversion class for the Azcorra2023 Fiber photometry dataset."""
 
     data_interface_classes = dict(
-        VelocityRecording=PicoscopeRecordingInterface,
-        FluorescenceRedRecording=PicoscopeRecordingInterface,
-        FluorescenceGreenRecording=PicoscopeRecordingInterface,
+        PicoScopeTimeSeries=PicoscopeTimeSeriesInterface,
         Events=PicoscopeEventInterface,
     )
+
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
+        super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
+
+        backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
+        configure_backend(nwbfile=nwbfile, backend_configuration=backend_configuration)
