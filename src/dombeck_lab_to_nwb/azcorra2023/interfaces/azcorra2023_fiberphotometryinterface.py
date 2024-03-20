@@ -44,7 +44,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
         assert "Depth" in self.column_names, f"The column 'Depth' is not in the file {file_path}."
         self._photometry_data = binned_photometry_data["#subsystem#"]["MCOS"][2]
-        self._depth = self._photometry_data[self.column_names.index("Depth")][depth_index]
+        self._depth_in_mm = self._photometry_data[self.column_names.index("Depth")][depth_index]
 
     def add_to_nwbfile(
         self,
@@ -98,13 +98,16 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         fibers_metadata = fiber_photometry_metadata["Fibers"]
         fibers_description = fibers_metadata.pop("description")
         fibers_table = FibersTable(description=fibers_description)
-        location = "SNc" if self._depth > 3.0 else "striatum"
+        fibers_table.add_column(name="depth", description="The depth of fiber in the unit of meters.")
+        location = "SNc" if self._depth_in_mm > 3.0 else "striatum"
+
         for fiber_metadata in fibers_metadata.values():
             fiber_name = fiber_metadata.pop("name")
             if fiber_name in self.column_names:
                 fibers_table.add_row(
                     **fiber_metadata,
                     location=location,
+                    depth=self._depth_in_mm / 1000.0,
                 )
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
@@ -160,7 +163,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
 
             channel_index = self.column_names.index(channel_name)
             description = photometry_response_series_metadata["description"]
-            description += f" obtained at {self._depth} mm depth."
+            description += f" obtained at {self._depth_in_mm / 1000} meters depth."
 
             data = self._photometry_data[channel_index][self.depth_index]
             response_series = FiberPhotometryResponseSeries(
