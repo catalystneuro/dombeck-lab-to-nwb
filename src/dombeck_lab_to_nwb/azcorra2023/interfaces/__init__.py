@@ -1,0 +1,2 @@
+from .picoscope_timeseriesinterface import PicoscopeTimeSeriesInterface
+from .picoscope_eventinterface import PicoscopeEventInterface

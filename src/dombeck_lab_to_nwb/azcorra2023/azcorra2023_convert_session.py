@@ -35,24 +35,24 @@ def session_to_nwb(
     # Add Picoscope data
     source_data.update(
         dict(
-            VelocityRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="A", es_key="ElectricalSeriesVelocity"
-            ),
-            FluorescenceRedRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="B", es_key="ElectricalSeriesFluorescenceRed"
-            ),
-            FluorescenceGreenRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="C", es_key="ElectricalSeriesFluorescenceGreen"
-            ),
-            Events=dict(folder_path=str(picoscope_folder_path)),
+            PicoScopeTimeSeries=dict(
+                folder_path=str(picoscope_folder_path),
+                channel_ids=["A", "B", "C"],
+            )
         )
     )
 
+    channel_id_to_time_series_name_mapping = dict(
+        A="Velocity",
+        B="FluorescenceRed",
+        C="FluorescenceGreen",
+    )
     conversion_options.update(
         dict(
-            VelocityRecording=dict(stub_test=stub_test),
-            FluorescenceRedRecording=dict(stub_test=stub_test),
-            FluorescenceGreenRecording=dict(stub_test=stub_test),
+            PicoScopeTimeSeries=dict(
+                channel_id_to_time_series_name_mapping=channel_id_to_time_series_name_mapping,
+                stub_test=stub_test,
+            )
         )
     )
 
