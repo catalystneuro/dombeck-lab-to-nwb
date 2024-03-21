@@ -12,7 +12,7 @@ class PicoscopeRecordingExtractor(BaseRecording):
     mode = "file"
     name = "picoscope"
 
-    def __init__(self, file_path: FilePathType, channel_name: Optional[str] = None):
+    def __init__(self, file_path: FilePathType, channel_ids: list):
         """
         Recording extractor for analog signals from PicoScope.
 
@@ -21,9 +21,8 @@ class PicoscopeRecordingExtractor(BaseRecording):
 
         file_path : FilePathType
             The MAT file from PicoScope.
-        channel_name : str, optional
-            The name of the channel to load.
-            When not specified, all channels are loaded from the MAT file.
+        channel_ids : list
+            The channels to load from the MAT file.
         """
 
         file_path = Path(file_path)
@@ -32,13 +31,10 @@ class PicoscopeRecordingExtractor(BaseRecording):
         mat_data = read_mat(file_path)
 
         # The channel names are single letter variables in the MAT file
-        channel_ids = [chan for chan in list(mat_data.keys()) if len(chan) == 1]
-        if channel_name:
-            assert channel_name in channel_ids, f"The channel {channel_name} is not available in the file {file_path}."
-            channel_ids = [channel_name]
-            data = mat_data[channel_name][:, np.newaxis]
-        else:
-            data = np.concatenate([mat_data[chan][:, np.newaxis] for chan in channel_ids], axis=1)
+        assert all(
+            [chan in list(mat_data.keys()) for chan in channel_ids]
+        ), "The provided 'channel_ids' are not all present in the MAT file."
+        data = np.concatenate([mat_data[chan][:, np.newaxis] for chan in channel_ids], axis=1)
 
         assert "Tinterval" in mat_data, f"The file {file_path} does not contain a 'Tinterval' key."
         sampling_frequency = 1 / mat_data["Tinterval"]
@@ -46,14 +42,6 @@ class PicoscopeRecordingExtractor(BaseRecording):
         dtype = data.dtype
 
         super().__init__(sampling_frequency, channel_ids, dtype)
-
-        # TODO: confirm the gain and offset
-        # Based on visual inspection the traces are in Volts
-        gain_to_uV = 1e6
-        self.set_channel_gains(gain_to_uV)
-        # Based on the Picoscope 6 User Guide the offset is 0
-        offset_to_uV = 0.0
-        self.set_channel_offsets(offset_to_uV)
 
         rec_segment = PicoscopeRecordingSegment(sampling_frequency=sampling_frequency, data=data)
         self.add_recording_segment(rec_segment)

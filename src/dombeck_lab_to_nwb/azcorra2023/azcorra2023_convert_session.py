@@ -38,24 +38,25 @@ def session_to_nwb(
     # Add Picoscope data
     source_data.update(
         dict(
-            VelocityRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="A", es_key="ElectricalSeriesVelocity"
-            ),
-            FluorescenceRedRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="B", es_key="ElectricalSeriesFluorescenceRed"
-            ),
-            FluorescenceGreenRecording=dict(
-                folder_path=str(picoscope_folder_path), channel_name="C", es_key="ElectricalSeriesFluorescenceGreen"
+            PicoScopeTimeSeries=dict(
+                folder_path=str(picoscope_folder_path),
+                channel_ids=["A", "B", "C"],
             ),
             Events=dict(folder_path=str(picoscope_folder_path)),
         )
     )
 
+    channel_id_to_time_series_name_mapping = dict(
+        A="Velocity",
+        B="FluorescenceRed",
+        C="FluorescenceGreen",
+    )
     conversion_options.update(
         dict(
-            VelocityRecording=dict(stub_test=stub_test),
-            FluorescenceRedRecording=dict(stub_test=stub_test),
-            FluorescenceGreenRecording=dict(stub_test=stub_test),
+            PicoScopeTimeSeries=dict(
+                channel_id_to_time_series_name_mapping=channel_id_to_time_series_name_mapping,
+                stub_test=stub_test,
+            ),
             Events=dict(stub_test=stub_test),
         )
     )
@@ -113,7 +114,6 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
-
     data_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2020-02-26 Vglut2/VGlut-A997")
     # The folder containing the Picoscope output (.mat files) for a single session of data.
     picoscope_folder_path = data_folder_path / "20200205-0001"
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200205-0001.nwb")
-    stub_test = True
+    stub_test = False
 
     session_to_nwb(
         picoscope_folder_path=picoscope_folder_path,
