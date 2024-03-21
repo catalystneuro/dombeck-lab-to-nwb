@@ -55,16 +55,11 @@ class PicoscopeEventInterface(BaseDataInterface):
 
     def get_picoscope_extractor_for_binary_traces(self):
         recording_list = [
-            PicoscopeRecordingExtractor(file_path=str(file_path)) for file_path in self.source_data["file_list"]
+            PicoscopeRecordingExtractor(file_path=str(file_path), channel_ids=self.channel_ids)
+            for file_path in self.source_data["file_list"]
         ]
         concatenated_recording = ConcatenateSegmentRecording(recording_list=recording_list)
-
-        extractor = ChannelSliceRecording(
-            parent_recording=concatenated_recording,
-            channel_ids=self.channel_ids,
-        )
-
-        return extractor
+        return concatenated_recording
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False) -> None:
         from ndx_events import EventsTable
