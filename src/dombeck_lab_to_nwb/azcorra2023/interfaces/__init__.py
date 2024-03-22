@@ -1,2 +1,3 @@
 from .picoscope_timeseriesinterface import PicoscopeTimeSeriesInterface
 from .picoscope_eventinterface import PicoscopeEventInterface
+from .azcorra2023_fiberphotometryinterface import Azcorra2023FiberPhotometryInterface
