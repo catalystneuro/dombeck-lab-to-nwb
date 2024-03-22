@@ -11,6 +11,7 @@ from dombeck_lab_to_nwb.azcorra2023 import Azcorra2023NWBConverter
 def session_to_nwb(
     picoscope_folder_path: Union[str, Path],
     binned_photometry_mat_file_path: Union[str, Path],
+    processed_photometry_mat_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
 ):
@@ -23,6 +24,8 @@ def session_to_nwb(
         The folder containing the Picoscope data (.mat files).
     binned_photometry_mat_file_path : Union[str, Path]
         The path to the .mat file containing the binned photometry data.
+    processed_photometry_mat_file_path : Union[str, Path]
+        The path to the .mat file containing the processed photometry data.
     nwbfile_path : Union[str, Path]
         The path to the NWB file to be created.
     stub_test : bool, optional
@@ -81,6 +84,16 @@ def session_to_nwb(
         )
     )
 
+    # Add processed photometry data
+    source_data.update(dict(ProcessedFiberPhotometry=dict(file_path=str(processed_photometry_mat_file_path))))
+    conversion_options.update(
+        dict(
+            ProcessedFiberPhotometry=dict(
+                stub_test=stub_test,
+            )
+        )
+    )
+
     converter = Azcorra2023NWBConverter(source_data=source_data)
 
     # Add datetime to conversion
@@ -121,6 +134,9 @@ if __name__ == "__main__":
     # The path to the .mat file containing the binned photometry data.
     binned_photometry_mat_file_path = data_folder_path / "T_Binned405_VGlut-A997-20200205.mat"
 
+    # The path to the .mat file containing the processed photometry data.
+    processed_photometry_mat_file_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp/VGlut-A997-20200205-0001.mat")
+
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200205-0001.nwb")
     stub_test = False
@@ -128,6 +144,7 @@ if __name__ == "__main__":
     session_to_nwb(
         picoscope_folder_path=picoscope_folder_path,
         binned_photometry_mat_file_path=binned_photometry_mat_file_path,
+        processed_photometry_mat_file_path=processed_photometry_mat_file_path,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
     )
