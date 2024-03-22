@@ -20,11 +20,3 @@ NWBFile:
   lab: Dombeck
   experimenter:
     - Azcorra, Maite
-
-Ecephys:
-  ElectricalSeriesVelocity:
-    description: The electrical series of the velocity from rotary encoder collected at 4000 Hz by Picoscope.
-  ElectricalSeriesFluorescenceRed:
-    description: The electrical series of fluorescence from Red channel collected at 4000 Hz by Picoscope.
-  ElectricalSeriesFluorescenceGreen:
-    description: The electrical series of fluorescence from Green channel collected at 4000 Hz by Picoscope.
