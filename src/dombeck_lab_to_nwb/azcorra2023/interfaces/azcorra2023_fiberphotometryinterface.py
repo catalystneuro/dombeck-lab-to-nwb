@@ -134,7 +134,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             fiber_name = fiber_metadata.pop("name")
             if fiber_name in self.column_names:
                 fiber_depth_in_mm = self.fiber_depth[fiber_name]
-                location = "SNc" if fiber_depth_in_mm > 3.0 else "striatum"
+                location = "SNc" if fiber_depth_in_mm > 3.0 else "Str"  # striatum
                 fibers_table.add_row(
                     **fiber_metadata,
                     depth=fiber_depth_in_mm / 1000,
@@ -175,26 +175,22 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 if series_metadata["name"] == series_name
             )
 
-            fiber_ref = DynamicTableRegion(
-                name="fiber",
+            # Create DynamicTableRegion referencing the correct rows for each table
+            fiber_ref = fibers_table.create_fiber_region(
+                region=[photometry_response_series_metadata["fiber"]],
                 description="source fiber",
-                data=[photometry_response_series_metadata["fiber"]],
-                table=fibers_table,
             )
-            excitation_ref = DynamicTableRegion(
-                name="excitation_source",
+            excitation_ref = excitation_sources_table.create_excitation_source_region(
+                region=[photometry_response_series_metadata["excitation_source"]],
                 description="excitation sources",
-                data=[photometry_response_series_metadata["excitation_source"]],
-                table=excitation_sources_table,
             )
-            photodetector_ref = DynamicTableRegion(
-                name="photodetector", description="photodetector", data=[0], table=excitation_sources_table
+            photodetector_ref = photodetectors_table.create_photodetector_region(
+                region=[0],
+                description="photodetector",
             )
-            fluorophore_ref = DynamicTableRegion(
-                name="fluorophore",
+            fluorophore_ref = fluorophores_table.create_fluorophore_region(
+                region=[photometry_response_series_metadata["fluorophore"]],
                 description="fluorophore",
-                data=[photometry_response_series_metadata["fluorophore"]],
-                table=fluorophores_table,
             )
 
             description = photometry_response_series_metadata["description"]
@@ -211,10 +207,10 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 data=H5DataIO(data, compression=True) if not stub_test else data[:6000],
                 unit="F",
                 rate=100.0,
-                fiber=fiber_ref,
-                excitation_source=excitation_ref,
-                photodetector=photodetector_ref,
-                fluorophore=fluorophore_ref,
+                fibers=fiber_ref,
+                excitation_sources=excitation_ref,
+                photodetectors=photodetector_ref,
+                fluorophores=fluorophore_ref,
             )
 
             ophys_module.add(response_series)
