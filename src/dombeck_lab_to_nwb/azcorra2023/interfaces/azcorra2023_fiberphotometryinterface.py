@@ -81,7 +81,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             channel_name in self.column_names for channel_name in channel_names
         ), f"Not all channel names are in {self.source_data['file_path']}."
 
-        fiber_photometry_metadata = metadata["FiberPhotometry"]
+        fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
         traces_metadata = fiber_photometry_metadata["FiberPhotometryResponseSeries"]
         traces_metadata_to_add = [
             trace
