@@ -24,6 +24,12 @@ class Azcorra2023NWBConverter(NWBConverter):
     )
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
+
+        # Set fiber depth from processed fiber photometry data
+        conversion_options["FiberPhotometry"].update(
+            fiber_depth_mapping=self.data_interface_objects["ProcessedFiberPhotometry"].fiber_depth,
+        )
+
         super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
 
         backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
