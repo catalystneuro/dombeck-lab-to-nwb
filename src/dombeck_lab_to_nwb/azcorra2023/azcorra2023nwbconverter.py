@@ -30,6 +30,12 @@ class Azcorra2023NWBConverter(NWBConverter):
         if "chRed" not in fiber_depth:
             conversion_options["FiberPhotometry"]["channel_name_to_photometry_series_name_mapping"].pop("chRed")
             conversion_options["FiberPhotometry"]["channel_name_to_photometry_series_name_mapping"].pop("chRed405")
+            conversion_options["ProcessedFiberPhotometry"]["channel_name_to_photometry_series_name_mapping"].pop(
+                "chRed"
+            )
+            conversion_options["ProcessedFiberPhotometry"]["channel_name_to_photometry_series_name_mapping"].pop(
+                "chRed405"
+            )
             conversion_options["PicoScopeTimeSeries"]["channel_id_to_time_series_name_mapping"].pop("B")
 
         # Set fiber depth from processed fiber photometry data
