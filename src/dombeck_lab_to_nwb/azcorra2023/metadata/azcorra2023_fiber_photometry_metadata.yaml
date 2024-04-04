@@ -48,8 +48,12 @@ FiberPhotometry:
       label: AAV-GCaMP6f
       location: SNc
       coordinates: [-3.25, 1.55, -3.8]
+      # emission_peak_wavelength: TODO: check this
+      # excitation_peak_wavelength: TODO: check this
     - name: mCherry
       label: AAV5-EF1α-DIO-mCherry
+      # emission_peak_wavelength: TODO: check this
+      # excitation_peak_wavelength: TODO: check this
       location: |
         AAV5-EF1α-DIO-mCherry (RRID: Addgene_37083) was injected into SNc bilaterally (coordinates relative to bregma: x = ±1.45 mm, y = −3.15 mm, z = −3.1, −4.1, −4.4, −4.7 mm, 0.1 μl at each depth)
       coordinates: [1.45, -3.15, -3.1]
