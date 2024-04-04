@@ -16,6 +16,10 @@ NWBFile:
     This session contains the acquisition traces (velocity from rotary encoder, trigger signals for reward, air puff
     and light stimuli delivery, licking from a lick sensor, fluorescence and waveform generator output (used to
     alternate 405-nm and 470-nm illumination every 10 ms) collected at 4000 Hz by Picoscope 6.
+  keywords:
+    - Fiber photometry
+    - GCaMP6f
+    - Dopamine
   institution: Northwestern University
   lab: Dombeck
   experimenter:
