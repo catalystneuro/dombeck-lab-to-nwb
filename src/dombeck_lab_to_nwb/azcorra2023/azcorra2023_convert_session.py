@@ -86,9 +86,16 @@ def session_to_nwb(
 
     # Add processed photometry data
     source_data.update(dict(ProcessedFiberPhotometry=dict(file_path=str(processed_photometry_mat_file_path))))
+    dff_channel_name_mapping = dict(
+        chGreen="DfOverFFiberPhotometryResponseSeriesGreen",
+        chGreen405="DfOverFFiberPhotometryResponseSeriesGreenIsosbestic",
+        chRed="DfOverFFiberPhotometryResponseSeriesRed",
+        chRed405="DfOverFFiberPhotometryResponseSeriesRedIsosbestic",
+    )
     conversion_options.update(
         dict(
             ProcessedFiberPhotometry=dict(
+                channel_name_to_photometry_series_name_mapping=dff_channel_name_mapping,
                 stub_test=stub_test,
             )
         )
