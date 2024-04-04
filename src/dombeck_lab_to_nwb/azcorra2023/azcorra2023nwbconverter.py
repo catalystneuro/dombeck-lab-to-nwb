@@ -25,9 +25,16 @@ class Azcorra2023NWBConverter(NWBConverter):
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
 
+        fiber_depth = self.data_interface_objects["ProcessedFiberPhotometry"].fiber_depth
+        # If single fiber experiment, override interfaces to exclude red channel (empty)
+        if "chRed" not in fiber_depth:
+            conversion_options["FiberPhotometry"]["channel_name_to_photometry_series_name_mapping"].pop("chRed")
+            conversion_options["FiberPhotometry"]["channel_name_to_photometry_series_name_mapping"].pop("chRed405")
+            conversion_options["PicoScopeTimeSeries"]["channel_id_to_time_series_name_mapping"].pop("B")
+
         # Set fiber depth from processed fiber photometry data
         conversion_options["FiberPhotometry"].update(
-            fiber_depth_mapping=self.data_interface_objects["ProcessedFiberPhotometry"].fiber_depth,
+            fiber_depth_mapping=fiber_depth,
         )
 
         super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
