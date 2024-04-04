@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 from neuroconv import BaseDataInterface
 from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
@@ -31,10 +32,13 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         self.file_path = file_path
         self.verbose = verbose
         processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]
-        self.fiber_depth = dict(
-            chGreen=processed_photometry_data["depthG"],
-            chRed=processed_photometry_data["depthR"],
-        )
+        self.fiber_depth = dict(chGreen=processed_photometry_data["depthG"])
+
+        # Not all sessions have dual fiber photometry data
+        if not np.isnan(processed_photometry_data["depthR"]):
+            self.fiber_depth.update(
+                chRed=processed_photometry_data["depthR"],
+            )
         self.subject_metadata = dict(
             experiment_type=processed_photometry_data["Exp"],
             mouse=processed_photometry_data["Mouse"],
@@ -46,25 +50,10 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
 
-        # Add Subject metadata
-        subject_id = f"{self.subject_metadata['experiment_type']}-{self.subject_metadata['mouse']}"
         metadata["Subject"].update(
-            subject_id=subject_id,
+            subject_id=self.subject_metadata["mouse"],
             sex=self.subject_metadata["sex"].upper(),
-            species="Mus musculus",
-            age="P8W/P16W",  # 2–4 months old
         )
-
-        # Mouse strains - C57BL6 background, used as adults 2-5 months old:
-        # 1. Aldh1a1-2A-iCre (new line)
-        # 2. Anxa1-iCre (new line)
-        # 3. Calb1-IRES2-Cre, The Jackson Laboratory Strain #:028532,RRID:IMSR_JAX:028532
-        # 4. VGlut2-IRES-Cre, The Jackson Laboratory Strain #:016963RRID:IMSR_JAX:016963
-        # 5. DAT-CRE, The Jackson Laboratory Strain #:020080,RRID:IMSR_JAX:020080
-        # 6. Th-2A-Flpo, from Poulin et al., 2018
-        # 7. DAT-PF-tTA, The Jackson Laboratory Strain#:027178,RRID:IMSR_JAX:027178
-        # 8. Ai93D (TITL-GCaMP6f), The Jackson Laboratory Strain #:024107,RRID:IMSR_JAX:024107
-        # 9. CAG-Sun1/sfGFP, The Jackson Laboratory Strain #:021039,RRID:IMSR_JAX:021039
 
         metadata["Behavior"].update(
             dict(
