@@ -1,11 +1,12 @@
 from pathlib import Path
 
 import numpy as np
+from ndx_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseDataInterface
 from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
-from pynwb import TimeSeries
+from pynwb import TimeSeries, NWBFile
 
 
 class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
@@ -102,5 +103,60 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         behavior_module.add(velocity_ts)
         behavior_module.add(acceleration_ts)
 
-    def add_to_nwbfile(self, nwbfile, metadata, stub_test: bool = False):
+    def add_delta_f_over_f_traces(self, nwbfile, metadata, channel_name_to_photometry_series_name_mapping, stub_test):
+
+        df_over_f_metadata = metadata["Ophys"]["DfOverF"]
+
+        traces_metadata = df_over_f_metadata["FiberPhotometryResponseSeries"]
+        traces_metadata_to_add = [
+            trace
+            for trace in traces_metadata
+            if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
+        ]
+
+        for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
+            # Get photometry response series metadata
+            photometry_response_series_metadata = next(
+                series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
+            )
+
+            raw_series_name = series_name.replace("DfOverF", "")
+            fiber_ref = nwbfile.processing["ophys"][raw_series_name].fibers
+
+            excitation_ref = nwbfile.processing["ophys"][raw_series_name].excitation_sources
+            photodetector_ref = nwbfile.processing["ophys"][raw_series_name].photodetectors
+            fluorophore_ref = nwbfile.processing["ophys"][raw_series_name].fluorophores
+
+            description = photometry_response_series_metadata["description"]
+
+            data = self._processed_photometry_data[channel_name]
+            response_series = FiberPhotometryResponseSeries(
+                name=series_name,
+                description=description,
+                data=data if not stub_test else data[:6000],
+                unit="n.a.",
+                rate=100.0,
+                fibers=fiber_ref,
+                excitation_sources=excitation_ref,
+                photodetectors=photodetector_ref,
+                fluorophores=fluorophore_ref,
+            )
+
+            ophys = get_module(nwbfile, name="ophys")
+            ophys.add(response_series)
+
+    def add_to_nwbfile(
+        self,
+        nwbfile: NWBFile,
+        metadata: dict,
+        channel_name_to_photometry_series_name_mapping: dict,
+        stub_test: bool = False,
+    ):
+
         self.add_behavior_data(nwbfile=nwbfile, metadata=metadata)
+        self.add_delta_f_over_f_traces(
+            nwbfile=nwbfile,
+            metadata=metadata,
+            channel_name_to_photometry_series_name_mapping=channel_name_to_photometry_series_name_mapping,
+            stub_test=stub_test,
+        )
