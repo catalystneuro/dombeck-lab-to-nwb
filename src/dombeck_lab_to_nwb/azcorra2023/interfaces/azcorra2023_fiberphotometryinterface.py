@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Optional
 
-from hdmf.backends.hdf5 import H5DataIO
-from hdmf.common import DynamicTableRegion
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
@@ -84,8 +82,17 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         ), f"Not all channel names are in {self.source_data['file_path']}."
 
         fiber_photometry_metadata = metadata["FiberPhotometry"]
+        traces_metadata = fiber_photometry_metadata["FiberPhotometryResponseSeries"]
+        traces_metadata_to_add = [
+            trace
+            for trace in traces_metadata
+            if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
+        ]
 
         excitation_sources_metadata = fiber_photometry_metadata["ExcitationSources"]
+        excitation_source_ind = set([trace["excitation_source"] for trace in traces_metadata_to_add])
+        excitation_sources_to_add = [excitation_sources_metadata[ind] for ind in excitation_source_ind]
+
         excitation_sources_description = (
             "Blue excitation light (470 nm LED, Thorlabs, M70F3) and purple excitation light (for the isosbestic "
             "control) (405 nm LED, Thorlabs, M405FP1) were coupled into the optic fiber such that a power of 0.75 mW "
@@ -94,7 +101,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             "FF02-472/30-25) and combined with a dichroic mirror (Chroma Technology, T425lpxr)."
         )
         excitation_sources_table = ExcitationSourcesTable(description=excitation_sources_description)
-        for excitation_source_metadata in excitation_sources_metadata:
+        for excitation_source_metadata in excitation_sources_to_add:
             excitation_source_metadata.pop("name")
             excitation_sources_table.add_row(**excitation_source_metadata)
 
@@ -110,7 +117,9 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             photodetectors_table.add_row(**photodetector_metadata)
 
         fibers_metadata = fiber_photometry_metadata["Fibers"]
-        fiber_names = [fiber_metadata["name"] for fiber_metadata in fibers_metadata]
+        fibers_ind = set([trace["fiber"] for trace in traces_metadata_to_add])
+        fibers_to_add = [fibers_metadata[ind] for ind in fibers_ind]
+        fiber_names = [fiber_metadata["name"] for fiber_metadata in fibers_to_add]
         fibers_description = (
             "One or two optical fibers (200-μm diameter, 0.57 NA, Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF) were "
             "lowered slowly (5 μm s−1) using a micromanipulator (Sutter Instrument, MP285) into the brain to various "
@@ -122,7 +131,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         fibers_table = FibersTable(description=fibers_description)
         fibers_table.add_column(name="depth", description="The depth of fiber in the unit of meters.")
 
-        for fiber_metadata in fibers_metadata:
+        for fiber_metadata in fibers_to_add:
             fiber_name = fiber_metadata.pop("name")
             if fiber_name in self.column_names:
                 fiber_depth_in_mm = fiber_depth_mapping[fiber_name]
@@ -134,12 +143,15 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 )
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
+        fluorophores_ind = set([trace["fluorophore"] for trace in traces_metadata_to_add])
+        fluorophores_to_add = [fluorophores_metadata[ind] for ind in fluorophores_ind]
+
         fluorophores_description = (
             "GCaMP6f was used as the fluorophore in SNc (3.25 mm caudal, +1.55 mm lateral) at four "
             "depths (−3.8, −4.1, −4.4 and −4.7 mm) ventral from dura surface, 0.1 μl per depth)."
         )
         fluorophores_table = FluorophoresTable(description=fluorophores_description)
-        for fluorophore_metadata in fluorophores_metadata:
+        for fluorophore_metadata in fluorophores_to_add:
             fluorophore_metadata.pop("name")
             fluorophores_table.add_row(**fluorophore_metadata)
 
@@ -162,9 +174,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
             # Get photometry response series metadata
             photometry_response_series_metadata = next(
-                series_metadata
-                for series_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]
-                if series_metadata["name"] == series_name
+                series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
             )
 
             # Create DynamicTableRegion referencing the correct rows for each table
