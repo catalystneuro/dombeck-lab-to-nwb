@@ -13,9 +13,9 @@ NWBFile:
     neuron subtypes and demonstrate that molecular expression patterns can serve as a common framework to dissect
     dopaminergic functions.
   session_description: |
-    This session contains the acquisition traces (velocity from rotary encoder, trigger signals for reward, air puff
-    and light stimuli delivery, licking from a lick sensor, fluorescence and waveform generator output (used to
-    alternate 405-nm and 470-nm illumination every 10 ms) collected at 4000 Hz by Picoscope 6.
+    This session contains fiber photometry recordings from head-fixed mice running on a treadmill while receiving
+    rewards and aversive air puffs in order to analyze differences or similarities in functional responses of different
+    subtypes of striatonigral dopamine neurons.
   keywords:
     - Fiber photometry
     - GCaMP6f
