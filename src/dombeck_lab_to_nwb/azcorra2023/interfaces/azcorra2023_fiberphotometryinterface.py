@@ -165,13 +165,10 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             )
         )
 
-        ophys_module = get_module(
-            nwbfile=nwbfile,
-            name="ophys",
-            description=f"Fiber photometry data from {location}.",
-        )
-
         for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
+            if series_name in nwbfile.acquisition:
+                raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
+
             # Get photometry response series metadata
             photometry_response_series_metadata = next(
                 series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
@@ -215,4 +212,5 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 fluorophores=fluorophore_ref,
             )
 
-            ophys_module.add(response_series)
+            # Add raw fiber photometry series to acquisition module
+            nwbfile.add_acquisition(response_series)

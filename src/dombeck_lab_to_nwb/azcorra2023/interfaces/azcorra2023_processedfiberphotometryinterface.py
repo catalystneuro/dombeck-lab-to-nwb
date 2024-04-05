@@ -114,18 +114,23 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
             if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
         ]
 
+        ophys_module = get_module(nwbfile=nwbfile, name="ophys", description=f"Processed fiber photometry data.")
+
         for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
+            if series_name in ophys_module.data_interfaces:
+                raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
+
             # Get photometry response series metadata
             photometry_response_series_metadata = next(
                 series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
             )
 
             raw_series_name = series_name.replace("DfOverF", "")
-            fiber_ref = nwbfile.processing["ophys"][raw_series_name].fibers
-
-            excitation_ref = nwbfile.processing["ophys"][raw_series_name].excitation_sources
-            photodetector_ref = nwbfile.processing["ophys"][raw_series_name].photodetectors
-            fluorophore_ref = nwbfile.processing["ophys"][raw_series_name].fluorophores
+            # Retrieve references to the raw photometry data
+            fiber_ref = nwbfile.acquisition[raw_series_name].fibers
+            excitation_ref = nwbfile.acquisition[raw_series_name].excitation_sources
+            photodetector_ref = nwbfile.acquisition[raw_series_name].photodetectors
+            fluorophore_ref = nwbfile.acquisition[raw_series_name].fluorophores
 
             description = photometry_response_series_metadata["description"]
 
@@ -142,8 +147,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
                 fluorophores=fluorophore_ref,
             )
 
-            ophys = get_module(nwbfile, name="ophys")
-            ophys.add(response_series)
+            ophys_module.add(response_series)
 
     def add_to_nwbfile(
         self,
