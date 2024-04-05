@@ -1,0 +1,59 @@
+FiberPhotometry:
+  FiberPhotometryResponseSeries:
+    - name: FiberPhotometryResponseSeriesGreen  # or FiberPhotometryResponseSeriesGCaMP6?
+      description: Green fluorescence collected during 470 nm illumination re-binned to 100 Hz
+      fiber: 0
+      excitation_source: 0
+      fluorophore: 0
+    - name: FiberPhotometryResponseSeriesGreenIsosbestic
+      description: Green fluorescence collected at its isosbestic wavelength (405 nm) re-binned to 100 Hz
+      fiber: 0
+      excitation_source: 1
+      fluorophore: 0
+    - name: FiberPhotometryResponseSeriesRed
+      description: Red fluorescence collected during 470 nm illumination re-binned to 100 Hz
+      fiber: 1
+      excitation_source: 0
+      fluorophore: 1
+    - name: FiberPhotometryResponseSeriesRedIsosbestic
+      description: Red fluorescence collected during 405 nm illumination re-binned to 100 Hz
+      fiber: 1
+      excitation_source: 1
+      fluorophore: 1
+  Fibers:
+    - name: chGreen  # the name of the fiber in the .mat file
+      notes: The optical fiber used to record the GCaMP fluorescence.
+      fiber_model_number: Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
+      dichroic_model_number: Chroma Technology, T425lpxr
+    - name: chRed # the name of the fiber in the .mat file
+      notes: The optical fiber used to record the red fluorescence.
+      fiber_model_number: Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
+      dichroic_model_number: Chroma Technology, T425lpxr
+  ExcitationSources:
+    - name: ExcitationSource470
+      peak_wavelength: 470.0
+      source_type: laser
+      model_number: M70F3, Thorlabs
+    - name: ExcitationSource405
+      peak_wavelength: 405.0
+      source_type: laser
+      model_number: M405FP1, Thorlabs
+  Photodetectors:
+    - name: PhotodetectorPMT
+      peak_wavelength: 470.0 # TODO: check this
+      type: PMT
+      model_number: H10770PA-40, Hamamatsu
+  Fluorophores:
+    - name: GCaMP6f
+      label: AAV-GCaMP6f
+      location: SNc
+      coordinates: [-3.25, 1.55, -3.8]
+      emission_peak_wavelength: 525.0 # TODO: check this
+      excitation_peak_wavelength: 480.0  # TODO: check this
+    - name: mCherry
+      label: AAV5-EF1α-DIO-mCherry
+      emission_peak_wavelength: 610.0  # TODO: check this
+      excitation_peak_wavelength: 587.0  # TODO: check this
+      location: |
+        AAV5-EF1α-DIO-mCherry (RRID: Addgene_37083) was injected into SNc bilaterally (coordinates relative to bregma: x = ±1.45 mm, y = −3.15 mm, z = −3.1, −4.1, −4.4, −4.7 mm, 0.1 μl at each depth)
+      coordinates: [1.45, -3.15, -3.1]

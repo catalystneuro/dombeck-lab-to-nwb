@@ -43,6 +43,9 @@ class PicoscopeEventInterface(BaseDataInterface):
                 name="PicoscopeEvents",
                 description="Contains the onset times of binary signals from PicoScope.",
             ),
+            TtlTypesTable=dict(
+                description="Contains the TTL event types from PicoScope.",
+            ),
             TtlsTable=dict(
                 description="Contains the 405 nm and 470 nm illumination onset times.",
             ),
@@ -52,18 +55,13 @@ class PicoscopeEventInterface(BaseDataInterface):
 
     def get_picoscope_extractor_for_binary_traces(self):
         recording_list = [
-            PicoscopeRecordingExtractor(file_path=str(file_path)) for file_path in self.source_data["file_list"]
+            PicoscopeRecordingExtractor(file_path=str(file_path), channel_ids=self.channel_ids)
+            for file_path in self.source_data["file_list"]
         ]
         concatenated_recording = ConcatenateSegmentRecording(recording_list=recording_list)
+        return concatenated_recording
 
-        extractor = ChannelSliceRecording(
-            parent_recording=concatenated_recording,
-            channel_ids=self.channel_ids,
-        )
-
-        return extractor
-
-    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict) -> None:
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False) -> None:
         from ndx_events import EventsTable
 
         events_metadata = metadata["Events"]
@@ -101,8 +99,9 @@ class PicoscopeEventInterface(BaseDataInterface):
             # https://github.com/DombeckLab/Azcorra2023/blob/2819bd5b7a6021243c44dfd45b5b25fd24ae8122/Fiber%20photometry%20data%20analysis/Data%20pre%20processing/selectSignals_paper.m#L110C1-L110C22
             event_times = get_rising_frames_from_ttl(traces, threshold=0.05)
 
+            timestamps = times[event_times] if not stub_test else times[event_times][:100]
             if len(event_times):
-                for timestamp in times[event_times]:
+                for timestamp in timestamps:
                     events.add_row(
                         event_type=event_id,
                         timestamp=timestamp,
@@ -110,7 +109,7 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         nwbfile.add_acquisition(events)
 
-        ttl_types_table = TtlTypesTable(**events_metadata["TtlsTable"])
+        ttl_types_table = TtlTypesTable(**events_metadata["TtlTypesTable"])
         ttl_types_table.add_column(name="duration", description="The duration of the TTL pulse.")
 
         ttl_types_table.add_row(
@@ -130,7 +129,8 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         waveform_traces = extractor.get_traces(channel_ids=["E"])
         ch405_event_times = get_falling_frames_from_ttl(waveform_traces, threshold=0.5)
-        for timestamp in times[ch405_event_times]:
+        ch405_timestamps = times[ch405_event_times] if not stub_test else times[ch405_event_times][:100]
+        for timestamp in ch405_timestamps:
             ttls_table.add_row(
                 timestamp=timestamp,
                 ttl_type=0,  # NOT the pulse value, but a row index into the ttl_types_table
@@ -138,7 +138,8 @@ class PicoscopeEventInterface(BaseDataInterface):
             )
 
         ch470_event_times = get_rising_frames_from_ttl(waveform_traces, threshold=0.5)
-        for timestamp in times[ch470_event_times]:
+        ch470_timestamps = times[ch470_event_times] if not stub_test else times[ch470_event_times][:100]
+        for timestamp in ch470_timestamps:
             ttls_table.add_row(
                 timestamp=timestamp,
                 ttl_type=1,

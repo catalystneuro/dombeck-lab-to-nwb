@@ -135,3 +135,5 @@ The following table describes the initial mapping between the source data and th
 - PicoScope [manual](https://www.picotech.com/download/manuals/picoscope-6-users-guide.pdf)
 
 - Data processing [script](https://github.com/DombeckLab/Azcorra2023/blob/main/Fiber%20photometry%20data%20analysis/Data%20pre%20processing/concatPhot405.m) in MATLAB from Dombeck to concat PicoScope recordings
+
+- Virus injection [protocol](https://www.protocols.io/view/midbrain-viral-injections-for-striatal-fiber-photo-5qpvor8zxv4o/v1?step=1)
