@@ -33,28 +33,11 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         self.file_path = file_path
         self.verbose = verbose
         processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]
-        self.fiber_depth = dict(chGreen=processed_photometry_data["depthG"])
-
-        # Not all sessions have dual fiber photometry data
-        if not np.isnan(processed_photometry_data["depthR"]):
-            self.fiber_depth.update(
-                chRed=processed_photometry_data["depthR"],
-            )
-        self.subject_metadata = dict(
-            experiment_type=processed_photometry_data["Exp"],
-            mouse=processed_photometry_data["Mouse"],
-            sex=processed_photometry_data["Gen"],
-        )
         assert "data" in processed_photometry_data, f"Processed photometry data not found in {self.file_path}."
         self._processed_photometry_data = processed_photometry_data["data"]
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
-
-        metadata["Subject"].update(
-            subject_id=self.subject_metadata["mouse"],
-            sex=self.subject_metadata["sex"].upper(),
-        )
 
         metadata["Behavior"].update(
             dict(

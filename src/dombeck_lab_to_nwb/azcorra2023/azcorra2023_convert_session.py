@@ -6,6 +6,7 @@ from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
 from dombeck_lab_to_nwb.azcorra2023 import Azcorra2023NWBConverter
+from dombeck_lab_to_nwb.azcorra2023.photometry_utils import process_extra_metadata
 
 
 def session_to_nwb(
@@ -121,6 +122,52 @@ def session_to_nwb(
         Path(__file__).parent / "metadata" / "azcorra2023_fiber_photometry_metadata.yaml"
     )
     metadata = dict_deep_update(metadata, fiber_photometry_metadata)
+
+    extra_metadata = process_extra_metadata(file_path=processed_photometry_mat_file_path, metadata=metadata)
+    metadata = dict_deep_update(metadata, extra_metadata)
+
+    # Determine whether single or multi-fiber experiment and adjust conversion options accordingly
+    fibers_metadata = metadata["Ophys"]["FiberPhotometry"]["Fibers"]
+    num_fibers = len([fiber for fiber in fibers_metadata if "depth" in fiber])
+    assert num_fibers in [1, 2], f"Number of fibers must be 1 or 2, but got {num_fibers} fibers metadata."
+
+    channel_name_mapping = dict(
+        chGreen="FiberPhotometryResponseSeriesGreen",
+        chGreen405="FiberPhotometryResponseSeriesGreenIsosbestic",
+    )
+    channel_id_to_time_series_name_mapping = dict(A="Velocity", C="FluorescenceGreen")
+
+    if num_fibers == 2:
+        channel_name_mapping.update(
+            dict(
+                chRed="FiberPhotometryResponseSeriesRed",
+                chRed405="FiberPhotometryResponseSeriesRedIsosbestic",
+            )
+        )
+        channel_id_to_time_series_name_mapping.update(dict(B="FluorescenceRed"))
+
+    dff_channel_name_mapping = {
+        ch_name: "DfOverF" + series_name for ch_name, series_name in channel_name_mapping.items()
+    }
+
+    # Update conversion options
+    conversion_options.update(
+        dict(
+            FiberPhotometry=dict(
+                channel_name_to_photometry_series_name_mapping=channel_name_mapping,
+                stub_test=stub_test,
+            ),
+            ProcessedFiberPhotometry=dict(
+                channel_name_to_photometry_series_name_mapping=dff_channel_name_mapping,
+                stub_test=stub_test,
+            ),
+            PicoScopeTimeSeries=dict(
+                channel_id_to_time_series_name_mapping=channel_id_to_time_series_name_mapping,
+                stub_test=stub_test,
+            ),
+            Events=dict(stub_test=stub_test),
+        )
+    )
 
     # Run conversion
     converter.run_conversion(

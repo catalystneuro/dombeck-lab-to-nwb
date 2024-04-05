@@ -48,7 +48,6 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         nwbfile: NWBFile,
         metadata: dict,
         channel_name_to_photometry_series_name_mapping: dict,
-        fiber_depth_mapping: Optional[dict] = None,
         stub_test: Optional[bool] = False,
     ) -> None:
         """
@@ -62,8 +61,6 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             The metadata for the photometry data.
         channel_name_to_photometry_series_name_mapping: dict
             A dictionary that maps the channel names in the .mat file to the names of the photometry response series.
-        fiber_depth_mapping: dict
-            A dictionary that maps the fiber names to the depths in mm.
         stub_test : bool, optional
             Whether to run the conversion as a stub test by writing 1-minute of data, by default False.
         """
@@ -129,18 +126,12 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             "0.25–0.5 mm in striatum or 0.15–0.2 mm in SNc, until transients were detected."
         )
         fibers_table = FibersTable(description=fibers_description)
-        fibers_table.add_column(name="depth", description="The depth of fiber in the unit of meters.")
+        fibers_table.add_column(name="depth", description="The depth of fiber in the unit of millimeters.")
 
         for fiber_metadata in fibers_to_add:
             fiber_name = fiber_metadata.pop("name")
-            if fiber_name in self.column_names:
-                fiber_depth_in_mm = fiber_depth_mapping[fiber_name]
-                location = "SNc" if fiber_depth_in_mm > 3.0 else "Str"  # striatum
-                fibers_table.add_row(
-                    **fiber_metadata,
-                    depth=fiber_depth_in_mm / 1000,
-                    location=location,
-                )
+            assert fiber_name in self.column_names, f"The fiber {fiber_name} is not in the photometry data."
+            fibers_table.add_row(**fiber_metadata)
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
         fluorophores_ind = set([trace["fluorophore"] for trace in traces_metadata_to_add])
@@ -194,9 +185,10 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
 
             description = photometry_response_series_metadata["description"]
             # Add more information about the fiber depth
-            fiber_name = fiber_names[photometry_response_series_metadata["fiber"]]
-            fiber_depth_in_mm = fiber_depth_mapping[fiber_name]
-            description += f" obtained at {fiber_depth_in_mm / 1000} meters depth."
+            fiber_index = photometry_response_series_metadata["fiber"]
+            fiber_depth_in_mm = [fiber["depth"] for fiber in fibers_metadata if "depth" in fiber][fiber_index]
+            region = [fiber["location"] for fiber in fibers_metadata if "location" in fiber][fiber_index]
+            description += f" from {region} region at {fiber_depth_in_mm / 1000} meters depth."
 
             channel_index = self.column_names.index(channel_name)
             data = self._photometry_data[channel_index][self.depth_index]
