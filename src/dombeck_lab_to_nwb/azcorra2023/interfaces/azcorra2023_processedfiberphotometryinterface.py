@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import numpy as np
 from ndx_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseDataInterface
 from neuroconv.tools import get_module

@@ -1,4 +1,5 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
+from copy import deepcopy
 from pathlib import Path
 from typing import Union
 
@@ -50,57 +51,14 @@ def session_to_nwb(
         )
     )
 
-    channel_id_to_time_series_name_mapping = dict(
-        A="Velocity",
-        B="FluorescenceRed",
-        C="FluorescenceGreen",
-    )
-    conversion_options.update(
-        dict(
-            PicoScopeTimeSeries=dict(
-                channel_id_to_time_series_name_mapping=channel_id_to_time_series_name_mapping,
-                stub_test=stub_test,
-            ),
-            Events=dict(stub_test=stub_test),
-        )
-    )
-
     # Add binned photometry data
     session_id = ("-").join(picoscope_folder_path.parts[-2:])
-    channel_name_mapping = dict(
-        chGreen="FiberPhotometryResponseSeriesGreen",
-        chGreen405="FiberPhotometryResponseSeriesGreenIsosbestic",
-        chRed="FiberPhotometryResponseSeriesRed",
-        chRed405="FiberPhotometryResponseSeriesRedIsosbestic",
-    )
     source_data.update(
         dict(FiberPhotometry=dict(file_path=str(binned_photometry_mat_file_path), session_id=session_id))
-    )
-    conversion_options.update(
-        dict(
-            FiberPhotometry=dict(
-                channel_name_to_photometry_series_name_mapping=channel_name_mapping,
-                stub_test=stub_test,
-            )
-        )
     )
 
     # Add processed photometry data
     source_data.update(dict(ProcessedFiberPhotometry=dict(file_path=str(processed_photometry_mat_file_path))))
-    dff_channel_name_mapping = dict(
-        chGreen="DfOverFFiberPhotometryResponseSeriesGreen",
-        chGreen405="DfOverFFiberPhotometryResponseSeriesGreenIsosbestic",
-        chRed="DfOverFFiberPhotometryResponseSeriesRed",
-        chRed405="DfOverFFiberPhotometryResponseSeriesRedIsosbestic",
-    )
-    conversion_options.update(
-        dict(
-            ProcessedFiberPhotometry=dict(
-                channel_name_to_photometry_series_name_mapping=dff_channel_name_mapping,
-                stub_test=stub_test,
-            )
-        )
-    )
 
     converter = Azcorra2023NWBConverter(source_data=source_data)
 
@@ -183,17 +141,18 @@ if __name__ == "__main__":
     # Parameters for conversion
     data_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2020-02-26 Vglut2/VGlut-A997")
     # The folder containing the Picoscope output (.mat files) for a single session of data.
-    picoscope_folder_path = data_folder_path / "20200205-0001"
+    picoscope_folder_path = data_folder_path / "20200129-0002"
 
     # The path to the .mat file containing the binned photometry data.
-    binned_photometry_mat_file_path = data_folder_path / "T_Binned405_VGlut-A997-20200205.mat"
+    binned_photometry_mat_file_path = data_folder_path / "Binned405_VGlut-A997-20200129.mat"
 
     # The path to the .mat file containing the processed photometry data.
-    processed_photometry_mat_file_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp/VGlut-A997-20200205-0001.mat")
+    processed_photometry_mat_file_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp2/VGlut-A997-20200129-0002.mat")
 
     # The path to the NWB file to be created.
-    nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200205-0001.nwb")
-    stub_test = False
+    nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200129-0002.nwb")
+
+    stub_test = True
 
     session_to_nwb(
         picoscope_folder_path=picoscope_folder_path,

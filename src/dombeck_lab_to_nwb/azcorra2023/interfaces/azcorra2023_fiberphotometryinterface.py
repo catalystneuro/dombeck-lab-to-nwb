@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Optional
 
 from neuroconv.basedatainterface import BaseDataInterface
-from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 from pynwb import NWBFile
