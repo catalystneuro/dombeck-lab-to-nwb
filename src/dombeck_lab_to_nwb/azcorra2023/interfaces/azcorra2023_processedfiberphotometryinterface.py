@@ -52,7 +52,10 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
 
         return metadata
 
-    def add_behavior_data(self, nwbfile, metadata):
+    def add_behavior_data(self, nwbfile: NWBFile, metadata: dict):
+        """
+        Add behavior data to the NWB file.
+        """
 
         behavior_metadata = metadata["Behavior"]
 
@@ -86,8 +89,28 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         behavior_module.add(velocity_ts)
         behavior_module.add(acceleration_ts)
 
-    def add_delta_f_over_f_traces(self, nwbfile, metadata, channel_name_to_photometry_series_name_mapping, stub_test):
+    def add_delta_f_over_f_traces(
+        self,
+        nwbfile: NWBFile,
+        metadata: dict,
+        channel_name_to_photometry_series_name_mapping: dict,
+        stub_test: bool = False,
+    ):
+        """
+        Add the DFF traces to the NWB file.
 
+        Parameters
+        ----------
+        nwbfile : NWBFile
+            The NWB file to which the data will be added.
+        metadata : dict
+            The metadata dictionary.
+        channel_name_to_photometry_series_name_mapping : dict
+            A dictionary mapping the channel names from the file to the photometry series names that are going to be added.
+        stub_test : bool, optional
+            Whether to run a stub test, by default False.
+
+        """
         df_over_f_metadata = metadata["Ophys"]["DfOverF"]
 
         traces_metadata = df_over_f_metadata["FiberPhotometryResponseSeries"]
@@ -139,6 +162,21 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         channel_name_to_photometry_series_name_mapping: dict,
         stub_test: bool = False,
     ):
+        """
+        Add the continuous velocity, acceleration and DFF traces to the NWB file.
+
+        Parameters
+        ----------
+        nwbfile : NWBFile
+            The NWB file to which the data will be added.
+        metadata : dict
+            The metadata dictionary.
+        channel_name_to_photometry_series_name_mapping : dict
+            A dictionary mapping the channel names from the file to the photometry series names that are going to be added.
+        stub_test : bool, optional
+            Whether to run a stub test, by default False.
+
+        """
 
         self.add_behavior_data(nwbfile=nwbfile, metadata=metadata)
         self.add_delta_f_over_f_traces(
