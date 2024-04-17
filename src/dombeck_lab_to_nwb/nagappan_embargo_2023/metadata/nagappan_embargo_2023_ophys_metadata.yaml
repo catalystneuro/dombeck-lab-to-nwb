@@ -7,14 +7,14 @@ Ophys:
   ImagingPlane:
     - name: ImagingPlaneChannel1
       excitation_lambda: 920.0  # in nm
-      location: cell bodies located in the striatum
+      location: STR
       optical_channel:
         - name: Channel 1
           description: The optical channel used to record cell bodies located in the striatum.
       indicator: unknown # TODO collect from Shiva
     - name: ImagingPlaneChannel2
       excitation_lambda: 1070.0 # in nm
-      location: axons located in the striatum
+      location: STR
       indicator: unknown # TODO collect from Shiva
       optical_channel:
         - name: Channel 2
