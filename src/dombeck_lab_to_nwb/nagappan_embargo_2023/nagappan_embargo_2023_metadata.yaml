@@ -1,0 +1,12 @@
+NWBFile:
+#  related_publications:
+#    - https://doi.org/... # The publication DOI can be added here
+  experiment_description: |
+    Two-photon imaging recorded from cell bodies and axons in the striatum of mice running on a treadmill.
+  session_description: |
+   This session contains two-photon imaging data from one or two optical channels acquired at 30.0421 Hz from ScanImage
+   while a mouse is running on a treadmill.
+  institution: Northwestern University
+  lab: Dombeck
+  experimenter:
+    - Nagappan, Shiva

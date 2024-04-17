@@ -1,0 +1,21 @@
+Ophys:
+  TwoPhotonSeries:
+    - name: TwoPhotonSeriesChannel1
+      description: Imaging data from Green channel recorded from cell bodies located in the striatum acquired via ScanImage.
+    - name: TwoPhotonSeriesChannel2
+      description: Imaging data from Red channel recorded from axons located in the striatum acquired via ScanImage.
+  ImagingPlane:
+    - name: ImagingPlaneChannel1
+      excitation_lambda: 920.0  # in nm
+      location: STR
+      optical_channel:
+        - name: Channel 1
+          description: The optical channel used to record cell bodies located in the striatum.
+      indicator: unknown # TODO collect from Shiva
+    - name: ImagingPlaneChannel2
+      excitation_lambda: 1070.0 # in nm
+      location: STR
+      indicator: unknown # TODO collect from Shiva
+      optical_channel:
+        - name: Channel 2
+          description: The optical channel used to record axons located in the striatum.
