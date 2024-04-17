@@ -10,6 +10,7 @@ from dombeck_lab_to_nwb.nagappan_embargo_2023 import NagappanEmbargo2023NWBConve
 
 def session_to_nwb(
     scanimage_folder_path: Union[str, Path],
+    scanimage_file_pattern: str,
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
 ):
@@ -29,14 +30,16 @@ def session_to_nwb(
     scanimage_folder_path = Path(scanimage_folder_path)
     nwbfile_path = Path(nwbfile_path)
 
-    source_data = dict()
-    conversion_options = dict()
+    converter = NagappanEmbargo2023NWBConverter(
+        folder_path=scanimage_folder_path,
+        file_pattern=scanimage_file_pattern,
+        verbose=True,
+    )
 
-    # Add ScanImage data
-    source_data.update(dict(Imaging=dict(folder_path=str(scanimage_folder_path))))
-    conversion_options.update(dict(Imaging=dict(stub_test=stub_test)))
-
-    converter = NagappanEmbargo2023NWBConverter(source_data=source_data)
+    conversion_options = {
+        interface_name: dict(stub_test=stub_test, photon_series_index=interface_ind)
+        for interface_ind, interface_name in enumerate(converter.data_interface_objects.keys())
+    }
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
@@ -49,22 +52,32 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
+    # Add ophys metadata
+    ophys_metadata_path = Path(__file__).parent / "metadata" / "nagappan_embargo_2023_ophys_metadata.yaml"
+    ophys_metadata = load_dict_from_file(ophys_metadata_path)
+    metadata = dict_deep_update(metadata, ophys_metadata)
+
     session_id = scanimage_folder_path.parent.name.replace("_", "-")
     metadata["NWBFile"].update(session_id=session_id)
 
     # Run conversion
-    converter.run_conversion(metadata=metadata, nwbfile_path=nwbfile_path, conversion_options=conversion_options)
+    converter.run_conversion(
+        metadata=metadata, nwbfile_path=nwbfile_path, conversion_options=conversion_options, overwrite=True
+    )
 
 
 if __name__ == "__main__":
 
     # Parameters for conversion
     scanimage_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2620749R2_231211/231211_data")
+    scanimage_file_pattern = "2620749R2_231211_00001*.tif"
+
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/2620749R2_231211.nwb")
-    stub_test = False
+    stub_test = True
 
     session_to_nwb(
         scanimage_folder_path=scanimage_folder_path,
+        scanimage_file_pattern=scanimage_file_pattern,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
     )
