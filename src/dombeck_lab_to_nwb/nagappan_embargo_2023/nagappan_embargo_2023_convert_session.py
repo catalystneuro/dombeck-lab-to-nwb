@@ -11,6 +11,7 @@ from dombeck_lab_to_nwb.nagappan_embargo_2023 import NagappanEmbargo2023NWBConve
 def session_to_nwb(
     scanimage_folder_path: Union[str, Path],
     scanimage_file_pattern: str,
+    suite2p_folder_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
 ):
@@ -21,6 +22,10 @@ def session_to_nwb(
     ----------
     scanimage_folder_path : Union[str, Path]
         The folder containing the ScanImage data (.tif files).
+    scanimage_file_pattern : str
+        The file pattern to match the ScanImage files.
+    suite2p_folder_path : Union[str, Path]
+        The folder containing the Suite2p output.
     nwbfile_path : Union[str, Path]
         The path to the NWB file to be created.
     stub_test : bool, optional
@@ -33,13 +38,17 @@ def session_to_nwb(
     converter = NagappanEmbargo2023NWBConverter(
         folder_path=scanimage_folder_path,
         file_pattern=scanimage_file_pattern,
+        suite2p_folder_path=suite2p_folder_path,
         verbose=True,
     )
 
+    # Add conversion options
     conversion_options = {
-        interface_name: dict(stub_test=stub_test, photon_series_index=interface_ind)
-        for interface_ind, interface_name in enumerate(converter.data_interface_objects.keys())
+        interface_name: dict(stub_test=stub_test) for interface_name in converter.data_interface_objects.keys()
     }
+    imaging_interfaces = [interface for interface in converter.data_interface_objects.keys() if "Imaging" in interface]
+    for interface_ind, interface_name in enumerate(imaging_interfaces):
+        conversion_options[interface_name].update(photon_series_index=interface_ind)
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
@@ -69,15 +78,24 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
-    scanimage_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2620749R2_231211/231211_data")
+    root_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2620749R2_231211")
+
+    # The folder containing the ScanImage data (.tif files).
+    scanimage_folder_path = root_folder_path / "231211_data"
     scanimage_file_pattern = "2620749R2_231211_00001*.tif"
 
+    # The folder containing the Suite2p output.
+    suite2p_folder_path = root_folder_path / "suite2p"
+
+    # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/2620749R2_231211.nwb")
+
     stub_test = True
 
     session_to_nwb(
         scanimage_folder_path=scanimage_folder_path,
         scanimage_file_pattern=scanimage_file_pattern,
+        suite2p_folder_path=suite2p_folder_path,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
     )
