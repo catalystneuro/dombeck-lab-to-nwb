@@ -14,6 +14,10 @@ In each TIF the video shape is (4000, 512, 512) for single channel, and (8000, 5
 "Channel 1" is recorded from cell bodies and "Channel 2" is recorded from axons located in the striatum.
 The excitation wavelengths for the two channels are: 920 nm for Channel 1 (Green) and 1070 nm for Channel 2 (Red).
 
+## Motion correction
+
+Motion correction was performed for both channels. The motion corrected imaging data is saved in a separate TIF file for each channel.
+The x, y shifts (in the unit of pixels) for each frame are saved in a separate MAT file for each channel.
 
 ![Alt text](dual_channel_tif.png)
 
