@@ -1,14 +1,16 @@
 from pathlib import Path
 
+import numpy as np
+from ndx_events import EventsTable, EventTypesTable, Task
 from ndx_photometry import FiberPhotometryResponseSeries
-from neuroconv import BaseDataInterface
+from neuroconv import BaseTemporalAlignmentInterface
 from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 from pynwb import TimeSeries, NWBFile
 
 
-class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
+class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     """Data interface for Azcorra2023 fiber photometry data conversion."""
 
     display_name = "Azcorra2023ProcessedPhotometry"
@@ -32,8 +34,11 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         self.file_path = file_path
         self.verbose = verbose
         processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]
+        self._experiment_type = processed_photometry_data["RunRew"]
         assert "data" in processed_photometry_data, f"Processed photometry data not found in {self.file_path}."
         self._processed_photometry_data = processed_photometry_data["data"]
+        self._timestamps = None
+        self._sampling_frequency = 100.0
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -46,14 +51,38 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
                 Acceleration=dict(
                     name="Acceleration", description="The acceleration measured in the unit of m/s2.", unit="m/s2"
                 ),
+                Events=dict(
+                    EventTypesTable=dict(
+                        name="event_types",
+                        description="Contains the type of events (reward, air puff, light, and licking).",
+                    ),
+                    EventsTable=dict(
+                        name="Events",
+                        description="Contains the onset times of reward, air puff, light, and licking.",
+                    ),
+                ),
             ),
         )
 
         return metadata
 
-    def add_behavior_data(self, nwbfile: NWBFile, metadata: dict):
+    def get_original_timestamps(self) -> np.ndarray:
+        processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]
+        num_frames = len(processed_photometry_data["data"]["chGreen"])
+        return np.arange(num_frames) / self._sampling_frequency
+
+    def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
+        timestamps = self._timestamps if self._timestamps is not None else self.get_original_timestamps()
+        if stub_test:
+            return timestamps[:6000]
+        return timestamps
+
+    def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
+        self._timestamps = np.array(aligned_timestamps)
+
+    def add_continuous_behavior(self, nwbfile: NWBFile, metadata: dict):
         """
-        Add behavior data to the NWB file.
+        Add continuous behavior data (velocity, acceleration) to the NWB file.
         """
 
         behavior_metadata = metadata["Behavior"]
@@ -65,7 +94,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
         velocity_metadata = behavior_metadata["Velocity"]
         velocity_ts = TimeSeries(
             data=velocity,
-            rate=100.0,
+            rate=self._sampling_frequency,
             **velocity_metadata,
         )
 
@@ -73,10 +102,11 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
             "Acceleration" in self._processed_photometry_data
         ), f"Acceleration data not found in {self.source_data['file_path']}."
         acceleration = self._processed_photometry_data["Acceleration"]
+        acceleration_metadata = behavior_metadata["Acceleration"]
         acceleration_ts = TimeSeries(
             data=acceleration,
-            rate=100.0,
-            **behavior_metadata["Acceleration"],
+            rate=self._sampling_frequency,
+            **acceleration_metadata,
         )
 
         behavior_module = get_module(
@@ -145,7 +175,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
                 description=description,
                 data=data if not stub_test else data[:6000],
                 unit="n.a.",
-                rate=100.0,
+                rate=self._sampling_frequency,
                 fibers=fiber_ref,
                 excitation_sources=excitation_ref,
                 photodetectors=photodetector_ref,
@@ -154,15 +184,169 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
 
             ophys_module.add(response_series)
 
+    def add_binary_behavior(self, nwbfile, metadata):
+
+        if (
+            self._experiment_type == "run"
+        ):  # whether the mouse was only running ('run') or received stimuli (reward, air puff, light... - 'rew')
+            return
+
+        events_metadata = metadata["Behavior"]["Events"]
+        events_table_name = events_metadata["EventsTable"]["name"]
+
+        behavior_module = get_module(nwbfile, name="behavior")
+        assert (
+            events_table_name not in behavior_module.data_interfaces
+        ), f"The {events_table_name} is already in nwbfile."
+
+        event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
+
+        event_names_mapping = dict(
+            Light="Light stimulus trigger",
+            Reward="Reward delivery trigger",
+            Licking="Licking sensor output",
+            AirPuff="Airpuff delivery trigger",
+            # RewardLong="Long reward delivery trigger",
+            # RewardShort="Short reward delivery trigger",
+            # RewardRest="Reward delivery trigger during rest",
+            # RewardLongRest="Long reward delivery trigger during rest",
+            # RewardShortRest="Short reward delivery trigger during rest",
+            # AirPuffRest="Airpuff delivery trigger during rest",
+            # LightRest="Light stimulus trigger during rest",
+        )
+
+        for event_name in event_names_mapping.values():
+            event_types_table.add_row(
+                event_name=event_name,
+                event_type_description=f"The onset times of the {event_name} event.",
+            )
+
+        task = Task()
+        task.event_types = event_types_table
+        nwbfile.add_lab_meta_data(task)
+
+        events = EventsTable(
+            **events_metadata["EventsTable"],
+            target_tables={"event_type": event_types_table},  # sets the dynamic table region link
+        )
+
+        for event_id, (event_name, renamed_event_name) in enumerate(event_names_mapping.items()):
+            event_onset = self._processed_photometry_data[event_name]
+            if isinstance(event_onset, dict):
+                event_indices = event_onset["ir"] if "ir" in event_onset else []
+            else:
+                event_indices = np.where(event_onset)[0]
+            if not len(event_indices):
+                continue
+            for timestamp in self.get_timestamps()[event_indices]:
+                events.add_row(
+                    event_type=event_id,
+                    timestamp=timestamp,
+                )
+
+        behavior_module.add(events)
+
+    def add_movement_events(self, nwbfile, metadata):
+        events_metadata = metadata["Behavior"]["Events"]
+        events_table_name = events_metadata["EventsTable"]["name"]
+
+        behavior_module = get_module(nwbfile, name="behavior")
+        if events_table_name in behavior_module.data_interfaces:
+            events_table = behavior_module.data_interfaces[events_table_name]
+            event_types_table = nwbfile.lab_meta_data["task"].event_types
+        else:
+            event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
+            task = Task()
+            task.event_types = event_types_table
+            nwbfile.add_lab_meta_data(task)
+
+            events_table = EventsTable(
+                **events_metadata["EventsTable"],
+                target_tables={"event_type": event_types_table},  # sets the dynamic table region link
+            )
+            behavior_module.add(events_table)
+
+        event_names_mapping = dict(
+            AccOn="Acceleration onset",
+            DecOn="Deceleration onset",
+            MovOn="Movement onset",
+            MovOff="Movement offset",
+        )
+
+        for event_name in event_names_mapping.values():
+            event_types_table.add_row(
+                event_name=event_name,
+                event_type_description=f"The times of the {event_name} event.",
+            )
+
+        for event_id, (event_name, renamed_event_name) in enumerate(event_names_mapping.items()):
+            event_onset = self._processed_photometry_data[event_name]
+            if isinstance(event_onset, dict):
+                event_indices = event_onset["ir"] if "ir" in event_onset else []
+            else:
+                event_indices = np.where(event_onset)[0]
+            if not len(event_indices):
+                continue
+            for timestamp in self.get_timestamps()[event_indices]:
+                events_table.add_row(
+                    event_type=event_id,
+                    timestamp=timestamp,
+                )
+
+    def add_analysis(self, nwbfile: NWBFile) -> None:
+        event_types_table = EventTypesTable(
+            name="EventTypes",
+            description="Contains the type of events.",
+        )
+
+        event_names_mapping = dict(
+            peaksG="Large transient peaks for green fluorescence",
+            peaksR="Large transient peaks for red fluorescence",
+            peaksGRun="Large transient peaks occurring during running periods for green fluorescence",
+            peaksRRun="Large transient peaks occurring during running periods for red fluorescence",
+        )
+
+        for event_name, event_type_description in event_names_mapping.items():
+            if event_name in self._processed_photometry_data:
+                if np.any(self._processed_photometry_data[event_name]):
+                    event_types_table.add_row(
+                        event_name=event_name,
+                        event_type_description=event_type_description,
+                    )
+
+        events = EventsTable(
+            name="Events",
+            description="Contains the onset times of events.",
+            target_tables={"event_type": event_types_table},
+        )
+        events.add_column(
+            name="peak_fluorescence",
+            description="The value of the large transient peaks.",
+        )
+
+        timestamps = self.get_timestamps()
+        for event_id, event_name in enumerate(event_types_table["event_name"][:]):
+            peaks = self._processed_photometry_data[event_name]
+            peak_indices = np.where(peaks)[0]
+            for timestamp, peak in zip(timestamps[peak_indices], peaks[peak_indices]):
+                events.add_row(
+                    event_type=event_id,
+                    timestamp=timestamp,
+                    peak_fluorescence=peak,
+                )
+
+        nwbfile.add_analysis(events)
+        nwbfile.add_analysis(event_types_table)
+
     def add_to_nwbfile(
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_name_to_photometry_series_name_mapping: dict,
+        channel_name_to_photometry_series_name_mapping: dict = None,
         stub_test: bool = False,
     ):
         """
-        Add the continuous velocity, acceleration and DFF traces to the NWB file.
+        Add the continuous velocity, acceleration, binary events and DFF traces to the NWB file.
 
         Parameters
         ----------
@@ -177,7 +361,15 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseDataInterface):
 
         """
 
-        self.add_behavior_data(nwbfile=nwbfile, metadata=metadata)
+        # Adds the velocity and acceleration data to the NWB file
+        self.add_continuous_behavior(nwbfile=nwbfile, metadata=metadata)
+        # Adds the binary behavior events (licking, light, air puff, reward) to the NWB file
+        self.add_binary_behavior(nwbfile=nwbfile, metadata=metadata)
+        # Adds the movement events (accelerations, decelerations, movement onsets, movement offsets) to the NWB file
+        self.add_movement_events(nwbfile=nwbfile, metadata=metadata)
+        # Adds the transient peaks to the NWB file
+        self.add_analysis(nwbfile=nwbfile)
+        # Adds the DFF traces to the NWB file
         self.add_delta_f_over_f_traces(
             nwbfile=nwbfile,
             metadata=metadata,
