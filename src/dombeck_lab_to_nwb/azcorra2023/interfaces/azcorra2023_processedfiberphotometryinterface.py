@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from ndx_events import EventsTable, EventTypesTable, Task
 from ndx_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseTemporalAlignmentInterface
@@ -8,6 +9,7 @@ from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 from pynwb import TimeSeries, NWBFile
+from pynwb.epoch import TimeIntervals
 
 
 class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterface):
@@ -52,13 +54,17 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                     name="Acceleration", description="The acceleration measured in the unit of m/s2.", unit="m/s2"
                 ),
                 Events=dict(
-                    EventTypesTable=dict(
-                        name="event_types",
-                        description="Contains the type of events (reward, air puff, light, and licking).",
-                    ),
+                    name="Events",
+                    description="Contains the times when the mouse was moving and the reward, air puff, light, and licking event times.",
+                ),
+                WheelEvents=dict(
                     EventsTable=dict(
-                        name="Events",
-                        description="Contains the onset times of reward, air puff, light, and licking.",
+                        name="WheelEvents",
+                        description="Contains the accelerations, decelerations times.",
+                    ),
+                    EventTypesTable=dict(
+                        name="WheelEventTypes",
+                        description="Contains the type of wheel events.",
                     ),
                 ),
             ),
@@ -184,7 +190,38 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
             ophys_module.add(response_series)
 
-    def add_binary_behavior(self, nwbfile, metadata):
+    def _get_start_end_times(self, binary_event_data):
+
+        timestamps = self.get_timestamps()
+        if isinstance(binary_event_data, dict):
+            ones_indices = binary_event_data["ir"] if "ir" in binary_event_data else []
+            binary_event_data = np.zeros_like(timestamps)
+            binary_event_data[ones_indices] = 1
+
+        if not np.any(binary_event_data):
+            return [], []
+
+        ones = np.where(binary_event_data == 1)[0]
+
+        # Calculate the differences between consecutive indices
+        diff = np.diff(ones)
+
+        # Find where the difference is not 1
+        ends = np.where(diff != 1)[0]
+
+        # The start of an interval is one index after the end of the previous interval
+        starts = ends + 1
+
+        # Handle the case for the first interval
+        starts = np.insert(starts, 0, 0)
+
+        # Handle the case for the last interval
+        ends = np.append(ends, len(ones) - 1)
+
+        # Return the start and end indices of the intervals
+        return timestamps[ones[starts]], timestamps[ones[ends]]
+
+    def add_events(self, nwbfile, metadata):
 
         if (
             self._experiment_type == "run"
@@ -192,85 +229,91 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             return
 
         events_metadata = metadata["Behavior"]["Events"]
-        events_table_name = events_metadata["EventsTable"]["name"]
-
-        behavior_module = get_module(nwbfile, name="behavior")
-        assert (
-            events_table_name not in behavior_module.data_interfaces
-        ), f"The {events_table_name} is already in nwbfile."
-
-        event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
-
-        event_names_mapping = dict(
-            Light="Light stimulus trigger",
-            Reward="Reward delivery trigger",
-            Licking="Licking sensor output",
-            AirPuff="Airpuff delivery trigger",
-            # RewardLong="Long reward delivery trigger",
-            # RewardShort="Short reward delivery trigger",
-            # RewardRest="Reward delivery trigger during rest",
-            # RewardLongRest="Long reward delivery trigger during rest",
-            # RewardShortRest="Short reward delivery trigger during rest",
-            # AirPuffRest="Airpuff delivery trigger during rest",
-            # LightRest="Light stimulus trigger during rest",
+        events = TimeIntervals(**events_metadata)
+        events.add_column(
+            name="event_type",
+            description="The type of event (licking, air puff, light or reward delivery).",
         )
 
-        for event_name in event_names_mapping.values():
-            event_types_table.add_row(
-                event_name=event_name,
-                event_type_description=f"The onset times of the {event_name} event.",
-            )
+        events_start_times, events_end_times, events_types, events_tags = [], [], [], []
 
-        task = Task()
-        task.event_types = event_types_table
-        nwbfile.add_lab_meta_data(task)
+        timestamps = self.get_timestamps()
 
-        events = EventsTable(
+        events_to_add = ["MovOnOff", "Light", "Licking", "AirPuff"]
+
+        for event_name in events_to_add:
+            binary_event_data = self._processed_photometry_data[event_name]
+            start_times, end_times = self._get_start_end_times(binary_event_data)
+            if not len(start_times):
+                continue
+            events_start_times.extend(start_times)
+            events_end_times.extend(end_times)
+            events_types.extend([event_name] * len(start_times))
+
+            event_tags = [[""]] * len(start_times)
+            if event_name in ["Light", "AirPuff"]:
+                rest_ones_indices = np.where(self._processed_photometry_data[f"{event_name}Rest"] == 1)[0]
+                rest_times = timestamps[rest_ones_indices]
+                tags_indices = np.where(np.isin(start_times, rest_times))[0]
+                if len(tags_indices):
+                    event_tags = [["rest"] if i in tags_indices else [""] for i in range(len(start_times))]
+
+            events_tags.extend(event_tags)
+
+        reward_events = dict(
+            RewardLong=["long"],
+            RewardShort=["short"],
+            RewardRest=["rest"],
+            RewardLongRest=["long", "rest"],
+            RewardShortRest=["short", "rest"],
+        )
+        reward_events_renamed = dict(
+            RewardLong="Reward",
+            RewardShort="Reward",
+            RewardRest="Reward",
+            RewardLongRest="Reward",
+            RewardShortRest="Reward",
+        )
+
+        for event_name, event_tag in reward_events.items():
+            binary_event_data = self._processed_photometry_data[event_name]
+            start_times, end_times = self._get_start_end_times(binary_event_data)
+            if not len(start_times):
+                continue
+            events_start_times.extend(start_times)
+            events_end_times.extend(end_times)
+            events_types.extend([reward_events_renamed[event_name]] * len(start_times))
+            events_tags.extend([event_tag] * len(start_times))
+
+        df = pd.DataFrame(columns=["start_time", "stop_time", "event_type", "tags"])
+        df["start_time"] = events_start_times
+        df["stop_time"] = events_end_times
+        df["event_type"] = events_types
+        df["tags"] = events_tags
+        df = df.sort_values(by="start_time")
+
+        for _, row in df.iterrows():
+            events.add_interval(**row)
+
+        behavior = get_module(nwbfile, name="behavior")
+        behavior.add(events)
+
+    def add_wheel_events(self, nwbfile, metadata):
+        events_metadata = metadata["Behavior"]["WheelEvents"]
+
+        behavior = get_module(nwbfile, name="behavior")
+        event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
+        behavior.add(event_types_table)
+
+        events_table = EventsTable(
             **events_metadata["EventsTable"],
             target_tables={"event_type": event_types_table},  # sets the dynamic table region link
         )
-
-        for event_id, (event_name, renamed_event_name) in enumerate(event_names_mapping.items()):
-            event_onset = self._processed_photometry_data[event_name]
-            if isinstance(event_onset, dict):
-                event_indices = event_onset["ir"] if "ir" in event_onset else []
-            else:
-                event_indices = np.where(event_onset)[0]
-            if not len(event_indices):
-                continue
-            for timestamp in self.get_timestamps()[event_indices]:
-                events.add_row(
-                    event_type=event_id,
-                    timestamp=timestamp,
-                )
-
-        behavior_module.add(events)
-
-    def add_movement_events(self, nwbfile, metadata):
-        events_metadata = metadata["Behavior"]["Events"]
-        events_table_name = events_metadata["EventsTable"]["name"]
-
-        behavior_module = get_module(nwbfile, name="behavior")
-        if events_table_name in behavior_module.data_interfaces:
-            events_table = behavior_module.data_interfaces[events_table_name]
-            event_types_table = nwbfile.lab_meta_data["task"].event_types
-        else:
-            event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
-            task = Task()
-            task.event_types = event_types_table
-            nwbfile.add_lab_meta_data(task)
-
-            events_table = EventsTable(
-                **events_metadata["EventsTable"],
-                target_tables={"event_type": event_types_table},  # sets the dynamic table region link
-            )
-            behavior_module.add(events_table)
+        behavior.add(events_table)
 
         event_names_mapping = dict(
             AccOn="Acceleration onset",
             DecOn="Deceleration onset",
-            MovOn="Movement onset",
-            MovOff="Movement offset",
         )
 
         for event_name in event_names_mapping.values():
@@ -287,7 +330,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 event_indices = np.where(event_onset)[0]
             if not len(event_indices):
                 continue
-            for timestamp in self.get_timestamps()[event_indices]:
+            event_times = self.get_timestamps()[event_indices]
+            for timestamp in event_times:
                 events_table.add_row(
                     event_type=event_id,
                     timestamp=timestamp,
@@ -364,9 +408,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         # Adds the velocity and acceleration data to the NWB file
         self.add_continuous_behavior(nwbfile=nwbfile, metadata=metadata)
         # Adds the binary behavior events (licking, light, air puff, reward) to the NWB file
-        self.add_binary_behavior(nwbfile=nwbfile, metadata=metadata)
-        # Adds the movement events (accelerations, decelerations, movement onsets, movement offsets) to the NWB file
-        self.add_movement_events(nwbfile=nwbfile, metadata=metadata)
+        self.add_events(nwbfile=nwbfile, metadata=metadata)
+        # Adds the movement events (accelerations, decelerations) to the NWB file
+        self.add_wheel_events(nwbfile=nwbfile, metadata=metadata)
         # Adds the transient peaks to the NWB file
         self.add_analysis(nwbfile=nwbfile)
         # Adds the DFF traces to the NWB file
