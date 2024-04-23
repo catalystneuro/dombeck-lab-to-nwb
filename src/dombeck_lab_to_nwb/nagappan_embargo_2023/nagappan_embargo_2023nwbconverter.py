@@ -1,10 +1,16 @@
 """Primary NWBConverter class for this dataset."""
 from pathlib import Path
+from typing import Optional
 
 from natsort import natsorted
 from neuroconv import NWBConverter
-from neuroconv.datainterfaces import ScanImageSinglePlaneMultiFileImagingInterface, Suite2pSegmentationInterface
-from neuroconv.utils import FolderPathType
+from neuroconv.datainterfaces import (
+    ScanImageMultiFileImagingInterface,
+    Suite2pSegmentationInterface,
+    DeepLabCutInterface,
+    VideoInterface,
+)
+from neuroconv.utils import FolderPathType, FilePathType
 
 
 class NagappanEmbargo2023NWBConverter(NWBConverter):
@@ -15,6 +21,9 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
         folder_path: FolderPathType,
         file_pattern: str,
         suite2p_folder_path: FolderPathType,
+        dlc_file_path: FilePathType,
+        dlc_config_file_path: FilePathType,
+        behavior_movie_file_path: Optional[FilePathType] = None,
         verbose: bool = False,
     ):
         from roiextractors import ScanImageTiffSinglePlaneImagingExtractor
@@ -30,7 +39,7 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
         for channel_name in available_channels:
             channel_name_without_spaces = channel_name.replace(" ", "")
             interface_name = f"Imaging{channel_name_without_spaces}"
-            self.data_interface_objects[interface_name] = ScanImageSinglePlaneMultiFileImagingInterface(
+            self.data_interface_objects[interface_name] = ScanImageMultiFileImagingInterface(
                 folder_path=folder_path, file_pattern=file_pattern, channel_name=channel_name, verbose=verbose
             )
 
@@ -42,3 +51,15 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
             verbose=verbose,
             plane_segmentation_name="PlaneSegmentationChannel1",
         )
+
+        self.data_interface_objects["DLC"] = DeepLabCutInterface(
+            file_path=dlc_file_path,
+            config_file_path=dlc_config_file_path,
+            verbose=verbose,
+        )
+
+        if behavior_movie_file_path:
+            self.data_interface_objects["BehaviorMovie"] = VideoInterface(
+                file_paths=[behavior_movie_file_path],
+                verbose=verbose,
+            )
