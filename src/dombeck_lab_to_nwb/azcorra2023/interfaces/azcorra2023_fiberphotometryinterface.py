@@ -90,7 +90,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         excitation_sources_to_add = [excitation_sources_metadata[ind] for ind in excitation_source_ind]
 
         excitation_sources_description = (
-            "Blue excitation light (470 nm LED, Thorlabs, M70F3) and purple excitation light (for the isosbestic "
+            "Blue excitation light (470 nm LED, Thorlabs, M70F3) and violet excitation light (for the isosbestic "
             "control) (405 nm LED, Thorlabs, M405FP1) were coupled into the optic fiber such that a power of 0.75 mW "
             "emanated from the fiber tip. Then, 470 nm and 405 nm excitation were alternated at 100 Hz using a "
             "waveform generator, each filtered with a corresponding filter (Semrock, FF01-406/15-25 and Semrock, "

@@ -24,7 +24,8 @@ NWBFile:
   lab: Dombeck
   experimenter:
     - Azcorra, Maite
-  virus: |
+  virus: AAV8-EF1α-CreOn/FlpOn-GCaMP6f (RRID:Addgene_137122, titer 6.10 × 1013)
+  pharmacology: |
     Adult mice (postnatal 2–4 months old) were anesthetized with isoflurane (1–2%), and a 0.5–1-mm-diameter craniotomy
     was made over the right substantia nigra (−3.25 mm caudal, +1.55 mm lateral from bregma).
     A small volume (0.4 μl total) of virus (AAV8-EF1α-CreOn/FlpOn-GCaMP6f (RRID:Addgene_137122, titer 6.10 × 1013)
