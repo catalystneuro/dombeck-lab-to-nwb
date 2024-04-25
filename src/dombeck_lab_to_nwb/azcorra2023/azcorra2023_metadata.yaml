@@ -13,18 +13,31 @@ NWBFile:
     neuron subtypes and demonstrate that molecular expression patterns can serve as a common framework to dissect
     dopaminergic functions.
   session_description: |
-    This session contains the acquisition traces (velocity from rotary encoder, trigger signals for reward, air puff
-    and light stimuli delivery, licking from a lick sensor, fluorescence and waveform generator output (used to
-    alternate 405-nm and 470-nm illumination every 10 ms) collected at 4000 Hz by Picoscope 6.
+    This session contains fiber photometry recordings from head-fixed mice running on a treadmill while receiving
+    rewards and aversive air puffs in order to analyze differences or similarities in functional responses of different
+    subtypes of striatonigral dopamine neurons.
+  keywords:
+    - Fiber photometry
+    - GCaMP6f
+    - Dopamine
   institution: Northwestern University
   lab: Dombeck
   experimenter:
     - Azcorra, Maite
-
-Ecephys:
-  ElectricalSeriesVelocity:
-    description: The electrical series of the velocity from rotary encoder collected at 4000 Hz by Picoscope.
-  ElectricalSeriesFluorescenceRed:
-    description: The electrical series of fluorescence from Red channel collected at 4000 Hz by Picoscope.
-  ElectricalSeriesFluorescenceGreen:
-    description: The electrical series of fluorescence from Green channel collected at 4000 Hz by Picoscope.
+  virus: AAV8-EF1α-CreOn/FlpOn-GCaMP6f (RRID:Addgene_137122, titer 6.10 × 1013)
+  pharmacology: |
+    Adult mice (postnatal 2–4 months old) were anesthetized with isoflurane (1–2%), and a 0.5–1-mm-diameter craniotomy
+    was made over the right substantia nigra (−3.25 mm caudal, +1.55 mm lateral from bregma).
+    A small volume (0.4 μl total) of virus (AAV8-EF1α-CreOn/FlpOn-GCaMP6f (RRID:Addgene_137122, titer 6.10 × 1013)
+    for Aldh1a1-iCre/Th-Flpo, Vglut2-IRES-Cre/Th-Flpo and Calb1-IRES2-Cre/Th-Flpo mice or AAV1-CAG-FLEX-GCaMP6f
+    (RRID:Addgene_100835, titer 2.00 × 1013) for DAT-Cre or Anxa1-iCre mice), diluted 1:1 in PBS, was pressure injected
+    through a pulled glass micropipette into the SNc at four depths (−3.8, −4.1, −4.4 and −4.7 mm ventral from dura
+    surface, 0.1 μl per depth). After the injections, the skull and craniotomy were sealed with Metabond (Parkell),
+    and a custom metal headplate was installed for head fixation. The location of recording sites was marked on the
+    surface of the Metabond for future access. For Calb1-IRES2-Cre/DAT-tTA/Ai93D mice, which express GCaMP6f
+    endogenously, no injection was conducted, and only the headplate was implanted at this time. Four weeks were
+    allowed for GCaMP6f expression to ramp up and fill dopaminergic somas in SNc and axons in striatum.
+  protocol: https://doi.org/10.17504/protocols.io.5qpvor8zxv4o/v1
+Subject:
+  species: Mus musculus
+  age: P8W/P16W
