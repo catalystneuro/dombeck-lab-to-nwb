@@ -9,6 +9,7 @@ from dombeck_lab_to_nwb.azcorra2023.interfaces import (
     PicoscopeTimeSeriesInterface,
     PicoscopeEventInterface,
     Azcorra2023FiberPhotometryInterface,
+    Azcorra2023ProcessedFiberPhotometryInterface,
 )
 
 
@@ -19,9 +20,11 @@ class Azcorra2023NWBConverter(NWBConverter):
         PicoScopeTimeSeries=PicoscopeTimeSeriesInterface,
         Events=PicoscopeEventInterface,
         FiberPhotometry=Azcorra2023FiberPhotometryInterface,
+        ProcessedFiberPhotometry=Azcorra2023ProcessedFiberPhotometryInterface,
     )
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
+
         super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
 
         backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
