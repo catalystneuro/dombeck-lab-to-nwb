@@ -85,7 +85,7 @@ def session_to_nwb(
     metadata = dict_deep_update(metadata, extra_metadata)
 
     # Determine whether single or multi-fiber experiment and adjust conversion options accordingly
-    fibers_metadata = metadata["Ophys"]["FiberPhotometry"]["Fibers"]
+    fibers_metadata = metadata["Ophys"]["FiberPhotometry"]["OpticalFibers"]
     num_fibers = len([fiber for fiber in fibers_metadata if "depth" in fiber])
     assert num_fibers in [1, 2], f"Number of fibers must be 1 or 2, but got {num_fibers} fibers metadata."
 

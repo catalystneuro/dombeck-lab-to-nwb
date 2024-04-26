@@ -63,12 +63,14 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         stub_test : bool, optional
             Whether to run the conversion as a stub test by writing 1-minute of data, by default False.
         """
-        from ndx_photometry import (
-            ExcitationSourcesTable,
-            PhotodetectorsTable,
-            FluorophoresTable,
-            FibersTable,
-            FiberPhotometry,
+        from ndx_fiber_photometry import (
+            Indicator,
+            OpticalFiber,
+            ExcitationSource,
+            Photodetector,
+            DichroicMirror,
+            OpticalFilter,
+            FiberPhotometryTable,
             FiberPhotometryResponseSeries,
         )
 
@@ -85,6 +87,11 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
         ]
 
+        fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
+        for trace_metadata in traces_metadata_to_add:
+            table_regions = trace_metadata["fiber_photometry_table_region"]
+            fibers_to_add = [fiber_photometry_table_metadata[row_index] for row_index in table_regions]
+
         excitation_sources_metadata = fiber_photometry_metadata["ExcitationSources"]
         excitation_source_ind = set([trace["excitation_source"] for trace in traces_metadata_to_add])
         excitation_sources_to_add = [excitation_sources_metadata[ind] for ind in excitation_source_ind]
@@ -96,7 +103,7 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             "waveform generator, each filtered with a corresponding filter (Semrock, FF01-406/15-25 and Semrock, "
             "FF02-472/30-25) and combined with a dichroic mirror (Chroma Technology, T425lpxr)."
         )
-        excitation_sources_table = ExcitationSourcesTable(description=excitation_sources_description)
+        excitation_sources_table = ExcitationSource(description=excitation_sources_description)
         for excitation_source_metadata in excitation_sources_to_add:
             excitation_source_metadata.pop("name")
             excitation_sources_table.add_row(**excitation_source_metadata)
