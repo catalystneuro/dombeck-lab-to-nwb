@@ -43,11 +43,11 @@ class NagappanEmbargoTtlInterface(BaseTemporalAlignmentInterface):
         if ".mat" not in mat_file_path.suffixes:
             raise IOError(f"The file '{mat_file_path.stem}' is not a .mat file.")
 
+        super().__init__(file_path=file_path, mat_file_path=mat_file_path, verbose=verbose)
+
         self._vars = self._read_mat_data()
         self._sampling_frequency = self._vars["daq"]["sampleRate"]
         self._num_daq_channels = self._vars["si"]["licks"]
-
-        super().__init__(file_path=file_path, mat_file_path=mat_file_path, verbose=verbose)
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()

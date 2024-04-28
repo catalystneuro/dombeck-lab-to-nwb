@@ -12,6 +12,11 @@ from neuroconv.datainterfaces import (
 )
 from neuroconv.utils import FolderPathType, FilePathType
 
+from dombeck_lab_to_nwb.nagappan_embargo_2023.interfaces import (
+    NagappanEmbargoBehaviorInterface,
+    NagappanEmbargoTtlInterface,
+)
+
 
 class NagappanEmbargo2023NWBConverter(NWBConverter):
     """Primary conversion class for the Two Photon experiment from Shiva Nagappan."""
@@ -23,6 +28,9 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
         suite2p_folder_path: FolderPathType,
         dlc_file_path: FilePathType,
         dlc_config_file_path: FilePathType,
+        events_dat_file_path: FilePathType,
+        events_mat_file_path: FilePathType,
+        daq_dat_file_path: FilePathType,
         behavior_movie_file_path: Optional[FilePathType] = None,
         verbose: bool = False,
     ):
@@ -35,6 +43,18 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
         file_paths = natsorted(folder_path.glob(file_pattern))
         first_file_path = file_paths[0]
         available_channels = ScanImageTiffSinglePlaneImagingExtractor.get_available_channels(file_path=first_file_path)
+
+        self.data_interface_objects["Events"] = NagappanEmbargoBehaviorInterface(
+            dat_file_path=events_dat_file_path,
+            mat_file_path=events_mat_file_path,
+            verbose=verbose,
+        )
+
+        self.data_interface_objects["TTL"] = NagappanEmbargoTtlInterface(
+            dat_file_path=daq_dat_file_path,
+            mat_file_path=events_mat_file_path,
+            verbose=verbose,
+        )
 
         for channel_name in available_channels:
             channel_name_without_spaces = channel_name.replace(" ", "")

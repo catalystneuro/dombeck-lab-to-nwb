@@ -64,7 +64,7 @@ class NagappanEmbargoBehaviorInterface(BaseTemporalAlignmentInterface):
             data = np.fromfile(fid, dtype=np.float64)
 
         num_frames = data.shape[0]
-        num_inputs = len(daq_inputs) - 1  # last variable (licks) is not included.
+        num_inputs = len(daq_inputs) - 1  # last variable (licks) is not included because it is empty.
 
         data = data[: num_frames - num_frames % num_inputs]
         num_frames = data.shape[0]

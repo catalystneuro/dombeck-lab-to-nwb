@@ -15,6 +15,9 @@ def session_to_nwb(
     suite2p_folder_path: Union[str, Path],
     dlc_file_path: Union[str, Path],
     dlc_config_file_path: Union[str, Path],
+    events_dat_file_path: Union[str, Path],
+    events_mat_file_path: Union[str, Path],
+    daq_dat_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     tiff_movie_folder_path: Optional[Union[str, Path]] = None,
     tiff_movie_frame_rate: Optional[int] = None,
@@ -66,6 +69,9 @@ def session_to_nwb(
         dlc_file_path=dlc_file_path,
         dlc_config_file_path=dlc_config_file_path,
         behavior_movie_file_path=avi_file_path,
+        events_dat_file_path=events_dat_file_path,
+        events_mat_file_path=events_mat_file_path,
+        daq_dat_file_path=daq_dat_file_path,
         verbose=True,
     )
 
@@ -103,6 +109,10 @@ def session_to_nwb(
         metadata=metadata, nwbfile_path=nwbfile_path, conversion_options=conversion_options, overwrite=True
     )
 
+    # if avi_file_path is not None:
+    #     # delete the avi file after conversion
+    #     avi_file_path.unlink()
+
 
 if __name__ == "__main__":
 
@@ -125,6 +135,13 @@ if __name__ == "__main__":
     tiff_movie_folder_path = root_folder_path / "tiff_movie"
     tiff_movie_frame_rate = 105
 
+    # The path to the events files.
+    events_mat_file_path = root_folder_path / "2620749R2_20231211_expLog3.mat"
+    events_dat_file_path = root_folder_path / "2620749R2_20231211_expLog.dat"
+
+    # The path to the daq file.
+    daq_dat_file_path = root_folder_path / "2620749R2_20231211_expLog1.dat"
+
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/2620749R2_231211.nwb")
 
@@ -136,6 +153,9 @@ if __name__ == "__main__":
         suite2p_folder_path=suite2p_folder_path,
         dlc_file_path=dlc_file_path,
         dlc_config_file_path=dlc_config_file_path,
+        events_dat_file_path=events_dat_file_path,
+        events_mat_file_path=events_mat_file_path,
+        daq_dat_file_path=daq_dat_file_path,
         nwbfile_path=nwbfile_path,
         tiff_movie_folder_path=tiff_movie_folder_path,
         tiff_movie_frame_rate=tiff_movie_frame_rate,
