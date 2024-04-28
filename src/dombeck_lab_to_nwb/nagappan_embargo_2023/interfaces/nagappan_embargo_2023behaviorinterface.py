@@ -38,12 +38,12 @@ class NagappanEmbargoBehaviorInterface(BaseTemporalAlignmentInterface):
 
         file_path = Path(dat_file_path)
         if ".dat" not in file_path.suffixes:
-            raise IOError("The file passed in is not a .dat file.")
-        if ".mat" not in Path(mat_file_path).suffixes:
-            raise IOError("The file passed in is not a .mat file.")
+            raise IOError(f"The file '{file_path.stem}' is not a .dat file.")
+        mat_file_path = Path(mat_file_path)
+        if ".mat" not in mat_file_path.suffixes:
+            raise IOError(f"The file '{mat_file_path.stem}' is not a .mat file.")
 
-        self.verbose = verbose
-        super().__init__(file_path=file_path)
+        super().__init__(file_path=file_path, mat_file_path=mat_file_path, verbose=verbose)
 
     def _read_mat_data(self):
         """Read the data from the .mat file."""
@@ -60,7 +60,7 @@ class NagappanEmbargoBehaviorInterface(BaseTemporalAlignmentInterface):
         if "si" not in mat_data:
             raise ValueError("The .mat file does not contain the 'si' key.")
         daq_inputs = mat_data["si"]
-        with open(self.source_data["dat_file_path"], "rb") as fid:
+        with open(self.source_data["file_path"], "rb") as fid:
             data = np.fromfile(fid, dtype=np.float64)
 
         num_frames = data.shape[0]
