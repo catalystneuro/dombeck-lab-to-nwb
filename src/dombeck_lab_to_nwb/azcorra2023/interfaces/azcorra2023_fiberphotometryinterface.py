@@ -1,10 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from hdmf.backends.hdf5 import H5DataIO
-from hdmf.common import DynamicTableRegion
 from neuroconv.basedatainterface import BaseDataInterface
-from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 from pynwb import NWBFile
@@ -21,7 +18,6 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self,
         file_path: FilePathType,
         session_id: str,
-        fiber_depth_red: Optional[float] = None,
         verbose: bool = False,
     ):
         """
@@ -31,8 +27,6 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             The path that points to the .mat file containing the binned photometry data.
         session_id : str
             The session id to extract from the .mat file.
-        fiber_depth_red : float, optional
-            The depth of the red fiber in the unit of millimeters, by default None.
         """
         file_path = Path(file_path)
         assert file_path.exists(), f"File {file_path} does not exist."
@@ -47,15 +41,6 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self.depth_index = depth_index
 
         self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
-
-        # Record the depth of the fiber
-        # The script that used to create the concatenated and binned photometry data only
-        # records the depth of the green fiber.
-        assert "Depth" in self.column_names, f"The column 'Depth' is not in the file {file_path}."
-        fiber_depth_green_in_mm = self._photometry_data[self.column_names.index("Depth")][depth_index]
-        self.fiber_depth = dict(chGreen=fiber_depth_green_in_mm)
-        if fiber_depth_red is not None:
-            self.fiber_depth.update(chRed=fiber_depth_red)
 
     def add_to_nwbfile(
         self,
@@ -92,18 +77,27 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             channel_name in self.column_names for channel_name in channel_names
         ), f"Not all channel names are in {self.source_data['file_path']}."
 
-        fiber_photometry_metadata = metadata["FiberPhotometry"]
+        fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
+        traces_metadata = fiber_photometry_metadata["FiberPhotometryResponseSeries"]
+        traces_metadata_to_add = [
+            trace
+            for trace in traces_metadata
+            if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
+        ]
 
         excitation_sources_metadata = fiber_photometry_metadata["ExcitationSources"]
+        excitation_source_ind = set([trace["excitation_source"] for trace in traces_metadata_to_add])
+        excitation_sources_to_add = [excitation_sources_metadata[ind] for ind in excitation_source_ind]
+
         excitation_sources_description = (
-            "Blue excitation light (470 nm LED, Thorlabs, M70F3) and purple excitation light (for the isosbestic "
+            "Blue excitation light (470 nm LED, Thorlabs, M70F3) and violet excitation light (for the isosbestic "
             "control) (405 nm LED, Thorlabs, M405FP1) were coupled into the optic fiber such that a power of 0.75 mW "
             "emanated from the fiber tip. Then, 470 nm and 405 nm excitation were alternated at 100 Hz using a "
             "waveform generator, each filtered with a corresponding filter (Semrock, FF01-406/15-25 and Semrock, "
             "FF02-472/30-25) and combined with a dichroic mirror (Chroma Technology, T425lpxr)."
         )
         excitation_sources_table = ExcitationSourcesTable(description=excitation_sources_description)
-        for excitation_source_metadata in excitation_sources_metadata:
+        for excitation_source_metadata in excitation_sources_to_add:
             excitation_source_metadata.pop("name")
             excitation_sources_table.add_row(**excitation_source_metadata)
 
@@ -119,6 +113,9 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             photodetectors_table.add_row(**photodetector_metadata)
 
         fibers_metadata = fiber_photometry_metadata["Fibers"]
+        fibers_ind = set([trace["fiber"] for trace in traces_metadata_to_add])
+        fibers_to_add = [fibers_metadata[ind] for ind in fibers_ind]
+        fiber_names = [fiber_metadata["name"] for fiber_metadata in fibers_to_add]
         fibers_description = (
             "One or two optical fibers (200-μm diameter, 0.57 NA, Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF) were "
             "lowered slowly (5 μm s−1) using a micromanipulator (Sutter Instrument, MP285) into the brain to various "
@@ -128,26 +125,23 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             "0.25–0.5 mm in striatum or 0.15–0.2 mm in SNc, until transients were detected."
         )
         fibers_table = FibersTable(description=fibers_description)
-        fibers_table.add_column(name="depth", description="The depth of fiber in the unit of meters.")
+        fibers_table.add_column(name="depth", description="The depth of fiber in the unit of millimeters.")
 
-        for fiber_metadata in fibers_metadata:
+        for fiber_metadata in fibers_to_add:
             fiber_name = fiber_metadata.pop("name")
-            if fiber_name in self.column_names:
-                fiber_depth_in_mm = self.fiber_depth[fiber_name]
-                location = "SNc" if fiber_depth_in_mm > 3.0 else "Str"  # striatum
-                fibers_table.add_row(
-                    **fiber_metadata,
-                    depth=fiber_depth_in_mm / 1000,
-                    location=location,
-                )
+            assert fiber_name in self.column_names, f"The fiber {fiber_name} is not in the photometry data."
+            fibers_table.add_row(**fiber_metadata)
 
         fluorophores_metadata = fiber_photometry_metadata["Fluorophores"]
+        fluorophores_ind = set([trace["fluorophore"] for trace in traces_metadata_to_add])
+        fluorophores_to_add = [fluorophores_metadata[ind] for ind in fluorophores_ind]
+
         fluorophores_description = (
             "GCaMP6f was used as the fluorophore in SNc (3.25 mm caudal, +1.55 mm lateral) at four "
             "depths (−3.8, −4.1, −4.4 and −4.7 mm) ventral from dura surface, 0.1 μl per depth)."
         )
         fluorophores_table = FluorophoresTable(description=fluorophores_description)
-        for fluorophore_metadata in fluorophores_metadata:
+        for fluorophore_metadata in fluorophores_to_add:
             fluorophore_metadata.pop("name")
             fluorophores_table.add_row(**fluorophore_metadata)
 
@@ -161,18 +155,13 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             )
         )
 
-        ophys_module = get_module(
-            nwbfile=nwbfile,
-            name="ophys",
-            description=f"Fiber photometry data from {location}.",
-        )
-
         for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
+            if series_name in nwbfile.acquisition:
+                raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
+
             # Get photometry response series metadata
             photometry_response_series_metadata = next(
-                series_metadata
-                for series_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]
-                if series_metadata["name"] == series_name
+                series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
             )
 
             # Create DynamicTableRegion referencing the correct rows for each table
@@ -195,16 +184,17 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
 
             description = photometry_response_series_metadata["description"]
             # Add more information about the fiber depth
-            fiber_name = list(self.fiber_depth.keys())[photometry_response_series_metadata["fiber"]]
-            fiber_depth_in_mm = self.fiber_depth[fiber_name]
-            description += f" obtained at {fiber_depth_in_mm / 1000} meters depth."
+            fiber_index = photometry_response_series_metadata["fiber"]
+            fiber_depth_in_mm = [fiber["depth"] for fiber in fibers_metadata if "depth" in fiber][fiber_index]
+            region = [fiber["location"] for fiber in fibers_metadata if "location" in fiber][fiber_index]
+            description += f" from {region} region at {fiber_depth_in_mm / 1000} meters depth."
 
             channel_index = self.column_names.index(channel_name)
             data = self._photometry_data[channel_index][self.depth_index]
             response_series = FiberPhotometryResponseSeries(
                 name=series_name,
                 description=description,
-                data=H5DataIO(data, compression=True) if not stub_test else data[:6000],
+                data=data if not stub_test else data[:6000],
                 unit="F",
                 rate=100.0,
                 fibers=fiber_ref,
@@ -213,4 +203,5 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 fluorophores=fluorophore_ref,
             )
 
-            ophys_module.add(response_series)
+            # Add raw fiber photometry series to acquisition module
+            nwbfile.add_acquisition(response_series)

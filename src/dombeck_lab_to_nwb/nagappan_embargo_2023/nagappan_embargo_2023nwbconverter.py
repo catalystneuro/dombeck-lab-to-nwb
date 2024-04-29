@@ -21,6 +21,7 @@ from dombeck_lab_to_nwb.nagappan_embargo_2023.interfaces import (
 )
 
 
+
 class NagappanEmbargo2023NWBConverter(NWBConverter):
     """Primary conversion class for the Two Photon experiment from Shiva Nagappan."""
 

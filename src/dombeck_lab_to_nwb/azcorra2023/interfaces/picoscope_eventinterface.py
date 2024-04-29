@@ -115,13 +115,13 @@ class PicoscopeEventInterface(BaseDataInterface):
         ttl_types_table.add_row(
             event_name="Ch405",
             event_type_description="The times when the 405 nm LED was on.",
-            pulse_value=0,
+            pulse_value=np.uint8(0),
             duration=0.005,
         )
         ttl_types_table.add_row(
             event_name="Ch470",
             event_type_description="The times when the 470 nm LED was on.",
-            pulse_value=1,
+            pulse_value=np.uint8(1),
             duration=0.005,
         )
 
