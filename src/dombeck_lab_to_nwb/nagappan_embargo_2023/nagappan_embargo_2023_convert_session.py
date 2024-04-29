@@ -19,6 +19,8 @@ def session_to_nwb(
     events_mat_file_path: Union[str, Path],
     daq_dat_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
+    channel_1_motion_correction_file_path: Optional[Union[str, Path]] = None,
+    channel_2_motion_correction_file_path: Optional[Union[str, Path]] = None,
     tiff_movie_folder_path: Optional[Union[str, Path]] = None,
     tiff_movie_frame_rate: Optional[int] = None,
     stub_test: bool = False,
@@ -36,6 +38,10 @@ def session_to_nwb(
         The folder containing the Suite2p output.
     nwbfile_path : Union[str, Path]
         The path to the NWB file to be created.
+    channel_1_motion_correction_file_path : Union[str, Path], optional
+        The path to the motion corrected imaging data for channel 1 (.tif file), by default None.
+    channel_2_motion_correction_file_path : Union[str, Path], optional
+        The path to the motion corrected imaging data for channel 2 (.tif file), by default None.
     stub_test : bool, optional
         Whether to run a stub test, by default False.
 
@@ -66,6 +72,8 @@ def session_to_nwb(
         folder_path=scanimage_folder_path,
         file_pattern=scanimage_file_pattern,
         suite2p_folder_path=suite2p_folder_path,
+        channel_1_motion_correction_file_path=channel_1_motion_correction_file_path,
+        channel_2_motion_correction_file_path=channel_2_motion_correction_file_path,
         dlc_file_path=dlc_file_path,
         dlc_config_file_path=dlc_config_file_path,
         behavior_movie_file_path=avi_file_path,
@@ -126,6 +134,10 @@ if __name__ == "__main__":
     # The folder containing the Suite2p output.
     suite2p_folder_path = root_folder_path / "suite2p"
 
+    # The path to the motion corrected imaging data for channel 1 and channel 2.
+    channel_1_motion_correction_file_path = root_folder_path / "2620749R2_231211_00001_ch1_mot_corrected_x2.tif"
+    channel_2_motion_correction_file_path = root_folder_path / "2620749R2_231211_00001_ch2_mot_corrected_x2.tif"
+
     # DLC
     dlc_folder_path = root_folder_path / "DeepLabCut"
     dlc_file_path = dlc_folder_path / "2620749R2_231211DLC_resnet50_FrontPaw_fixedCamera_105FPSSep10shuffle1_500000.h5"
@@ -156,6 +168,8 @@ if __name__ == "__main__":
         events_dat_file_path=events_dat_file_path,
         events_mat_file_path=events_mat_file_path,
         daq_dat_file_path=daq_dat_file_path,
+        channel_1_motion_correction_file_path=channel_1_motion_correction_file_path,
+        channel_2_motion_correction_file_path=channel_2_motion_correction_file_path,
         nwbfile_path=nwbfile_path,
         tiff_movie_folder_path=tiff_movie_folder_path,
         tiff_movie_frame_rate=tiff_movie_frame_rate,

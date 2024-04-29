@@ -1,8 +1,9 @@
 """Primary NWBConverter class for this dataset."""
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from natsort import natsorted
+from pynwb import NWBFile
 from neuroconv import NWBConverter
 from neuroconv.datainterfaces import (
     ScanImageMultiFileImagingInterface,
@@ -10,11 +11,13 @@ from neuroconv.datainterfaces import (
     DeepLabCutInterface,
     VideoInterface,
 )
+from neuroconv.tools.nwb_helpers import get_default_backend_configuration, configure_backend
 from neuroconv.utils import FolderPathType, FilePathType
 
 from dombeck_lab_to_nwb.nagappan_embargo_2023.interfaces import (
     NagappanEmbargoBehaviorInterface,
     NagappanEmbargoTtlInterface,
+    NagappanEmbargo2023MotionCorrectionInterface,
 )
 
 
@@ -32,6 +35,8 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
         events_mat_file_path: FilePathType,
         daq_dat_file_path: FilePathType,
         behavior_movie_file_path: Optional[FilePathType] = None,
+        channel_1_motion_correction_file_path: Optional[Union[str, Path]] = None,
+        channel_2_motion_correction_file_path: Optional[Union[str, Path]] = None,
         verbose: bool = False,
     ):
         from roiextractors import ScanImageTiffSinglePlaneImagingExtractor
@@ -72,6 +77,27 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
             plane_segmentation_name="PlaneSegmentationChannel1",
         )
 
+        # Add motion correction
+        if channel_1_motion_correction_file_path:
+            xy_shifts_file_name = Path(channel_1_motion_correction_file_path).stem + "_shifts.mat"
+            xy_shifts_file_path = channel_1_motion_correction_file_path.parent / xy_shifts_file_name
+            assert xy_shifts_file_path.exists(), f"The xy shifts file '{xy_shifts_file_path}' does not exist."
+            self.data_interface_objects["MotionCorrectionChannel1"] = NagappanEmbargo2023MotionCorrectionInterface(
+                file_path=channel_1_motion_correction_file_path,
+                xy_shifts_file_path=xy_shifts_file_path,
+                verbose=verbose,
+            )
+
+        if channel_2_motion_correction_file_path:
+            xy_shifts_file_name = Path(channel_2_motion_correction_file_path).stem + "_shifts.mat"
+            xy_shifts_file_path = channel_2_motion_correction_file_path.parent / xy_shifts_file_name
+            assert xy_shifts_file_path.exists(), f"The xy shifts file '{xy_shifts_file_path}' does not exist."
+            self.data_interface_objects["MotionCorrectionChannel2"] = NagappanEmbargo2023MotionCorrectionInterface(
+                file_path=channel_2_motion_correction_file_path,
+                xy_shifts_file_path=xy_shifts_file_path,
+                verbose=verbose,
+            )
+
         self.data_interface_objects["DLC"] = DeepLabCutInterface(
             file_path=dlc_file_path,
             config_file_path=dlc_config_file_path,
@@ -83,3 +109,21 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
                 file_paths=[behavior_movie_file_path],
                 verbose=verbose,
             )
+
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
+
+        if "MotionCorrectionChannel1" in conversion_options:
+            conversion_options["MotionCorrectionChannel1"].update(
+                corrected_image_stack_name="CorrectedImageStackChannel1",
+                sampling_frequency=30.0421,
+            )
+        if "MotionCorrectionChannel2" in conversion_options:
+            conversion_options["MotionCorrectionChannel2"].update(
+                corrected_image_stack_name="CorrectedImageStackChannel2",
+                sampling_frequency=30.0421,
+            )
+
+        super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
+
+        backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
+        configure_backend(nwbfile=nwbfile, backend_configuration=backend_configuration)
