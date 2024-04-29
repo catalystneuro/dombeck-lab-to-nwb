@@ -21,7 +21,6 @@ from dombeck_lab_to_nwb.nagappan_embargo_2023.interfaces import (
 )
 
 
-
 class NagappanEmbargo2023NWBConverter(NWBConverter):
     """Primary conversion class for the Two Photon experiment from Shiva Nagappan."""
 
@@ -128,3 +127,31 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
 
         backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
         configure_backend(nwbfile=nwbfile, backend_configuration=backend_configuration)
+
+    def temporally_align_data_interfaces(self):
+        """Temporally align the data interfaces."""
+
+        # Align imaging data by TTL pulses
+        ttl_interface = self.data_interface_objects["TTL"]
+        imaging_pulse_times_from_ttl = ttl_interface.get_event_times_from_ttl(channel_index=1)
+
+        imaging_interfaces = [interface for interface in self.data_interface_objects.keys() if "Imaging" in interface]
+        for interface_name in imaging_interfaces:
+            imaging_interface = self.data_interface_objects[interface_name]
+            unaligned_timestamps = imaging_interface.get_timestamps()
+            imaging_interface.align_by_interpolation(
+                unaligned_timestamps=unaligned_timestamps,
+                aligned_timestamps=imaging_pulse_times_from_ttl,
+            )
+
+        camera_pulse_times_from_ttl = ttl_interface.get_event_times_from_ttl(channel_index=2)
+        # todo: how to handle the extra timestamps from the ttl?
+        video_interface = self.data_interface_objects["BehaviorMovie"]
+        video_interface.set_aligned_timestamps(
+            aligned_timestamps=camera_pulse_times_from_ttl[:-2]
+        )  # todo: fix temporary mismatch in shape
+
+        dlc_interface = self.data_interface_objects["DLC"]
+        dlc_interface.set_aligned_timestamps(
+            aligned_timestamps=camera_pulse_times_from_ttl[:-2]
+        )  # todo: fix temporary mismatch in shape
