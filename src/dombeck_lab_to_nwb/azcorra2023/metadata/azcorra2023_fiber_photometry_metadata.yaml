@@ -40,15 +40,11 @@ Ophys:
       FiberPhotometryResponseSeries:
         - name: DfOverFFiberPhotometryResponseSeriesGreen
           description: DF/F from green fluorescence traces collected during 470 nm illumination.
-          fiber_photometry_table_region: [0]
         - name: DfOverFFiberPhotometryResponseSeriesGreenIsosbestic
           description: DF/F from green fluorescence traces collected at its isosbestic wavelength (405 nm).
-          fiber_photometry_table_region: [1]
         - name: DfOverFFiberPhotometryResponseSeriesRed
           description: DF/F from red fluorescence traces collected during 470 nm illumination.
-          fiber_photometry_table_region: [2]
         - name: DfOverFFiberPhotometryResponseSeriesRedIsosbestic
-          fiber_photometry_table_region: [3]
     OpticalFibers:
       - name: chGreen  # the name of the fiber in the .mat file
         description: The optical fiber used to record the GCaMP fluorescence.
