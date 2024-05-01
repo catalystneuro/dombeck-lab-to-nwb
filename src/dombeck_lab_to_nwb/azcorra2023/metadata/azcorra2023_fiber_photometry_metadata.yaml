@@ -1,5 +1,8 @@
 Ophys:
   FiberPhotometry:
+    FiberPhotometryTable:
+       name: FiberPhotometryTable
+       description: Contains the metadata for the fiber photometry experiment.
     FiberPhotometryResponseSeries:
       - name: FiberPhotometryResponseSeriesGreen
         description: Green fluorescence collected during 470 nm illumination re-binned to 100 Hz
@@ -9,7 +12,7 @@ Ophys:
         photodetector: PhotodetectorPMT
         dichroic_mirror: DichroicMirror
         excitation_filter: OpticalFilter470
-      - name: FiberPhotometryResponseSeriesIsosbestic
+      - name: FiberPhotometryResponseSeriesGreenIsosbestic
         description: Green fluorescence collected at its isosbestic wavelength (405 nm) re-binned to 100 Hz
         indicator: GCaMP6f
         optical_fiber: chGreen
@@ -81,20 +84,21 @@ Ophys:
         model: H10770PA-40
         detector_type: PMT
         detected_wavelength_in_nm: 470.0 # TODO: check this
+        gain: 1.0 # TODO: check this
     OpticalFilters:
       - name: OpticalFilter405
         description: The filter used to isolate the 405 nm excitation light.
         manufacturer: Semrock
         model: FF01-406/15-25
         peak_wavelength_in_nm: 406.0
-        bandwidth_in_nm: 15.0
+        bandwidth_in_nm: [391.0, 431.0]
         filter_type: Excitation  # TODO: not sure where to find the emission filter parameters (see: https://www.protocols.io/view/acute-striatal-or-midbrain-fiber-photometry-in-hea-4r3l27yj4g1y/v1?step=29)
       - name: OpticalFilter470
         description: The filter used to isolate the 470 nm excitation light.
         manufacturer: Semrock
         model: FF02-472/30-25
         peak_wavelength_in_nm: 472.0
-        bandwidth_in_nm: 30.0
+        bandwidth_in_nm: [442.0, 497.0]
         filter_type: Excitation
 #      - name: OpticalFilter525
 #        description: The filter used to further filter the green fluorescence after it was separated from the excitation light by a dichroic mirror.
@@ -108,8 +112,8 @@ Ophys:
         description: The dichroic mirror used to separate green fluorescence from the excitation light.
         manufacturer: Chroma Technology
         model: T505lpxr
-        # cut_on_wavelength_in_nm: 465.0 TODO: have to ask for this
-        # cut_off_wavelength_in_nm: 500.0 TODO: have to ask for this
+        cut_on_wavelength_in_nm: 465.0 #TODO: have to ask for this
+        cut_off_wavelength_in_nm: 500.0 #TODO: have to ask for this
     Indicator:
       - name: GCaMP6f
         label: AAV-GCaMP6f
