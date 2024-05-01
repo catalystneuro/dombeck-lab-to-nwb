@@ -1,28 +1,38 @@
 Ophys:
   FiberPhotometry:
-    FiberPhotometryTable:
-      - location: SNc
-        name: 0
-        coordinates: [-3.25, 1.55, -3.8]
+    FiberPhotometryResponseSeries:
+      - name: FiberPhotometryResponseSeriesGreen
+        description: Green fluorescence collected during 470 nm illumination re-binned to 100 Hz
         indicator: GCaMP6f
         optical_fiber: chGreen
         excitation_source: ExcitationSource470
         photodetector: PhotodetectorPMT
         dichroic_mirror: DichroicMirror
         excitation_filter: OpticalFilter470
-    FiberPhotometryResponseSeries:
-      - name: FiberPhotometryResponseSeriesGreen  # or FiberPhotometryResponseSeriesGCaMP6?
-        description: Green fluorescence collected during 470 nm illumination re-binned to 100 Hz
-        fiber_photometry_table_region: [0]
       - name: FiberPhotometryResponseSeriesIsosbestic
         description: Green fluorescence collected at its isosbestic wavelength (405 nm) re-binned to 100 Hz
-        fiber_photometry_table_region: [1]
+        indicator: GCaMP6f
+        optical_fiber: chGreen
+        excitation_source: ExcitationSource405
+        photodetector: PhotodetectorPMT
+        dichroic_mirror: DichroicMirror
+        excitation_filter: OpticalFilter405
       - name: FiberPhotometryResponseSeriesRed
         description: Red fluorescence collected during 470 nm illumination re-binned to 100 Hz
-        fiber_photometry_table_region: [2]
+        indicator: mCherry
+        optical_fiber: chRed
+        excitation_source: ExcitationSource470
+        photodetector: PhotodetectorPMT
+        dichroic_mirror: DichroicMirror
+        excitation_filter: OpticalFilter470
       - name: FiberPhotometryResponseSeriesRedIsosbestic
         description: Red fluorescence collected during 405 nm illumination re-binned to 100 Hz
-        fiber_photometry_table_region: [3]
+        indicator: mCherry
+        optical_fiber: chRed
+        excitation_source: ExcitationSource405
+        photodetector: PhotodetectorPMT
+        dichroic_mirror: DichroicMirror
+        excitation_filter: OpticalFilter405
     DfOverF:
       FiberPhotometryResponseSeries:
         - name: DfOverFFiberPhotometryResponseSeriesGreen
