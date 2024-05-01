@@ -139,12 +139,15 @@ def add_fiber_photometry_series(
         raise ValueError(f"Optical filter metadata for '{optical_filter_to_add}' not found.")
     add_photometry_device(nwbfile, device_metadata=optical_filter_metadata, device_type="OpticalFilter")
 
-    commanded_voltage_series = CommandedVoltageSeries(
-        name="dummy_commanded_voltage_series",
-        data=[4.0, 5.0, 6.0],
-        rate=30.0,
-        unit="volts",
-    )
+    # todo: remove once spec is fixed
+    if "dummy_commanded_voltage_series" not in nwbfile.acquisition:
+        commanded_voltage_series = CommandedVoltageSeries(
+            name="dummy_commanded_voltage_series",
+            data=[4.0, 5.0, 6.0],
+            rate=30.0,
+            unit="volts",
+        )
+        nwbfile.add_acquisition(commanded_voltage_series)
 
     fiber_photometry_table.add_row(
         location=location,
@@ -156,7 +159,7 @@ def add_fiber_photometry_series(
         photodetector=nwbfile.devices[photodetector_to_add],
         dichroic_mirror=nwbfile.devices[dichroic_mirror_to_add],
         excitation_filter=nwbfile.devices[optical_filter_to_add],
-        commandedvoltage_series=commanded_voltage_series,
+        commandedvoltage_series=nwbfile.acquisition["dummy_commanded_voltage_series"],
     )
 
     fiber_photometry_table_region = DynamicTableRegion(
