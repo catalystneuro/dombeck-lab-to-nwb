@@ -1,4 +1,7 @@
 Ophys:
+  Device:
+    - name: Microscope
+      description: The microscope used to acquire the imaging data at 30.0421 Hz.
   TwoPhotonSeries:
     - name: TwoPhotonSeriesChannel1
       description: Imaging data from Green channel recorded from cell bodies located in the striatum acquired via ScanImage.
