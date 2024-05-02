@@ -80,7 +80,6 @@ Ophys:
         model: H10770PA-40
         detector_type: PMT
         detected_wavelength_in_nm: 470.0 # TODO: check this
-        gain: 1.0 # TODO: check this
     OpticalFilters:
       - name: OpticalFilter405
         description: The filter used to isolate the 405 nm excitation light.
