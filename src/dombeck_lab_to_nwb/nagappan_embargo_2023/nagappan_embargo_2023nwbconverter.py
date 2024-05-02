@@ -16,7 +16,6 @@ from neuroconv.utils import FolderPathType, FilePathType
 
 from dombeck_lab_to_nwb.nagappan_embargo_2023.interfaces import (
     NagappanEmbargoBehaviorInterface,
-    NagappanEmbargoTtlInterface,
     NagappanEmbargo2023MotionCorrectionInterface,
 )
 
@@ -48,18 +47,6 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
         file_paths = natsorted(folder_path.glob(file_pattern))
         first_file_path = file_paths[0]
         available_channels = ScanImageTiffSinglePlaneImagingExtractor.get_available_channels(file_path=first_file_path)
-
-        self.data_interface_objects["Events"] = NagappanEmbargoBehaviorInterface(
-            dat_file_path=events_dat_file_path,
-            mat_file_path=events_mat_file_path,
-            verbose=verbose,
-        )
-
-        self.data_interface_objects["TTL"] = NagappanEmbargoTtlInterface(
-            dat_file_path=daq_dat_file_path,
-            mat_file_path=events_mat_file_path,
-            verbose=verbose,
-        )
 
         for channel_name in available_channels:
             channel_name_without_spaces = channel_name.replace(" ", "")
@@ -98,6 +85,13 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
                 verbose=verbose,
             )
 
+        self.data_interface_objects["Events"] = NagappanEmbargoBehaviorInterface(
+            dat_file_path=events_dat_file_path,
+            daq_dat_file_path=daq_dat_file_path,
+            mat_file_path=events_mat_file_path,
+            verbose=verbose,
+        )
+
         self.data_interface_objects["DLC"] = DeepLabCutInterface(
             file_path=dlc_file_path,
             config_file_path=dlc_config_file_path,
@@ -131,27 +125,20 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
     def temporally_align_data_interfaces(self):
         """Temporally align the data interfaces."""
 
-        # Align imaging data by TTL pulses
-        ttl_interface = self.data_interface_objects["TTL"]
-        imaging_pulse_times_from_ttl = ttl_interface.get_event_times_from_ttl(channel_index=1)
+        aligned_imaging_times, aligned_camera_times = self.data_interface_objects["Events"].get_aligned_times_from_ttl()
 
         imaging_interfaces = [interface for interface in self.data_interface_objects.keys() if "Imaging" in interface]
         for interface_name in imaging_interfaces:
             imaging_interface = self.data_interface_objects[interface_name]
-            unaligned_timestamps = imaging_interface.get_timestamps()
-            imaging_interface.align_by_interpolation(
-                unaligned_timestamps=unaligned_timestamps,
-                aligned_timestamps=imaging_pulse_times_from_ttl,
-            )
+            imaging_interface.set_aligned_timestamps(aligned_timestamps=aligned_imaging_times)
 
-        camera_pulse_times_from_ttl = ttl_interface.get_event_times_from_ttl(channel_index=2)
-        # todo: how to handle the extra timestamps from the ttl?
+        first_camera_pulse_time = aligned_camera_times[0]
         video_interface = self.data_interface_objects["BehaviorMovie"]
-        video_interface.set_aligned_timestamps(
-            aligned_timestamps=camera_pulse_times_from_ttl[:-2]
-        )  # todo: fix temporary mismatch in shape
+        video_interface.set_aligned_segment_starting_times(
+            aligned_segment_starting_times=[first_camera_pulse_time],
+        )
 
         dlc_interface = self.data_interface_objects["DLC"]
         dlc_interface.set_aligned_timestamps(
-            aligned_timestamps=camera_pulse_times_from_ttl[:-2]
+            aligned_timestamps=aligned_camera_times[2:]
         )  # todo: fix temporary mismatch in shape
