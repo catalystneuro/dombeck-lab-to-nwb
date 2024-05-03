@@ -38,11 +38,11 @@ class PicoscopeEventInterface(BaseDataInterface):
         metadata = super().get_metadata()
         metadata["Events"] = dict(
             EventTypesTable=dict(
-                name="PicosScopeEventTypes",
+                name="PicoScopeEventTypes",
                 description="Contains the type of binary signals from PicoScope.",
             ),
             EventsTable=dict(
-                name="PicoscopeEvents",
+                name="PicoScopeEvents",
                 description="Contains the onset times of binary signals from PicoScope.",
             ),
             TtlTypesTable=dict(
