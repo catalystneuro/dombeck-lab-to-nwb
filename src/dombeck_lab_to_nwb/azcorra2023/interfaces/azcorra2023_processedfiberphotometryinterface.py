@@ -350,6 +350,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                         event_type_description=event_type_description,
                     )
 
+        if not len(event_types_table):
+            return
+
         events = EventsTable(
             name="Events",
             description="Contains the onset times of events.",
