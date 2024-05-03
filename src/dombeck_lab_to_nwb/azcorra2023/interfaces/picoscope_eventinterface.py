@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+import pandas as pd
+from hdmf.common import DynamicTableRegion
 from natsort import natsorted
 from ndx_events import EventsTable, TtlsTable, EventTypesTable, TtlTypesTable
 from neuroconv import BaseDataInterface
@@ -93,6 +95,7 @@ class PicoscopeEventInterface(BaseDataInterface):
         extractor = self.get_picoscope_extractor_for_binary_traces()
         times = extractor.get_times()
 
+        events_dfs = []
         for event_id, (channel_name, renamed_channel_name) in enumerate(channel_names_mapping.items()):
             traces = extractor.get_traces(channel_ids=[channel_name])
             # Using the same threshold as in
@@ -100,14 +103,24 @@ class PicoscopeEventInterface(BaseDataInterface):
             event_times = get_rising_frames_from_ttl(traces, threshold=0.05)
 
             timestamps = times[event_times] if not stub_test else times[event_times][:100]
-            if len(event_times):
-                for timestamp in timestamps:
-                    events.add_row(
-                        event_type=event_id,
-                        timestamp=timestamp,
-                    )
+            events_df = pd.DataFrame(columns=["timestamp", "event_type"])
+            events_df["timestamp"] = timestamps
+            events_df["event_type"] = [event_id] * len(timestamps)
+            events_dfs.append(events_df)
 
-        nwbfile.add_acquisition(events)
+        events_to_add = pd.concat(events_dfs, ignore_index=True)
+        events_to_add["event_type"] = events_to_add["event_type"].astype(np.uint8)
+        events_to_add = events_to_add.sort_values("timestamp")
+
+        events_to_add = events.from_dataframe(
+            events_to_add, name=events_table_name, table_description=events_metadata["EventsTable"]["description"]
+        )
+        events_to_add.event_type.table = event_types_table
+
+        nwbfile.add_acquisition(events_to_add)
+
+        ttls_table_name = "TtlsTable"
+        assert ttls_table_name not in nwbfile.acquisition, f"The {ttls_table_name} is already in nwbfile."
 
         ttl_types_table = TtlTypesTable(**events_metadata["TtlTypesTable"])
         ttl_types_table.add_column(name="duration", description="The duration of the TTL pulse.")
@@ -127,24 +140,44 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         ttls_table = TtlsTable(**events_metadata["TtlsTable"], target_tables={"ttl_type": ttl_types_table})
 
+        ttls_dfs = []
         waveform_traces = extractor.get_traces(channel_ids=["E"])
         ch405_event_times = get_falling_frames_from_ttl(waveform_traces, threshold=0.5)
         ch405_timestamps = times[ch405_event_times] if not stub_test else times[ch405_event_times][:100]
-        for timestamp in ch405_timestamps:
-            ttls_table.add_row(
-                timestamp=timestamp,
-                ttl_type=0,  # NOT the pulse value, but a row index into the ttl_types_table
-                duration=0.005,
+
+        ttls_dfs.append(
+            pd.DataFrame(
+                {
+                    "timestamp": ch405_timestamps,
+                    "ttl_type": [0]
+                    * len(ch405_timestamps),  # NOT the pulse value, but a row index into the ttl_types_table
+                    "duration": [0.005] * len(ch405_timestamps),
+                }
             )
+        )
 
         ch470_event_times = get_rising_frames_from_ttl(waveform_traces, threshold=0.5)
         ch470_timestamps = times[ch470_event_times] if not stub_test else times[ch470_event_times][:100]
-        for timestamp in ch470_timestamps:
-            ttls_table.add_row(
-                timestamp=timestamp,
-                ttl_type=1,
-                duration=0.005,
+
+        ttls_dfs.append(
+            pd.DataFrame(
+                {
+                    "timestamp": ch470_timestamps,
+                    "ttl_type": [1]
+                    * len(ch470_timestamps),  # NOT the pulse value, but a row index into the ttl_types_table
+                    "duration": [0.005] * len(ch470_timestamps),
+                }
             )
+        )
+
+        ttls_to_add = pd.concat(ttls_dfs, ignore_index=True)
+        ttls_to_add["ttl_type"] = ttls_to_add["ttl_type"].astype(np.uint8)
+        ttls_to_add = ttls_to_add.sort_values("timestamp")
+
+        ttls_to_add = ttls_table.from_dataframe(
+            ttls_to_add, name=ttls_table_name, table_description=events_metadata["TtlsTable"]["description"]
+        )
+        ttls_to_add.ttl_type.table = ttl_types_table
 
         nwbfile.add_acquisition(ttl_types_table)
-        nwbfile.add_acquisition(ttls_table)
+        nwbfile.add_acquisition(ttls_to_add)
