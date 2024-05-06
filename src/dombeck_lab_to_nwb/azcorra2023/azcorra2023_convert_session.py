@@ -76,6 +76,14 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
+    subjects_metadata_path = Path(__file__).parent / "metadata" / "azcorra2023_subjects_metadata.yaml"
+    subjects_metadata = load_dict_from_file(subjects_metadata_path)
+    subject_type = processed_photometry_mat_file_path.stem.split("-")[0]
+    subject_metadata = subjects_metadata["Subjects"][subject_type]
+    virus_metadata = subject_metadata.pop("virus")
+    metadata["Subject"].update(subject_metadata)
+    metadata["NWBFile"].update(virus=virus_metadata)
+
     fiber_photometry_metadata = load_dict_from_file(
         Path(__file__).parent / "metadata" / "azcorra2023_fiber_photometry_metadata.yaml"
     )
