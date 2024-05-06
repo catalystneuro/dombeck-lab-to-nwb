@@ -51,11 +51,13 @@ Ophys:
         manufacturer: Doric
         model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
         numerical_aperture: 0.57
+        core_diameter_in_um: 200.0
       - name: chRed # the name of the fiber in the .mat file
         description: The optical fiber used to record the red fluorescence.
         manufacturer: Doric
         model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
         numerical_aperture: 0.57
+        core_diameter_in_um: 200.0
     ExcitationSources:
       - name: ExcitationSource470
         description: |
@@ -74,41 +76,47 @@ Ophys:
         excitation_wavelength_in_nm: 405.0
         illumination_type: LED
     Photodetectors:
-      - name: PhotodetectorPMT
+      - name: Photodetector
         description: Hamamatsu GaAsP photomultiplier tube (signal amplified using Stanford Research Systems SR570 preamplifier).
         manufacturer: Hamamatsu Photonics
         model: H10770PA-40
         detector_type: PMT
-        detected_wavelength_in_nm: 470.0 # TODO: check this
+        detected_wavelength_in_nm: 520.0
     OpticalFilters:
       - name: OpticalFilter405
-        description: The filter used to isolate the 405 nm excitation light.
+        description: The band-pass filter used to isolate the 405 nm excitation light.
         manufacturer: Semrock
         model: FF01-406/15-25
         peak_wavelength_in_nm: 406.0
-        bandwidth_in_nm: [391.0, 431.0]
-        filter_type: Excitation  # TODO: not sure where to find the emission filter parameters (see: https://www.protocols.io/view/acute-striatal-or-midbrain-fiber-photometry-in-hea-4r3l27yj4g1y/v1?step=29)
+        bandwidth_in_nm: [398.5, 413.5]
+        filter_type: Excitation
       - name: OpticalFilter470
         description: The filter used to isolate the 470 nm excitation light.
         manufacturer: Semrock
         model: FF02-472/30-25
         peak_wavelength_in_nm: 472.0
-        bandwidth_in_nm: [442.0, 497.0]
+        bandwidth_in_nm: [457.5, 487.5]
         filter_type: Excitation
-#      - name: OpticalFilter525
-#        description: The filter used to further filter the green fluorescence after it was separated from the excitation light by a dichroic mirror.
-#        manufacturer: Semrock
-#        model: FF01-540/50-25
-#        peak_wavelength_in_nm: 540.0
-#        bandwidth_in_nm: 50.0
-#        filter_type: Bandpass
+      - name: EmissionFilterGreen
+        description: The filter used to further filter the green fluorescence after it was separated from the excitation light by a dichroic mirror.
+        manufacturer: Semrock
+        model: FF01-540/50-25
+        peak_wavelength_in_nm: 540.0
+        bandwidth_in_nm: [515.5, 565.5]
+        filter_type: Emission
     DichroicMirrors:
-      - name: DichroicMirror
+      - name: DichroicMirrorGreen
         description: The dichroic mirror used to separate green fluorescence from the excitation light.
-        manufacturer: Chroma Technology
+        manufacturer: Chroma Tech Corp
         model: T505lpxr
-        cut_on_wavelength_in_nm: 465.0 #TODO: have to ask for this
-        cut_off_wavelength_in_nm: 500.0 #TODO: have to ask for this
+        cut_on_wavelength_in_nm: 505.0
+        transmission_bandwidth_in_nm: [505.0, 750.0]
+      - name: DichroicMirrorExcitation
+        description: The dichroic mirror used to combine the 405 and 470 nm excitation lights.
+        manufacturer: Chroma Tech Corp
+        model: T560lpxr
+        cut_on_wavelength_in_nm: 560.0
+        transmission_bandwidth_in_nm: [560.0, 850.0]
     Indicator:
       - name: GCaMP6f
         label: AAV-GCaMP6f
