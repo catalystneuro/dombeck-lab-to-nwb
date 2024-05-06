@@ -10,41 +10,43 @@ Ophys:
         optical_fiber: chGreen
         excitation_source: ExcitationSource470
         photodetector: PhotodetectorPMT
-        dichroic_mirror: DichroicMirror
+        dichroic_mirror: DichroicMirrorGreen
         excitation_filter: OpticalFilter470
+        emission_filter: EmissionFilterGreen
       - name: FiberPhotometryResponseSeriesGreenIsosbestic
         description: Green fluorescence collected at its isosbestic wavelength (405 nm) re-binned to 100 Hz
         indicator: GCaMP6f
         optical_fiber: chGreen
         excitation_source: ExcitationSource405
         photodetector: PhotodetectorPMT
-        dichroic_mirror: DichroicMirror
+        dichroic_mirror: DichroicMirrorGreen
         excitation_filter: OpticalFilter405
-      - name: FiberPhotometryResponseSeriesRed
-        description: Red fluorescence collected during 470 nm illumination re-binned to 100 Hz
-        indicator: mCherry
-        optical_fiber: chRed
-        excitation_source: ExcitationSource470
-        photodetector: PhotodetectorPMT
-        dichroic_mirror: DichroicMirror
-        excitation_filter: OpticalFilter470
-      - name: FiberPhotometryResponseSeriesRedIsosbestic
-        description: Red fluorescence collected during 405 nm illumination re-binned to 100 Hz
-        indicator: mCherry
-        optical_fiber: chRed
-        excitation_source: ExcitationSource405
-        photodetector: PhotodetectorPMT
-        dichroic_mirror: DichroicMirror
-        excitation_filter: OpticalFilter405
+        emission_filter: EmissionFilterGreen
+#      - name: FiberPhotometryResponseSeriesRed
+#        description: Red fluorescence collected during 470 nm illumination re-binned to 100 Hz
+#        indicator: mCherry
+#        optical_fiber: chRed
+#        excitation_source: ExcitationSource470
+#        photodetector: PhotodetectorPMT
+#        dichroic_mirror: DichroicMirror
+#        excitation_filter: OpticalFilter470
+#      - name: FiberPhotometryResponseSeriesRedIsosbestic
+#        description: Red fluorescence collected during 405 nm illumination re-binned to 100 Hz
+#        indicator: mCherry
+#        optical_fiber: chRed
+#        excitation_source: ExcitationSource405
+#        photodetector: PhotodetectorPMT
+#        dichroic_mirror: DichroicMirror
+#        excitation_filter: OpticalFilter405
     DfOverF:
       FiberPhotometryResponseSeries:
         - name: DfOverFFiberPhotometryResponseSeriesGreen
           description: DF/F from green fluorescence traces collected during 470 nm illumination.
         - name: DfOverFFiberPhotometryResponseSeriesGreenIsosbestic
           description: DF/F from green fluorescence traces collected at its isosbestic wavelength (405 nm).
-        - name: DfOverFFiberPhotometryResponseSeriesRed
-          description: DF/F from red fluorescence traces collected during 470 nm illumination.
-        - name: DfOverFFiberPhotometryResponseSeriesRedIsosbestic
+#        - name: DfOverFFiberPhotometryResponseSeriesRed
+#          description: DF/F from red fluorescence traces collected during 470 nm illumination.
+#        - name: DfOverFFiberPhotometryResponseSeriesRedIsosbestic
     OpticalFibers:
       - name: chGreen  # the name of the fiber in the .mat file
         description: The optical fiber used to record the GCaMP fluorescence.
@@ -52,12 +54,12 @@ Ophys:
         model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
         numerical_aperture: 0.57
         core_diameter_in_um: 200.0
-      - name: chRed # the name of the fiber in the .mat file
-        description: The optical fiber used to record the red fluorescence.
-        manufacturer: Doric
-        model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
-        numerical_aperture: 0.57
-        core_diameter_in_um: 200.0
+#      - name: chRed # the name of the fiber in the .mat file
+#        description: The optical fiber used to record the red fluorescence.
+#        manufacturer: Doric
+#        model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
+#        numerical_aperture: 0.57
+#        core_diameter_in_um: 200.0
     ExcitationSources:
       - name: ExcitationSource470
         description: |
@@ -76,7 +78,7 @@ Ophys:
         excitation_wavelength_in_nm: 405.0
         illumination_type: LED
     Photodetectors:
-      - name: Photodetector
+      - name: PhotodetectorPMT
         description: Hamamatsu GaAsP photomultiplier tube (signal amplified using Stanford Research Systems SR570 preamplifier).
         manufacturer: Hamamatsu Photonics
         model: H10770PA-40
@@ -122,7 +124,7 @@ Ophys:
         label: AAV-GCaMP6f
         injection_location: SNc
         injection_coordinates_in_mm: [-3.25, 1.55, -3.8]
-      - name: mCherry
-        label: AAV5-EF1α-DIO-mCherry
-        injection_location: SNc
-        injection_coordinates_in_mm: [1.45, -3.15, -3.1]
+#      - name: mCherry
+#        label: AAV5-EF1α-DIO-mCherry
+#        injection_location: SNc
+#        injection_coordinates_in_mm: [1.45, -3.15, -3.1]
