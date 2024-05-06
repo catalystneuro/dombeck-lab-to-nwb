@@ -139,6 +139,15 @@ def add_fiber_photometry_series(
         raise ValueError(f"Optical filter metadata for '{optical_filter_to_add}' not found.")
     add_photometry_device(nwbfile, device_metadata=optical_filter_metadata, device_type="OpticalFilter")
 
+    emission_filter_to_add = trace_metadata["emission_filter"]
+    emission_filter_metadata = next(
+        (filter for filter in fiber_photometry_metadata["OpticalFilters"] if filter["name"] == emission_filter_to_add),
+        None,
+    )
+    if emission_filter_metadata is None:
+        raise ValueError(f"Emission filter metadata for '{emission_filter_to_add}' not found.")
+    add_photometry_device(nwbfile, device_metadata=emission_filter_metadata, device_type="OpticalFilter")
+
     fiber_photometry_table.add_row(
         location=location,
         coordinates=coordinates,
@@ -149,6 +158,7 @@ def add_fiber_photometry_series(
         photodetector=nwbfile.devices[photodetector_to_add],
         dichroic_mirror=nwbfile.devices[dichroic_mirror_to_add],
         excitation_filter=nwbfile.devices[optical_filter_to_add],
+        emission_filter=nwbfile.devices[emission_filter_to_add],
     )
 
     fiber_photometry_table_region = DynamicTableRegion(
