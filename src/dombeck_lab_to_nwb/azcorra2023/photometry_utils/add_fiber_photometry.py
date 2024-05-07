@@ -12,7 +12,7 @@ from ndx_fiber_photometry import (
     ExcitationSource,
     Photodetector,
     DichroicMirror,
-    OpticalFilter,
+    BandOpticalFilter,
     FiberPhotometryResponseSeries,
     CommandedVoltageSeries,
 )
@@ -31,7 +31,7 @@ def add_photometry_device(nwbfile: NWBFile, device_metadata: dict, device_type: 
         ExcitationSource=ExcitationSource,
         Photodetector=Photodetector,
         DichroicMirror=DichroicMirror,
-        OpticalFilter=OpticalFilter,
+        BandOpticalFilter=BandOpticalFilter,
     )[device_type](**device_metadata)
 
     nwbfile.add_device(photometry_device)
@@ -132,21 +132,29 @@ def add_fiber_photometry_series(
 
     optical_filter_to_add = trace_metadata["excitation_filter"]
     optical_filter_metadata = next(
-        (filter for filter in fiber_photometry_metadata["OpticalFilters"] if filter["name"] == optical_filter_to_add),
+        (
+            filter
+            for filter in fiber_photometry_metadata["BandOpticalFilters"]
+            if filter["name"] == optical_filter_to_add
+        ),
         None,
     )
     if optical_filter_metadata is None:
         raise ValueError(f"Optical filter metadata for '{optical_filter_to_add}' not found.")
-    add_photometry_device(nwbfile, device_metadata=optical_filter_metadata, device_type="OpticalFilter")
+    add_photometry_device(nwbfile, device_metadata=optical_filter_metadata, device_type="BandOpticalFilter")
 
     emission_filter_to_add = trace_metadata["emission_filter"]
     emission_filter_metadata = next(
-        (filter for filter in fiber_photometry_metadata["OpticalFilters"] if filter["name"] == emission_filter_to_add),
+        (
+            filter
+            for filter in fiber_photometry_metadata["BandOpticalFilters"]
+            if filter["name"] == emission_filter_to_add
+        ),
         None,
     )
     if emission_filter_metadata is None:
         raise ValueError(f"Emission filter metadata for '{emission_filter_to_add}' not found.")
-    add_photometry_device(nwbfile, device_metadata=emission_filter_metadata, device_type="OpticalFilter")
+    add_photometry_device(nwbfile, device_metadata=emission_filter_metadata, device_type="BandOpticalFilter")
 
     fiber_photometry_table.add_row(
         location=location,
