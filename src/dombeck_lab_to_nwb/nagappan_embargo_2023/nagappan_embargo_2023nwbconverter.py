@@ -12,7 +12,7 @@ from neuroconv.datainterfaces import (
     VideoInterface,
 )
 from neuroconv.tools.nwb_helpers import get_default_backend_configuration, configure_backend
-from neuroconv.utils import FolderPathType, FilePathType
+from neuroconv.utils import FolderPathType, FilePathType, DeepDict
 
 from dombeck_lab_to_nwb.nagappan_embargo_2023.interfaces import (
     NagappanEmbargoBehaviorInterface,
@@ -103,6 +103,18 @@ class NagappanEmbargo2023NWBConverter(NWBConverter):
                 file_paths=[behavior_movie_file_path],
                 verbose=verbose,
             )
+
+    def get_metadata(self) -> DeepDict:
+        metadata = super().get_metadata()
+
+        imaging_metadata = self.data_interface_objects["ImagingChannel1"].get_metadata()
+
+        for metadata_ind in range(len(imaging_metadata["Ophys"]["ImagingPlane"])):
+            optical_channel_metadata = imaging_metadata["Ophys"]["ImagingPlane"][metadata_ind]["optical_channel"]
+            # override optical channel metadata
+            metadata["Ophys"]["ImagingPlane"][metadata_ind]["optical_channel"] = optical_channel_metadata
+
+        return metadata
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None) -> None:
 
