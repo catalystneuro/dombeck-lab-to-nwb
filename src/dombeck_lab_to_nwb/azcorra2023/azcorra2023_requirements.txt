@@ -1,2 +1,2 @@
 ndx-events @ git+https://github.com/rly/ndx-events.git # Until 0.3.0 is released
-ndx-photometry @ git+https://github.com/catalystneuro/ndx-photometry.git@main # Until new release (0.4.0) is made
+ndx-fiber-photometry @ git+https://github.com/catalystneuro/ndx-fiber-photometry.git@main

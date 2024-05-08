@@ -1,82 +1,130 @@
 Ophys:
   FiberPhotometry:
+    FiberPhotometryTable:
+       name: FiberPhotometryTable
+       description: Contains the metadata for the fiber photometry experiment.
     FiberPhotometryResponseSeries:
-      - name: FiberPhotometryResponseSeriesGreen  # or FiberPhotometryResponseSeriesGCaMP6?
+      - name: FiberPhotometryResponseSeriesGreen
         description: Green fluorescence collected during 470 nm illumination re-binned to 100 Hz
-        fiber: 0
-        excitation_source: 0
-        fluorophore: 0
+        indicator: GCaMP6f
+        optical_fiber: chGreen
+        excitation_source: ExcitationSource470
+        photodetector: PhotodetectorPMT
+        dichroic_mirror: DichroicMirrorGreen
+        excitation_filter: OpticalFilter470
+        emission_filter: EmissionFilterGreen
       - name: FiberPhotometryResponseSeriesGreenIsosbestic
         description: Green fluorescence collected at its isosbestic wavelength (405 nm) re-binned to 100 Hz
-        fiber: 0
-        excitation_source: 1
-        fluorophore: 0
-      - name: FiberPhotometryResponseSeriesRed
-        description: Red fluorescence collected during 470 nm illumination re-binned to 100 Hz
-        fiber: 1
-        excitation_source: 0
-        fluorophore: 1
-      - name: FiberPhotometryResponseSeriesRedIsosbestic
-        description: Red fluorescence collected during 405 nm illumination re-binned to 100 Hz
-        fiber: 1
-        excitation_source: 1
-        fluorophore: 1
-    Fibers:
+        indicator: GCaMP6f
+        optical_fiber: chGreen
+        excitation_source: ExcitationSource405
+        photodetector: PhotodetectorPMT
+        dichroic_mirror: DichroicMirrorGreen
+        excitation_filter: OpticalFilter405
+        emission_filter: EmissionFilterGreen
+#      - name: FiberPhotometryResponseSeriesRed
+#        description: Red fluorescence collected during 470 nm illumination re-binned to 100 Hz
+#        indicator: mCherry
+#        optical_fiber: chRed
+#        excitation_source: ExcitationSource470
+#        photodetector: PhotodetectorPMT
+#        dichroic_mirror: DichroicMirror
+#        excitation_filter: OpticalFilter470
+#      - name: FiberPhotometryResponseSeriesRedIsosbestic
+#        description: Red fluorescence collected during 405 nm illumination re-binned to 100 Hz
+#        indicator: mCherry
+#        optical_fiber: chRed
+#        excitation_source: ExcitationSource405
+#        photodetector: PhotodetectorPMT
+#        dichroic_mirror: DichroicMirror
+#        excitation_filter: OpticalFilter405
+    DfOverF:
+      FiberPhotometryResponseSeries:
+        - name: DfOverFFiberPhotometryResponseSeriesGreen
+          description: DF/F from green fluorescence traces collected during 470 nm illumination.
+        - name: DfOverFFiberPhotometryResponseSeriesGreenIsosbestic
+          description: DF/F from green fluorescence traces collected at its isosbestic wavelength (405 nm).
+#        - name: DfOverFFiberPhotometryResponseSeriesRed
+#          description: DF/F from red fluorescence traces collected during 470 nm illumination.
+#        - name: DfOverFFiberPhotometryResponseSeriesRedIsosbestic
+    OpticalFibers:
       - name: chGreen  # the name of the fiber in the .mat file
-        notes: The optical fiber used to record the GCaMP fluorescence.
-        fiber_model_number: Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
-        dichroic_model_number: Chroma Technology, T425lpxr
-      - name: chRed # the name of the fiber in the .mat file
-        notes: The optical fiber used to record the red fluorescence.
-        fiber_model_number: Doric MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
-        dichroic_model_number: Chroma Technology, T425lpxr
+        description: The optical fiber used to record the GCaMP fluorescence.
+        manufacturer: Doric
+        model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
+        numerical_aperture: 0.57
+        core_diameter_in_um: 200.0
+#      - name: chRed # the name of the fiber in the .mat file
+#        description: The optical fiber used to record the red fluorescence.
+#        manufacturer: Doric
+#        model: MFP_200/230/900-0.57_1.5m_FC-FLT_LAF
+#        numerical_aperture: 0.57
+#        core_diameter_in_um: 200.0
     ExcitationSources:
       - name: ExcitationSource470
-        peak_wavelength: 470.0
-        source_type: laser
-        model_number: M70F3, Thorlabs
+        description: |
+         Blue excitation light (470 nm LED, Thorlabs, M70F3) and violet excitation light (for the isosbestic control)
+         were coupled into the optic fiber such that a power of 0.75 mW was delivered to the fiber tip.
+         Then, 470 nm and 405 nm excitation were alternated at 100 Hz using a waveform generator,
+         each filtered with a corresponding filter.
+        manufacturer: Thorlabs
+        model: M70F3
+        excitation_wavelength_in_nm: 470.0
+        illumination_type: LED
       - name: ExcitationSource405
-        peak_wavelength: 405.0
-        source_type: laser
-        model_number: M405FP1, Thorlabs
+        description: Violet LED (405 nm, Thorlabs, M405FP1) for the isosbestic control.
+        manufacturer: Thorlabs
+        model: M405FP1
+        excitation_wavelength_in_nm: 405.0
+        illumination_type: LED
     Photodetectors:
       - name: PhotodetectorPMT
-        peak_wavelength: 470.0 # TODO: check this
-        type: PMT
-        model_number: H10770PA-40, Hamamatsu
-    Fluorophores:
+        description: Hamamatsu GaAsP photomultiplier tube (signal amplified using Stanford Research Systems SR570 preamplifier).
+        manufacturer: Hamamatsu Photonics
+        model: H10770PA-40
+        detector_type: PMT
+        detected_wavelength_in_nm: 520.0
+    BandOpticalFilters:
+      - name: OpticalFilter405
+        description: The band-pass filter used to isolate the 405 nm excitation light.
+        manufacturer: Semrock
+        model: FF01-406/15-25
+        center_wavelength_in_nm: 406.0
+        bandwidth_in_nm: 15.0
+        filter_type: Bandpass
+      - name: OpticalFilter470
+        description: The band-pass filter used to isolate the 470 nm excitation light.
+        manufacturer: Semrock
+        model: FF02-472/30-25
+        center_wavelength_in_nm: 472.0
+        bandwidth_in_nm: 30.0
+        filter_type: Bandpass
+      - name: EmissionFilterGreen
+        description: The band-pass filter used to further filter the green fluorescence after it was separated from the excitation light by a dichroic mirror.
+        manufacturer: Semrock
+        model: FF01-540/50-25
+        center_wavelength_in_nm: 540.0
+        bandwidth_in_nm: 50.0
+        filter_type: Bandpass
+    DichroicMirrors:
+      - name: DichroicMirrorGreen
+        description: The dichroic mirror used to separate green fluorescence from the excitation light.
+        manufacturer: Chroma Tech Corp
+        model: T505lpxr
+        cut_on_wavelength_in_nm: 505.0
+        transmission_band_in_nm: [505.0, 750.0]
+      - name: DichroicMirrorExcitation
+        description: The dichroic mirror used to combine the 405 and 470 nm excitation lights.
+        manufacturer: Chroma Tech Corp
+        model: T560lpxr
+        cut_on_wavelength_in_nm: 560.0
+        transmission_band_in_nm: [560.0, 850.0]
+    Indicator:
       - name: GCaMP6f
         label: AAV-GCaMP6f
-        location: SNc
-        coordinates: [-3.25, 1.55, -3.8]
-        emission_peak_wavelength: 525.0 # TODO: check this
-        excitation_peak_wavelength: 480.0  # TODO: check this
-      - name: mCherry
-        label: AAV5-EF1α-DIO-mCherry
-        emission_peak_wavelength: 610.0  # TODO: check this
-        excitation_peak_wavelength: 587.0  # TODO: check this
-        location: |
-          AAV5-EF1α-DIO-mCherry (RRID: Addgene_37083) was injected into SNc bilaterally (coordinates relative to bregma: x = ±1.45 mm, y = −3.15 mm, z = −3.1, −4.1, −4.4, −4.7 mm, 0.1 μl at each depth)
-        coordinates: [1.45, -3.15, -3.1]
-  DfOverF:
-    FiberPhotometryResponseSeries:
-      - name: DfOverFFiberPhotometryResponseSeriesGreen
-        description: DF/F from green fluorescence traces collected during 470 nm illumination.
-        fiber: 0
-        excitation_source: 0
-        fluorophore: 0
-      - name: DfOverFFiberPhotometryResponseSeriesGreenIsosbestic
-        description: DF/F from green fluorescence traces collected at its isosbestic wavelength (405 nm).
-        fiber: 0
-        excitation_source: 1
-        fluorophore: 0
-      - name: DfOverFFiberPhotometryResponseSeriesRed
-        description: DF/F from red fluorescence traces collected during 470 nm illumination.
-        fiber: 1
-        excitation_source: 0
-        fluorophore: 1
-      - name: DfOverFFiberPhotometryResponseSeriesRedIsosbestic
-        description: DF/F from red fluorescence traces collected during 405 nm illumination.
-        fiber: 1
-        excitation_source: 1
-        fluorophore: 1
+        injection_location: SNc
+        injection_coordinates_in_mm: [-3.25, 1.55, -3.8]
+#      - name: mCherry
+#        label: AAV5-EF1α-DIO-mCherry
+#        injection_location: SNc
+#        injection_coordinates_in_mm: [1.45, -3.15, -3.1]

@@ -32,7 +32,7 @@ def process_extra_metadata(file_path: FilePathType, metadata: DeepDict):
 
     fiber_photometry_metadata = extra_metadata["Ophys"]["FiberPhotometry"]
 
-    fibers_metadata = fiber_photometry_metadata["Fibers"]
+    fibers_metadata = fiber_photometry_metadata["OpticalFibers"]
 
     fiber_depth_in_mm = processed_photometry_data["depthG"]
     # Update the metadata for the green fiber
