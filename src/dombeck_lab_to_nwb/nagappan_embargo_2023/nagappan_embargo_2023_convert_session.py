@@ -6,15 +6,23 @@ from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
 from dombeck_lab_to_nwb.nagappan_embargo_2023 import NagappanEmbargo2023NWBConverter
+from dombeck_lab_to_nwb.nagappan_embargo_2023.utils import convert_tiff_to_avi
 
 
 def session_to_nwb(
     scanimage_folder_path: Union[str, Path],
     scanimage_file_pattern: str,
     suite2p_folder_path: Union[str, Path],
+    dlc_file_path: Union[str, Path],
+    dlc_config_file_path: Union[str, Path],
+    events_dat_file_path: Union[str, Path],
+    events_mat_file_path: Union[str, Path],
+    daq_dat_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     channel_1_motion_correction_file_path: Optional[Union[str, Path]] = None,
     channel_2_motion_correction_file_path: Optional[Union[str, Path]] = None,
+    tiff_movie_folder_path: Optional[Union[str, Path]] = None,
+    tiff_movie_frame_rate: Optional[int] = None,
     stub_test: bool = False,
 ):
     """
@@ -39,6 +47,25 @@ def session_to_nwb(
 
     """
     scanimage_folder_path = Path(scanimage_folder_path)
+
+    session_identifier = scanimage_folder_path.parent.name
+    avi_file_path = None
+    if tiff_movie_folder_path is not None:
+        avi_file_name = f"{session_identifier}.avi"
+        avi_file_path = Path(tiff_movie_folder_path) / avi_file_name
+        if tiff_movie_frame_rate is None:
+            raise ValueError(
+                "The frame rate of the tiff movie ('tiff_movie_frame_rate') must be specified if 'tiff_movie_folder_path' is provided."
+            )
+        if not avi_file_path.exists():
+            print(f"Converting tiff files to avi file: {avi_file_name}")
+            convert_tiff_to_avi(
+                folder_path=tiff_movie_folder_path,
+                file_pattern=f"{session_identifier}_%d.tif",
+                frame_rate=tiff_movie_frame_rate,
+                avi_file_name=avi_file_name,
+            )
+
     nwbfile_path = Path(nwbfile_path)
 
     converter = NagappanEmbargo2023NWBConverter(
@@ -47,12 +74,20 @@ def session_to_nwb(
         suite2p_folder_path=suite2p_folder_path,
         channel_1_motion_correction_file_path=channel_1_motion_correction_file_path,
         channel_2_motion_correction_file_path=channel_2_motion_correction_file_path,
+        dlc_file_path=dlc_file_path,
+        dlc_config_file_path=dlc_config_file_path,
+        behavior_movie_file_path=avi_file_path,
+        events_dat_file_path=events_dat_file_path,
+        events_mat_file_path=events_mat_file_path,
+        daq_dat_file_path=daq_dat_file_path,
         verbose=True,
     )
 
     # Add conversion options
     conversion_options = {
-        interface_name: dict(stub_test=stub_test) for interface_name in converter.data_interface_objects.keys()
+        interface_name: dict(stub_test=stub_test)
+        for interface_name in converter.data_interface_objects.keys()
+        if interface_name != "DLC"
     }
     imaging_interfaces = [interface for interface in converter.data_interface_objects.keys() if "Imaging" in interface]
     for interface_ind, interface_name in enumerate(imaging_interfaces):
@@ -82,6 +117,10 @@ def session_to_nwb(
         metadata=metadata, nwbfile_path=nwbfile_path, conversion_options=conversion_options, overwrite=True
     )
 
+    # if avi_file_path is not None:
+    #     # delete the avi file after conversion
+    #     avi_file_path.unlink()
+
 
 if __name__ == "__main__":
 
@@ -99,6 +138,22 @@ if __name__ == "__main__":
     channel_1_motion_correction_file_path = root_folder_path / "2620749R2_231211_00001_ch1_mot_corrected_x2.tif"
     channel_2_motion_correction_file_path = root_folder_path / "2620749R2_231211_00001_ch2_mot_corrected_x2.tif"
 
+    # DLC
+    dlc_folder_path = root_folder_path / "DeepLabCut"
+    dlc_file_path = dlc_folder_path / "2620749R2_231211DLC_resnet50_FrontPaw_fixedCamera_105FPSSep10shuffle1_500000.h5"
+    dlc_config_file_path = dlc_folder_path / "config.yaml"
+
+    # The folder containing the tiff movie files.
+    tiff_movie_folder_path = root_folder_path / "tiff_movie"
+    tiff_movie_frame_rate = 105
+
+    # The path to the events files.
+    events_mat_file_path = root_folder_path / "2620749R2_20231211_expLog3.mat"
+    events_dat_file_path = root_folder_path / "2620749R2_20231211_expLog.dat"
+
+    # The path to the daq file.
+    daq_dat_file_path = root_folder_path / "2620749R2_20231211_expLog1.dat"
+
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/2620749R2_231211.nwb")
 
@@ -108,8 +163,15 @@ if __name__ == "__main__":
         scanimage_folder_path=scanimage_folder_path,
         scanimage_file_pattern=scanimage_file_pattern,
         suite2p_folder_path=suite2p_folder_path,
+        dlc_file_path=dlc_file_path,
+        dlc_config_file_path=dlc_config_file_path,
+        events_dat_file_path=events_dat_file_path,
+        events_mat_file_path=events_mat_file_path,
+        daq_dat_file_path=daq_dat_file_path,
         channel_1_motion_correction_file_path=channel_1_motion_correction_file_path,
         channel_2_motion_correction_file_path=channel_2_motion_correction_file_path,
         nwbfile_path=nwbfile_path,
+        tiff_movie_folder_path=tiff_movie_folder_path,
+        tiff_movie_frame_rate=tiff_movie_frame_rate,
         stub_test=stub_test,
     )

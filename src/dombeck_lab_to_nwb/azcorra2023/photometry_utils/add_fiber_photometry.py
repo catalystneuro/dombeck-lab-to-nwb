@@ -169,12 +169,9 @@ def add_fiber_photometry_series(
         emission_filter=nwbfile.devices[emission_filter_to_add],
     )
 
-    fiber_photometry_table_region = DynamicTableRegion(
-        name="fiber_photometry_table_region",
-        data=[table_region_ind],
-        description="source fibers",
-        table=fiber_photometry_table,
-    )
+    fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
+            region=[table_region_ind], description="source fibers"
+        )
 
     fiber_photometry_response_series = FiberPhotometryResponseSeries(
         name=trace_metadata["name"],
