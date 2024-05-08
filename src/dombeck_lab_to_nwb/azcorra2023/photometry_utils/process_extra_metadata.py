@@ -42,15 +42,16 @@ def process_extra_metadata(file_path: FilePathType, metadata: DeepDict):
         location="SNc" if fiber_depth_in_mm > 3.0 else "Str",
     )
 
-    if np.isnan(processed_photometry_data["depthR"]):
-        # For single fiber experiment the red fiber depth is NaN
-        return extra_metadata
+    # Temporarily commented out the red fiber metadata until the fiber photometry setup for the red fiber is known
+    # if np.isnan(processed_photometry_data["depthR"]):
+    #     # For single fiber experiment the red fiber depth is NaN
+    #     return extra_metadata
 
-    fiber_red_depth_in_mm = processed_photometry_data["depthG"]
-    fibers_metadata[1].update(
-        coordinates=processed_photometry_data["RecLocRmm"],
-        depth=fiber_red_depth_in_mm,
-        location="SNc" if fiber_red_depth_in_mm > 3.0 else "Str",
-    )
+    # fiber_red_depth_in_mm = processed_photometry_data["depthG"]
+    # fibers_metadata[1].update(
+    #     coordinates=processed_photometry_data["RecLocRmm"],
+    #     depth=fiber_red_depth_in_mm,
+    #     location="SNc" if fiber_red_depth_in_mm > 3.0 else "Str",
+    # )
 
     return extra_metadata
