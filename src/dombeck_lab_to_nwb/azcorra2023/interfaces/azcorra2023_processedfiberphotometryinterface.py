@@ -2,8 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from ndx_events import EventsTable, EventTypesTable, Task
-from ndx_photometry import FiberPhotometryResponseSeries
+from ndx_events import EventsTable, EventTypesTable
+from ndx_fiber_photometry import FiberPhotometryResponseSeries
 from neuroconv import BaseTemporalAlignmentInterface
 from neuroconv.tools import get_module
 from neuroconv.utils import FilePathType
@@ -146,7 +146,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             Whether to run a stub test, by default False.
 
         """
-        df_over_f_metadata = metadata["Ophys"]["DfOverF"]
+        df_over_f_metadata = metadata["Ophys"]["FiberPhotometry"]["DfOverF"]
 
         traces_metadata = df_over_f_metadata["FiberPhotometryResponseSeries"]
         traces_metadata_to_add = [
@@ -168,11 +168,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
             raw_series_name = series_name.replace("DfOverF", "")
             # Retrieve references to the raw photometry data
-            fiber_ref = nwbfile.acquisition[raw_series_name].fibers
-            excitation_ref = nwbfile.acquisition[raw_series_name].excitation_sources
-            photodetector_ref = nwbfile.acquisition[raw_series_name].photodetectors
-            fluorophore_ref = nwbfile.acquisition[raw_series_name].fluorophores
-
             description = photometry_response_series_metadata["description"]
 
             data = self._processed_photometry_data[channel_name]
@@ -182,10 +177,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 data=data if not stub_test else data[:6000],
                 unit="n.a.",
                 rate=self._sampling_frequency,
-                fibers=fiber_ref,
-                excitation_sources=excitation_ref,
-                photodetectors=photodetector_ref,
-                fluorophores=fluorophore_ref,
+                fiber_photometry_table_region=nwbfile.acquisition[raw_series_name].fiber_photometry_table_region,
             )
 
             ophys_module.add(response_series)
