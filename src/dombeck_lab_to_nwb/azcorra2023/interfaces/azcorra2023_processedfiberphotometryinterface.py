@@ -301,7 +301,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             **events_metadata["EventsTable"],
             target_tables={"event_type": event_types_table},  # sets the dynamic table region link
         )
-        behavior.add(events_table)
 
         event_names_mapping = dict(
             AccOn="Acceleration onset",
@@ -314,6 +313,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 event_type_description=f"The times of the {event_name} event.",
             )
 
+        wheel_events_dfs = []
         for event_id, (event_name, renamed_event_name) in enumerate(event_names_mapping.items()):
             event_onset = self._processed_photometry_data[event_name]
             if isinstance(event_onset, dict):
@@ -323,11 +323,27 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             if not len(event_indices):
                 continue
             event_times = self.get_timestamps()[event_indices]
-            for timestamp in event_times:
-                events_table.add_row(
-                    event_type=event_id,
-                    timestamp=timestamp,
+
+            wheel_events_dfs.append(
+                pd.DataFrame(
+                    {
+                        "timestamp": event_times,
+                        "event_type": [event_id] * len(event_times),
+                    }
                 )
+            )
+
+        wheel_events_to_add = pd.concat(wheel_events_dfs, ignore_index=True)
+        wheel_events_to_add["event_type"] = wheel_events_to_add["event_type"].astype(np.uint8)
+        wheel_events_to_add = wheel_events_to_add.sort_values("timestamp")
+
+        wheel_events_table = events_table.from_dataframe(
+            wheel_events_to_add,
+            name=events_metadata["EventsTable"]["name"],
+            table_description=events_metadata["EventsTable"]["description"],
+        )
+        wheel_events_table.event_type.table = event_types_table
+        behavior.add(wheel_events_table)
 
     def add_analysis(self, nwbfile: NWBFile) -> None:
         event_types_table = EventTypesTable(
@@ -350,6 +366,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                         event_type_description=event_type_description,
                     )
 
+        if not len(event_types_table):
+            return
+
         events = EventsTable(
             name="Events",
             description="Contains the onset times of events.",
@@ -361,17 +380,35 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         )
 
         timestamps = self.get_timestamps()
+
+        peak_events_dfs = []
         for event_id, event_name in enumerate(event_types_table["event_name"][:]):
             peaks = self._processed_photometry_data[event_name]
             peak_indices = np.where(peaks)[0]
-            for timestamp, peak in zip(timestamps[peak_indices], peaks[peak_indices]):
-                events.add_row(
-                    event_type=event_id,
-                    timestamp=timestamp,
-                    peak_fluorescence=peak,
-                )
 
-        nwbfile.add_analysis(events)
+            peak_times = timestamps[peak_indices]
+            peak_events_dfs.append(
+                pd.DataFrame(
+                    {
+                        "timestamp": peak_times,
+                        "event_type": [event_id] * len(peak_times),
+                        "peak_fluorescence": peaks[peak_indices],
+                    }
+                )
+            )
+
+        peak_events_to_add = pd.concat(peak_events_dfs, ignore_index=True)
+        peak_events_to_add["event_type"] = peak_events_to_add["event_type"].astype(np.uint8)
+        peak_events_to_add = peak_events_to_add.sort_values("timestamp")
+
+        peak_events_table = events.from_dataframe(
+            peak_events_to_add,
+            name="Events",
+            table_description="Contains the onset times of large fluorescence peaks.",
+        )
+        peak_events_table.event_type.table = event_types_table
+
+        nwbfile.add_analysis(peak_events_table)
         nwbfile.add_analysis(event_types_table)
 
     def add_to_nwbfile(
