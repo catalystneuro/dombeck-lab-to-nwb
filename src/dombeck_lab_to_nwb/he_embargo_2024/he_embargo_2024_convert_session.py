@@ -1,13 +1,10 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
-from copy import deepcopy
 from pathlib import Path
 from typing import Union
 
 from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
-from dombeck_lab_to_nwb.azcorra2023 import Azcorra2023NWBConverter
-from dombeck_lab_to_nwb.azcorra2023.photometry_utils import process_extra_metadata
 from dombeck_lab_to_nwb.he_embargo_2024 import HeEmbargo2023NWBConverter
 
 
