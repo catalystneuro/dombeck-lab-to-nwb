@@ -1,0 +1,34 @@
+Subjects:
+  Anxa:
+    genotype: Anxa1-iCre
+    strain: C57BL6
+    description: The Anxa1-iCre lines were generated at Northwestern University by the Transgenic and Targeted Mutagenesis Laboratory.
+    virus: AAV1-CAG-FLEX-GCaMP6f virus injected in SNc (RRID, Addgene_100835)
+    species: Mus musculus
+    age: P8W/P16W
+  Calb:
+    genotype: Calb1-IRES2-Cre/DAT-tTA/Ai93D  # Calb1-IRES2-Cre/Th-Flpo
+    strain: C57BL6
+    virus: AAV1-CAG-FLEX-GCaMP6f virus injected in SNc (RRID, Addgene_100835)
+    species: Mus musculus
+    age: P8W/P16W
+  Dat:
+    genotype: DAT-IRES-Cre (RRID, IMSR_JAX:027178)
+    strain: C57BL6
+    virus: AAV1-CAG-FLEX-GCaMP6f virus injected in SNc (RRID, Addgene_100835)
+    species: Mus musculus
+    age: P8W/P16W
+  # GrabDA:
+  Raldh:
+    genotype: Aldh1a1-iCre/Th-Flpo
+    strain: C57BL6
+    description: The Aldh1a1-iCre lines were generated at Northwestern University by the Transgenic and Targeted Mutagenesis Laboratory.
+    virus: AAV8-EF1α-CreOn/FlpOn-GCaMP6f virus (RRID, Addgene_137122)
+    species: Mus musculus
+    age: P8W/P16W
+  VGlut:
+    genotype: Vglut2-IRES-Cre/Th-Flpo (RRID, IMSR_JAX:016963)
+    strain: C57BL6
+    virus: AAV8-EF1α-CreOn/FlpOn-GCaMP6f virus (RRID, Addgene_137122)
+    species: Mus musculus
+    age: P8W/P16W
