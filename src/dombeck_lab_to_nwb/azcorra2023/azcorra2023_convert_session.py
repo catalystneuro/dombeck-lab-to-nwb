@@ -1,5 +1,4 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
-from copy import deepcopy
 from pathlib import Path
 from typing import Union
 
@@ -139,7 +138,7 @@ def session_to_nwb(
 if __name__ == "__main__":
 
     # Parameters for conversion
-    data_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/2020-02-26 Vglut2/VGlut-A997")
+    data_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/Azcorra2023/2020-02-26 Vglut2/VGlut-A997")
     # The folder containing the Picoscope output (.mat files) for a single session of data.
     picoscope_folder_path = data_folder_path / "20200129-0002"
 
