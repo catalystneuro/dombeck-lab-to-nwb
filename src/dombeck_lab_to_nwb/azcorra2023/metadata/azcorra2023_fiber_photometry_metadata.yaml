@@ -37,7 +37,7 @@ Ophys:
         optical_fiber: Fiber2
         excitation_source: ExcitationSource405
         photodetector: PhotodetectorPMT
-        dichroic_mirror: DichroicMirror
+        dichroic_mirror: DichroicMirrorGreen
         excitation_filter: OpticalFilter405
         emission_filter: EmissionFilterGreen
     OpticalFibers:

@@ -88,7 +88,7 @@ def add_fiber_photometry_series(
     trace_metadata["description"] = trace_description
 
     fiber_metadata = {
-        k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "fiber_depth_in_mm", "label"]
+        k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "fiber_depth_in_mm"]
     }
     add_photometry_device(nwbfile, device_metadata=fiber_metadata, device_type="OpticalFiber")
 

@@ -61,12 +61,12 @@ def process_extra_metadata(
 
     # Update the metadata for the second fiber
     fiber_2_description = fibers_metadata[1]["description"]
-    fiber_2_description += f"from the {allen_location_fiber_2} brain region."
+    fiber_2_description += f" from the {allen_location_fiber_2} brain region."
     fibers_metadata[1].update(
         description=fiber_2_description,
         coordinates=processed_photometry_data["RecLocRmm"],
         fiber_depth_in_mm=processed_photometry_data["depthR"],
-        location=allen_location_fiber_1,
+        location=allen_location_fiber_2,
     )
 
     return extra_metadata
