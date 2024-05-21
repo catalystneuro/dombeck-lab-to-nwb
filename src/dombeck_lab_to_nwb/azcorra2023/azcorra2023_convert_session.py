@@ -1,9 +1,11 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
+from nwbinspector import inspect_nwbfile
+from pymatreader import read_mat
 
 from dombeck_lab_to_nwb.azcorra2023 import Azcorra2023NWBConverter
 from dombeck_lab_to_nwb.azcorra2023.photometry_utils import process_extra_metadata
@@ -11,10 +13,10 @@ from dombeck_lab_to_nwb.azcorra2023.photometry_utils import process_extra_metada
 
 def session_to_nwb(
     picoscope_folder_path: Union[str, Path],
-    binned_photometry_mat_file_path: Union[str, Path],
     processed_photometry_mat_file_path: Union[str, Path],
     allen_location_mapping: dict,
     nwbfile_path: Union[str, Path],
+    binned_photometry_mat_file_path: Optional[Union[str, Path]] = None,
     stub_test: bool = False,
 ):
     """
@@ -24,18 +26,23 @@ def session_to_nwb(
     ----------
     picoscope_folder_path : Union[str, Path]
         The folder containing the Picoscope data (.mat files).
-    binned_photometry_mat_file_path : Union[str, Path]
-        The path to the .mat file containing the binned photometry data.
     processed_photometry_mat_file_path : Union[str, Path]
         The path to the .mat file containing the processed photometry data.
     nwbfile_path : Union[str, Path]
         The path to the NWB file to be created.
+    binned_photometry_mat_file_path : Union[str, Path], optional
+        The path to the .mat file containing the binned photometry data.
     stub_test : bool, optional
         Whether to run a stub test, by default False.
 
     """
     picoscope_folder_path = Path(picoscope_folder_path)
     nwbfile_path = Path(nwbfile_path)
+
+    # e.g. '20200129-0001'
+    session_id = picoscope_folder_path.parts[-1]
+    # e.g. 'VGlut-A997'
+    subject_id = picoscope_folder_path.parts[-2]
 
     source_data = dict()
     conversion_options = dict()
@@ -45,22 +52,30 @@ def session_to_nwb(
         dict(
             PicoScopeTimeSeries=dict(
                 folder_path=str(picoscope_folder_path),
-                channel_ids=["A", "B", "C"],
+                file_pattern=f"{picoscope_folder_path.stem.split('-')[0]}*.mat",
             ),
-            Events=dict(folder_path=str(picoscope_folder_path)),
+            PicoScopeEvents=dict(folder_path=str(picoscope_folder_path)),
         )
     )
 
     # Add binned photometry data
-    session_id = ("-").join(picoscope_folder_path.parts[-2:])
-    source_data.update(
-        dict(FiberPhotometry=dict(file_path=str(binned_photometry_mat_file_path), session_id=session_id))
-    )
+    if binned_photometry_mat_file_path:
+        # Check that file can be read in Python
+        binned = read_mat(binned_photometry_mat_file_path)
+        if "#subsystem#" not in binned:
+            raise ValueError(
+                f"Could not read {binned_photometry_mat_file_path} with pymatreader."
+                f"The file should be resaved in MATLAB with '-v7.3' option."
+            )
+
+        source_data.update(
+            dict(FiberPhotometry=dict(file_path=str(binned_photometry_mat_file_path), session_id=session_id))
+        )
 
     # Add processed photometry data
     source_data.update(dict(ProcessedFiberPhotometry=dict(file_path=str(processed_photometry_mat_file_path))))
 
-    converter = Azcorra2023NWBConverter(source_data=source_data)
+    converter = Azcorra2023NWBConverter(source_data=source_data, verbose=False)
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
@@ -80,8 +95,9 @@ def session_to_nwb(
     subjects_metadata = load_dict_from_file(subjects_metadata_path)
     subject_type = processed_photometry_mat_file_path.stem.split("-")[0]
     subject_metadata = subjects_metadata["Subjects"][subject_type]
+    subject_metadata["subject_id"] = subject_id
     virus_metadata = subject_metadata.pop("virus")
-    metadata["Subject"].update(subject_metadata)
+    metadata["Subject"].update(**subject_metadata)
     metadata["NWBFile"].update(virus=virus_metadata)
 
     fiber_photometry_metadata = load_dict_from_file(
@@ -110,7 +126,7 @@ def session_to_nwb(
     if num_fibers == 2:
         channel_name_mapping.update(
             dict(
-                chRed="FiberPhotometryResponseSeriesGreenFiber1",
+                chRed="FiberPhotometryResponseSeriesGreenFiber2",
                 chRed405="FiberPhotometryResponseSeriesGreenIsosbesticFiber2",
             )
         )
@@ -120,13 +136,19 @@ def session_to_nwb(
         ch_name: "DfOverF" + series_name for ch_name, series_name in channel_name_mapping.items()
     }
 
+    if binned_photometry_mat_file_path:
+        conversion_options.update(
+            dict(
+                FiberPhotometry=dict(
+                    channel_name_to_photometry_series_name_mapping=channel_name_mapping,
+                    stub_test=stub_test,
+                ),
+            ),
+        )
+
     # Update conversion options
     conversion_options.update(
         dict(
-            FiberPhotometry=dict(
-                channel_name_to_photometry_series_name_mapping=channel_name_mapping,
-                stub_test=stub_test,
-            ),
             ProcessedFiberPhotometry=dict(
                 channel_name_to_photometry_series_name_mapping=dff_channel_name_mapping,
                 stub_test=stub_test,
@@ -135,17 +157,21 @@ def session_to_nwb(
                 channel_id_to_time_series_name_mapping=channel_id_to_time_series_name_mapping,
                 stub_test=stub_test,
             ),
-            Events=dict(stub_test=stub_test),
+            PicoScopeEvents=dict(stub_test=stub_test),
         )
     )
 
     # Run conversion
     converter.run_conversion(
-        metadata=metadata,
         nwbfile_path=nwbfile_path,
+        metadata=metadata,
         conversion_options=conversion_options,
         overwrite=True,
     )
+
+    results = list(inspect_nwbfile(nwbfile_path=nwbfile_path))
+
+    return results
 
 
 if __name__ == "__main__":
@@ -153,13 +179,12 @@ if __name__ == "__main__":
     # Parameters for conversion
     data_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/Azcorra2023/2020-02-26 Vglut2/VGlut-A997")
     # The folder containing the Picoscope output (.mat files) for a single session of data.
-    picoscope_folder_path = data_folder_path / "20200129-0002"
-
-    # The path to the .mat file containing the binned photometry data.
-    binned_photometry_mat_file_path = data_folder_path / "Binned405_VGlut-A997-20200129.mat"
+    picoscope_folder_path = data_folder_path / "20200205-0001"
+    # The path to the .mat file containing the binned photometry data. (optional)
+    binned_photometry_mat_file_path = data_folder_path / "Binned405_VGlut-A997-20200205.mat"
 
     # The path to the .mat file containing the processed photometry data.
-    processed_photometry_mat_file_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp2/VGlut-A997-20200129-0002.mat")
+    processed_photometry_mat_file_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp2/VGlut-A997-20200205-0001.mat")
 
     # Mapping of the location names in the processed photometry data to the Allen Brain Atlas location names.
     location_name_mapping = dict(
@@ -170,7 +195,7 @@ if __name__ == "__main__":
         ts="TS",
     )
     # The path to the NWB file to be created.
-    nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200129-0002.nwb")
+    nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200205-0001.nwb")
 
     stub_test = True
 
