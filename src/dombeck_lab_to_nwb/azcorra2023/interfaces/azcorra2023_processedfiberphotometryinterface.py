@@ -11,6 +11,8 @@ from pymatreader import read_mat
 from pynwb import TimeSeries, NWBFile
 from pynwb.epoch import TimeIntervals
 
+from dombeck_lab_to_nwb.azcorra2023.photometry_utils import add_fiber_photometry_series
+
 
 class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     """Data interface for Azcorra2023 fiber photometry data conversion."""
@@ -146,41 +148,52 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             Whether to run a stub test, by default False.
 
         """
-        df_over_f_metadata = metadata["Ophys"]["FiberPhotometry"]["DfOverF"]
-
-        traces_metadata = df_over_f_metadata["FiberPhotometryResponseSeries"]
-        traces_metadata_to_add = [
-            trace
-            for trace in traces_metadata
-            if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
-        ]
-
         ophys_module = get_module(nwbfile=nwbfile, name="ophys", description=f"Processed fiber photometry data.")
 
-        for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
+        for series_ind, (channel_name, series_name) in enumerate(
+            channel_name_to_photometry_series_name_mapping.items()
+        ):
             if series_name in ophys_module.data_interfaces:
-                raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
-
-            # Get photometry response series metadata
-            photometry_response_series_metadata = next(
-                series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
-            )
+                raise ValueError(f"The DF/F series {series_name} already exists in the NWBfile.")
 
             raw_series_name = series_name.replace("DfOverF", "")
-            # Retrieve references to the raw photometry data
-            description = photometry_response_series_metadata["description"]
-
             data = self._processed_photometry_data[channel_name]
-            response_series = FiberPhotometryResponseSeries(
-                name=series_name,
-                description=description,
-                data=data if not stub_test else data[:6000],
-                unit="n.a.",
-                rate=self._sampling_frequency,
-                fiber_photometry_table_region=nwbfile.acquisition[raw_series_name].fiber_photometry_table_region,
-            )
+            data_to_add = data if not stub_test else data[:6000]
+            if raw_series_name in nwbfile.acquisition:
+                # Retrieve references to the raw photometry data
+                raw_response_series = nwbfile.acquisition[raw_series_name]
+                raw_response_series_description = raw_response_series.description
+                description = raw_response_series_description.replace("Raw", "DF/F calculated from")
 
-            ophys_module.add(response_series)
+                fiber_photometry_table_region = raw_response_series.fiber_photometry_table_region
+
+                response_series = FiberPhotometryResponseSeries(
+                    name=series_name,
+                    description=description,
+                    data=data_to_add,
+                    unit="n.a.",
+                    rate=self._sampling_frequency,
+                    fiber_photometry_table_region=fiber_photometry_table_region,
+                )
+
+                ophys_module.add(response_series)
+
+            else:
+                # Create references for the fiber photometry table
+                traces_metadata = metadata["Ophys"]["FiberPhotometry"]["FiberPhotometryResponseSeries"][series_ind]
+                # Override name and description for the DF/F series
+                traces_metadata["name"] = series_name
+                traces_metadata["description"] = traces_metadata["description"].replace("Raw", "DF/F calculated from")
+                add_fiber_photometry_series(
+                    nwbfile=nwbfile,
+                    metadata=metadata,
+                    data=data_to_add,
+                    rate=self._sampling_frequency,
+                    unit="n.a.",
+                    fiber_photometry_series_name=series_name,
+                    table_region_ind=series_ind,
+                    parent_container="processing/ophys",
+                )
 
     def _get_start_end_times(self, binary_event_data):
 
