@@ -35,8 +35,8 @@ def process_extra_metadata(
         sex=processed_photometry_data["Gen"].upper(),
     )
 
-    location_fiber_1 = processed_photometry_data["chG"]
-    location_fiber_2 = processed_photometry_data["chR"]
+    location_fiber_1 = processed_photometry_data["chG"].lower()
+    location_fiber_2 = processed_photometry_data["chR"].lower()
     allen_location_fiber_1 = allen_location_mapping.get(location_fiber_1, None)
     allen_location_fiber_2 = allen_location_mapping.get(location_fiber_2, None)
 

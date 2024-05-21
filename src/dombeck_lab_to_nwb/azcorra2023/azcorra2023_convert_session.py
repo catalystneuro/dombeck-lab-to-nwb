@@ -13,6 +13,7 @@ def session_to_nwb(
     picoscope_folder_path: Union[str, Path],
     binned_photometry_mat_file_path: Union[str, Path],
     processed_photometry_mat_file_path: Union[str, Path],
+    allen_location_mapping: dict,
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
 ):
@@ -88,28 +89,32 @@ def session_to_nwb(
     )
     metadata = dict_deep_update(metadata, fiber_photometry_metadata)
 
-    extra_metadata = process_extra_metadata(file_path=processed_photometry_mat_file_path, metadata=metadata)
+    extra_metadata = process_extra_metadata(
+        file_path=processed_photometry_mat_file_path,
+        metadata=metadata,
+        allen_location_mapping=allen_location_mapping,
+    )
     metadata = dict_deep_update(metadata, extra_metadata)
 
     # Determine whether single or multi-fiber experiment and adjust conversion options accordingly
-    fibers_metadata = metadata["Ophys"]["FiberPhotometry"]["OpticalFibers"]
-    num_fibers = len([fiber for fiber in fibers_metadata if "depth" in fiber])
+    fibers_metadata = extra_metadata["Ophys"]["FiberPhotometry"]["OpticalFibers"]
+    num_fibers = len(fibers_metadata)
     assert num_fibers in [1, 2], f"Number of fibers must be 1 or 2, but got {num_fibers} fibers metadata."
 
     channel_name_mapping = dict(
-        chGreen="FiberPhotometryResponseSeriesGreen",
-        chGreen405="FiberPhotometryResponseSeriesGreenIsosbestic",
+        chGreen="FiberPhotometryResponseSeriesGreenFiber1",
+        chGreen405="FiberPhotometryResponseSeriesGreenIsosbesticFiber1",
     )
-    channel_id_to_time_series_name_mapping = dict(A="Velocity", C="FluorescenceGreen")
+    channel_id_to_time_series_name_mapping = dict(A="Velocity", C="FluorescenceFiber1")
 
     if num_fibers == 2:
         channel_name_mapping.update(
             dict(
-                chRed="FiberPhotometryResponseSeriesRed",
-                chRed405="FiberPhotometryResponseSeriesRedIsosbestic",
+                chRed="FiberPhotometryResponseSeriesGreenFiber1",
+                chRed405="FiberPhotometryResponseSeriesGreenIsosbesticFiber2",
             )
         )
-        channel_id_to_time_series_name_mapping.update(dict(B="FluorescenceRed"))
+        channel_id_to_time_series_name_mapping.update(dict(B="FluorescenceFiber2"))
 
     dff_channel_name_mapping = {
         ch_name: "DfOverF" + series_name for ch_name, series_name in channel_name_mapping.items()
@@ -156,6 +161,14 @@ if __name__ == "__main__":
     # The path to the .mat file containing the processed photometry data.
     processed_photometry_mat_file_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp2/VGlut-A997-20200129-0002.mat")
 
+    # Mapping of the location names in the processed photometry data to the Allen Brain Atlas location names.
+    location_name_mapping = dict(
+        dls="DLS",
+        dms="DMS",
+        ds="DS",
+        snc="SNc",
+        ts="TS",
+    )
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/20200129-0002.nwb")
 
@@ -165,6 +178,7 @@ if __name__ == "__main__":
         picoscope_folder_path=picoscope_folder_path,
         binned_photometry_mat_file_path=binned_photometry_mat_file_path,
         processed_photometry_mat_file_path=processed_photometry_mat_file_path,
+        allen_location_mapping=location_name_mapping,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
     )
