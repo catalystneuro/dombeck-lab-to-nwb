@@ -18,7 +18,7 @@ class Azcorra2023NWBConverter(NWBConverter):
 
     data_interface_classes = dict(
         PicoScopeTimeSeries=PicoscopeTimeSeriesInterface,
-        Events=PicoscopeEventInterface,
+        PicoScopeEvents=PicoscopeEventInterface,
         FiberPhotometry=Azcorra2023FiberPhotometryInterface,
         ProcessedFiberPhotometry=Azcorra2023ProcessedFiberPhotometryInterface,
     )
