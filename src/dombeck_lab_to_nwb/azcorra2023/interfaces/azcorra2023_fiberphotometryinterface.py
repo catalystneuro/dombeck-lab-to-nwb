@@ -38,8 +38,12 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self._photometry_data = binned_photometry_data["#subsystem#"]["MCOS"][2]
 
         depth_ids = binned_photometry_data["#subsystem#"]["MCOS"][5]
-        assert session_id in depth_ids, f"{session_id} is not in the file {file_path}."
-        depth_index = depth_ids.index(session_id)
+        depth_ids = [depth_ids] if isinstance(depth_ids, str) else depth_ids
+        depth_index = [i for i, depth_id in enumerate(depth_ids) if session_id in depth_id]
+        assert len(depth_index), f"Expected match for session_id '{session_id}', found 0 in {depth_ids}."
+        depth_index = depth_index[0]
+
+        self.depth_ids = depth_ids
         self.depth_index = depth_index
 
         self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
@@ -78,7 +82,10 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
                 raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
 
             channel_index = self.column_names.index(channel_name)
-            data = self._photometry_data[channel_index][self.depth_index]
+
+            data = self._photometry_data[channel_index]
+            if len(self.depth_ids) > 1:
+                data = data[self.depth_index]
 
             add_fiber_photometry_series(
                 nwbfile=nwbfile,
