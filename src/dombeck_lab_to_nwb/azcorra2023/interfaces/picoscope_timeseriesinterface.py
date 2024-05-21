@@ -22,7 +22,7 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
     def __init__(
         self,
         folder_path: FolderPathType,
-        channel_ids: list,
+        file_pattern: str,
         verbose: bool = True,
     ):
         """
@@ -39,15 +39,13 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
         """
 
         self.folder_path = Path(folder_path)
-        session_name = self.folder_path.stem
-        mat_files = natsorted(self.folder_path.glob(f"{session_name}_*.mat"))
-        assert mat_files, f"The .mat files are missing from {folder_path}."
+        mat_files = natsorted(self.folder_path.glob(file_pattern))
+        if not len(mat_files):
+            raise ValueError(f"No .mat files found in {self.folder_path}")
 
-        recording_list = [
-            PicoscopeRecordingExtractor(file_path=str(file_path), channel_ids=channel_ids) for file_path in mat_files
-        ]
-        self.picoscope_trace_extractor = ConcatenateSegmentRecording(recording_list=recording_list)
         super().__init__(folder_path=folder_path, verbose=verbose)
+
+        self.file_paths = mat_files
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -77,6 +75,13 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
 
         return metadata
 
+    def get_trace_extractor_from_picoscope(self, channel_name: str):
+        recording_list = [
+            PicoscopeRecordingExtractor(file_path=str(file_path), channel_name=channel_name)
+            for file_path in self.file_paths
+        ]
+        return ConcatenateSegmentRecording(recording_list=recording_list)
+
     def add_to_nwbfile(
         self,
         nwbfile: NWBFile,
@@ -100,16 +105,17 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
         """
 
         picoscope_time_series_metadata = metadata["PicoScopeTimeSeries"]
-        sampling_frequency = self.picoscope_trace_extractor.get_sampling_frequency()
+
         end_frame = 1000 if stub_test else None
-        traces = self.picoscope_trace_extractor.get_traces(end_frame=end_frame)
 
         # Create TimeSeries for each data channel
         for channel_id, time_series_name in channel_id_to_time_series_name_mapping.items():
-            channel_ind = self.picoscope_trace_extractor.ids_to_indices(ids=[channel_id])[0]
             time_series_metadata = picoscope_time_series_metadata[time_series_name]
 
-            data = traces[:, channel_ind]
+            trace_extractor = self.get_trace_extractor_from_picoscope(channel_name=channel_id)
+            sampling_frequency = trace_extractor.get_sampling_frequency()
+            data = trace_extractor.get_traces(end_frame=end_frame)
+
             picoscope_time_series = TimeSeries(
                 name=time_series_name,
                 data=data,
