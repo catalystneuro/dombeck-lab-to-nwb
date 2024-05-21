@@ -38,6 +38,10 @@ def process_extra_metadata(
     location_fiber_1 = processed_photometry_data["chG"].lower()
     location_fiber_2 = processed_photometry_data["chR"].lower()
     allen_location_fiber_1 = allen_location_mapping.get(location_fiber_1, None)
+    if allen_location_fiber_1 is None:
+        raise ValueError(
+            f"The location of the first fiber ({location_fiber_1}) is not recognized. Please update it using the allen_location_mapping argument."
+        )
     allen_location_fiber_2 = allen_location_mapping.get(location_fiber_2, None)
 
     # Update the metadata for the first fiber
