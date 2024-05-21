@@ -30,10 +30,9 @@ def process_extra_metadata(
     assert "data6" in processed_photometry_data, f"'data6' not found in {file_path}."
     processed_photometry_data = processed_photometry_data["data6"]
 
-    extra_metadata["Subject"].update(
-        subject_id=processed_photometry_data["Mouse"].replace("_", "-"),
-        sex=processed_photometry_data["Gen"].upper(),
-    )
+    subject_gender = processed_photometry_data["Gen"].upper()
+    subject_gender = subject_gender if subject_gender in ["M", "F"] else "U"
+    extra_metadata["Subject"].update(sex=subject_gender)
 
     location_fiber_1 = processed_photometry_data["chG"].lower()
     location_fiber_2 = processed_photometry_data["chR"].lower()
