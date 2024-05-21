@@ -58,14 +58,14 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
         metadata["NWBFile"].update(session_start_time=session_start_time)
 
         metadata["PicoScopeTimeSeries"] = dict(
-            FluorescenceGreen=dict(
-                name="FluorescenceGreen",
-                description="The fluorescence traces from Green channel collected at 4000 Hz by Picoscope.",
+            FluorescenceFiber1=dict(
+                name="FluorescenceFiber1",
+                description="The fluorescence traces from Fiber1 collected at 4000 Hz by Picoscope.",
                 unit="Volts",
             ),
-            FluorescenceRed=dict(
-                name="FluorescenceRed",
-                description="The fluorescence traces from Red channel collected at 4000 Hz by Picoscope.",
+            FluorescenceFiber2=dict(
+                name="FluorescenceFiber2",
+                description="The fluorescence traces from Fiber2 collected at 4000 Hz by Picoscope.",
                 unit="Volts",
             ),
             Velocity=dict(

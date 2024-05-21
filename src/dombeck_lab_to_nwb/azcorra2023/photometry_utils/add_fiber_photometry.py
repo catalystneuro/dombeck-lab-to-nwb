@@ -44,6 +44,7 @@ def add_fiber_photometry_series(
     rate: float,
     fiber_photometry_series_name: str,
     table_region_ind: int = 0,
+    unit: str = "F",
     parent_container: Literal["acquisition", "processing/ophys"] = "acquisition",
 ):
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
@@ -80,13 +81,15 @@ def add_fiber_photometry_series(
 
     location = fiber_metadata["location"]
     coordinates = fiber_metadata["coordinates"]
-    fiber_depth_in_mm = fiber_metadata["depth"]
+    fiber_depth_in_mm = fiber_metadata["fiber_depth_in_mm"]
 
     trace_description = trace_metadata["description"]
     trace_description += f" from {location} region at {fiber_depth_in_mm / 1000} meters depth."
     trace_metadata["description"] = trace_description
 
-    fiber_metadata = {k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "depth"]}
+    fiber_metadata = {
+        k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "fiber_depth_in_mm", "label"]
+    }
     add_photometry_device(nwbfile, device_metadata=fiber_metadata, device_type="OpticalFiber")
 
     indicator_to_add = trace_metadata["indicator"]
@@ -180,7 +183,7 @@ def add_fiber_photometry_series(
         name=trace_metadata["name"],
         description=trace_metadata["description"],
         data=data,
-        unit="F",
+        unit=unit,
         rate=rate,
         fiber_photometry_table_region=fiber_photometry_table_region,
     )
