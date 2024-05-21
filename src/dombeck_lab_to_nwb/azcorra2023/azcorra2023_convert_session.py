@@ -110,7 +110,7 @@ def session_to_nwb(
     if num_fibers == 2:
         channel_name_mapping.update(
             dict(
-                chRed="FiberPhotometryResponseSeriesGreenFiber1",
+                chRed="FiberPhotometryResponseSeriesGreenFiber2",
                 chRed405="FiberPhotometryResponseSeriesGreenIsosbesticFiber2",
             )
         )
