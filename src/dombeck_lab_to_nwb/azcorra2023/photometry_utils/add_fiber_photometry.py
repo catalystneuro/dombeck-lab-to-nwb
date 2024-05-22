@@ -12,9 +12,9 @@ from ndx_fiber_photometry import (
     ExcitationSource,
     Photodetector,
     DichroicMirror,
-    OpticalFilter,
+    BandOpticalFilter,
     FiberPhotometryResponseSeries,
-    CommandedVoltageSeries,
+    FiberPhotometry,
 )
 
 
@@ -31,7 +31,7 @@ def add_photometry_device(nwbfile: NWBFile, device_metadata: dict, device_type: 
         ExcitationSource=ExcitationSource,
         Photodetector=Photodetector,
         DichroicMirror=DichroicMirror,
-        OpticalFilter=OpticalFilter,
+        BandOpticalFilter=BandOpticalFilter,
     )[device_type](**device_metadata)
 
     nwbfile.add_device(photometry_device)
@@ -44,6 +44,7 @@ def add_fiber_photometry_series(
     rate: float,
     fiber_photometry_series_name: str,
     table_region_ind: int = 0,
+    unit: str = "F",
     parent_container: Literal["acquisition", "processing/ophys"] = "acquisition",
 ):
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
@@ -56,16 +57,19 @@ def add_fiber_photometry_series(
     if trace_metadata is None:
         raise ValueError(f"Trace metadata for '{fiber_photometry_series_name}' not found.")
 
-    fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
-    table_name = fiber_photometry_table_metadata["name"]
-    if table_name not in nwbfile.acquisition:
+    if "FiberPhotometry" not in nwbfile.lab_meta_data:
+        fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
         fiber_photometry_table = FiberPhotometryTable(**fiber_photometry_table_metadata)
         fiber_photometry_table.add_column(
-            name="depth", description="The depth of the optical fiber in the unit of millimeters."
+            name="fiber_depth_in_mm", description="The depth of the optical fiber in the unit of millimeters."
         )
-        nwbfile.add_acquisition(fiber_photometry_table)
+        fiber_photometry_lab_meta_data = FiberPhotometry(
+            name="FiberPhotometry",
+            fiber_photometry_table=fiber_photometry_table,
+        )
+        nwbfile.add_lab_meta_data(fiber_photometry_lab_meta_data)
 
-    fiber_photometry_table = nwbfile.acquisition[table_name]
+    fiber_photometry_table = nwbfile.lab_meta_data["FiberPhotometry"].fiber_photometry_table
 
     fiber_to_add = trace_metadata["optical_fiber"]
     fiber_metadata = next(
@@ -77,13 +81,15 @@ def add_fiber_photometry_series(
 
     location = fiber_metadata["location"]
     coordinates = fiber_metadata["coordinates"]
-    fiber_depth_in_mm = fiber_metadata["depth"]
+    fiber_depth_in_mm = fiber_metadata["fiber_depth_in_mm"]
 
     trace_description = trace_metadata["description"]
     trace_description += f" from {location} region at {fiber_depth_in_mm / 1000} meters depth."
     trace_metadata["description"] = trace_description
 
-    fiber_metadata = {k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "depth"]}
+    fiber_metadata = {
+        k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "fiber_depth_in_mm"]
+    }
     add_photometry_device(nwbfile, device_metadata=fiber_metadata, device_type="OpticalFiber")
 
     indicator_to_add = trace_metadata["indicator"]
@@ -132,37 +138,52 @@ def add_fiber_photometry_series(
 
     optical_filter_to_add = trace_metadata["excitation_filter"]
     optical_filter_metadata = next(
-        (filter for filter in fiber_photometry_metadata["OpticalFilters"] if filter["name"] == optical_filter_to_add),
+        (
+            filter
+            for filter in fiber_photometry_metadata["BandOpticalFilters"]
+            if filter["name"] == optical_filter_to_add
+        ),
         None,
     )
     if optical_filter_metadata is None:
         raise ValueError(f"Optical filter metadata for '{optical_filter_to_add}' not found.")
-    add_photometry_device(nwbfile, device_metadata=optical_filter_metadata, device_type="OpticalFilter")
+    add_photometry_device(nwbfile, device_metadata=optical_filter_metadata, device_type="BandOpticalFilter")
+
+    emission_filter_to_add = trace_metadata["emission_filter"]
+    emission_filter_metadata = next(
+        (
+            filter
+            for filter in fiber_photometry_metadata["BandOpticalFilters"]
+            if filter["name"] == emission_filter_to_add
+        ),
+        None,
+    )
+    if emission_filter_metadata is None:
+        raise ValueError(f"Emission filter metadata for '{emission_filter_to_add}' not found.")
+    add_photometry_device(nwbfile, device_metadata=emission_filter_metadata, device_type="BandOpticalFilter")
 
     fiber_photometry_table.add_row(
         location=location,
         coordinates=coordinates,
-        depth=fiber_depth_in_mm,
+        fiber_depth_in_mm=fiber_depth_in_mm,
         indicator=nwbfile.devices[indicator_to_add],
         optical_fiber=nwbfile.devices[fiber_to_add],
         excitation_source=nwbfile.devices[excitation_source_to_add],
         photodetector=nwbfile.devices[photodetector_to_add],
         dichroic_mirror=nwbfile.devices[dichroic_mirror_to_add],
         excitation_filter=nwbfile.devices[optical_filter_to_add],
+        emission_filter=nwbfile.devices[emission_filter_to_add],
     )
 
-    fiber_photometry_table_region = DynamicTableRegion(
-        name="fiber_photometry_table_region",
-        data=[table_region_ind],
-        description="source fibers",
-        table=fiber_photometry_table,
+    fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
+        region=[table_region_ind], description="source fibers"
     )
 
     fiber_photometry_response_series = FiberPhotometryResponseSeries(
         name=trace_metadata["name"],
         description=trace_metadata["description"],
         data=data,
-        unit="F",
+        unit=unit,
         rate=rate,
         fiber_photometry_table_region=fiber_photometry_table_region,
     )
