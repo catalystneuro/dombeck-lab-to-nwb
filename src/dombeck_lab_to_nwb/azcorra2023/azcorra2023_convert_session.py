@@ -110,41 +110,37 @@ def session_to_nwb(
         metadata=metadata,
         allen_location_mapping=allen_location_mapping,
     )
-    metadata = dict_deep_update(metadata, extra_metadata)
 
     # Determine whether single or multi-fiber experiment and adjust conversion options accordingly
     fibers_metadata = extra_metadata["Ophys"]["FiberPhotometry"]["OpticalFibers"]
-    num_fibers = len(fibers_metadata)
-    assert num_fibers in [1, 2], f"Number of fibers must be 1 or 2, but got {num_fibers} fibers metadata."
-
-    channel_name_mapping = dict(
-        chGreen="FiberPhotometryResponseSeriesGreenFiber1",
-        chGreen405="FiberPhotometryResponseSeriesGreenIsosbesticFiber1",
-    )
-    channel_id_to_time_series_name_mapping = dict(A="Velocity", C="FluorescenceFiber1")
-
-    if num_fibers == 2:
-        channel_name_mapping.update(
-            dict(
-                chRed="FiberPhotometryResponseSeriesGreenFiber2",
-                chRed405="FiberPhotometryResponseSeriesGreenIsosbesticFiber2",
-            )
+    channel_id_to_fiber_photometry_series_name_mapping = dict()
+    channel_id_to_time_series_name_mapping = dict(A="Velocity")
+    for fiber_metadata in fibers_metadata:
+        fiber_name = fiber_metadata["name"]
+        channel_name = fiber_metadata.pop("label")
+        channel_id_to_fiber_photometry_series_name_mapping.update(
+            {
+                channel_name: f"FiberPhotometryResponseSeriesGreen{fiber_name}",
+                f"{channel_name}405": f"FiberPhotometryResponseSeriesGreenIsosbestic{fiber_name}",
+            }
         )
-        channel_id_to_time_series_name_mapping.update(dict(B="FluorescenceFiber2"))
-
-    dff_channel_name_mapping = {
-        ch_name: "DfOverF" + series_name for ch_name, series_name in channel_name_mapping.items()
-    }
+        picoscope_channel_name = "C" if fiber_name == "Fiber1" else "B"
+        channel_id_to_time_series_name_mapping.update({picoscope_channel_name: f"Fluorescence{fiber_name}"})
 
     if binned_photometry_mat_file_path:
         conversion_options.update(
             dict(
                 FiberPhotometry=dict(
-                    channel_name_to_photometry_series_name_mapping=channel_name_mapping,
+                    channel_name_to_photometry_series_name_mapping=channel_id_to_fiber_photometry_series_name_mapping,
                     stub_test=stub_test,
                 ),
             ),
         )
+
+    dff_channel_name_mapping = {
+        ch_name: "DfOverF" + series_name
+        for ch_name, series_name in channel_id_to_fiber_photometry_series_name_mapping.items()
+    }
 
     # Update conversion options
     conversion_options.update(
@@ -160,6 +156,8 @@ def session_to_nwb(
             PicoScopeEvents=dict(stub_test=stub_test),
         )
     )
+
+    metadata = dict_deep_update(metadata, extra_metadata)
 
     # Run conversion
     converter.run_conversion(
