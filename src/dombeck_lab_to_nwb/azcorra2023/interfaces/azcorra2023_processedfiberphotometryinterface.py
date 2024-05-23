@@ -75,8 +75,13 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         return metadata
 
     def get_original_timestamps(self) -> np.ndarray:
-        processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]
-        num_frames = len(processed_photometry_data["data"]["chGreen"])
+        processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]["data"]
+        traces = (
+            processed_photometry_data["chGreen"]
+            if "chGreen" in processed_photometry_data
+            else processed_photometry_data["chRed"]
+        )
+        num_frames = len(traces)
         return np.arange(num_frames) / self._sampling_frequency
 
     def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
@@ -153,6 +158,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         for series_ind, (channel_name, series_name) in enumerate(
             channel_name_to_photometry_series_name_mapping.items()
         ):
+            if channel_name not in self._processed_photometry_data:
+                print(f"Channel {channel_name} not found in the processed photometry data.")
+                continue
             if series_name in ophys_module.data_interfaces:
                 raise ValueError(f"The DF/F series {series_name} already exists in the NWBfile.")
 
@@ -290,6 +298,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             events_types.extend([reward_events_renamed[event_name]] * len(start_times))
             events_tags.extend([event_tag] * len(start_times))
 
+        if not len(events_start_times):
+            return
+
         df = pd.DataFrame(columns=["start_time", "stop_time", "event_type", "tags"])
         df["start_time"] = events_start_times
         df["stop_time"] = events_end_times
@@ -308,7 +319,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
         behavior = get_module(nwbfile, name="behavior")
         event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
-        behavior.add(event_types_table)
 
         events_table = EventsTable(
             **events_metadata["EventsTable"],
@@ -346,6 +356,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 )
             )
 
+        if not len(wheel_events_dfs):
+            return
+
         wheel_events_to_add = pd.concat(wheel_events_dfs, ignore_index=True)
         wheel_events_to_add["event_type"] = wheel_events_to_add["event_type"].astype(np.uint8)
         wheel_events_to_add = wheel_events_to_add.sort_values("timestamp")
@@ -355,6 +368,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             name=events_metadata["EventsTable"]["name"],
             table_description=events_metadata["EventsTable"]["description"],
         )
+        behavior.add(event_types_table)
         wheel_events_table.event_type.table = event_types_table
         behavior.add(wheel_events_table)
 

@@ -29,10 +29,12 @@ class PicoscopeEventInterface(BaseDataInterface):
         self.folder_path = Path(folder_path)
         self.channel_ids = channel_ids or ["E", "D", "F", "G", "H"]
         session_name = self.folder_path.stem
-        mat_files = natsorted(self.folder_path.glob(f"{session_name}_*.mat"))
-        assert mat_files, f"The .mat files are missing from {folder_path}."
+        file_pattern = f"{session_name.split('-')[0]}*.mat"
+        mat_files = natsorted(self.folder_path.glob(file_pattern))
+        if not len(mat_files):
+            raise ValueError(f"No .mat files found in {self.folder_path}")
 
-        super().__init__(file_list=mat_files, verbose=verbose)
+        super().__init__(file_paths=mat_files, verbose=verbose)
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -55,13 +57,12 @@ class PicoscopeEventInterface(BaseDataInterface):
 
         return metadata
 
-    def get_picoscope_extractor_for_binary_traces(self):
+    def get_trace_extractor_from_picoscope(self, channel_name: str):
         recording_list = [
-            PicoscopeRecordingExtractor(file_path=str(file_path), channel_ids=self.channel_ids)
-            for file_path in self.source_data["file_list"]
+            PicoscopeRecordingExtractor(file_path=str(file_path), channel_name=channel_name)
+            for file_path in self.source_data["file_paths"]
         ]
-        concatenated_recording = ConcatenateSegmentRecording(recording_list=recording_list)
-        return concatenated_recording
+        return ConcatenateSegmentRecording(recording_list=recording_list)
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False) -> None:
         from ndx_events import EventsTable
@@ -92,15 +93,17 @@ class PicoscopeEventInterface(BaseDataInterface):
             target_tables={"event_type": event_types_table},  # sets the dynamic table region link
         )
 
-        extractor = self.get_picoscope_extractor_for_binary_traces()
-        times = extractor.get_times()
-
         events_dfs = []
         for event_id, (channel_name, renamed_channel_name) in enumerate(channel_names_mapping.items()):
+            extractor = self.get_trace_extractor_from_picoscope(channel_name=channel_name)
+            times = extractor.get_times()
+
             traces = extractor.get_traces(channel_ids=[channel_name])
             # Using the same threshold as in
             # https://github.com/DombeckLab/Azcorra2023/blob/2819bd5b7a6021243c44dfd45b5b25fd24ae8122/Fiber%20photometry%20data%20analysis/Data%20pre%20processing/selectSignals_paper.m#L110C1-L110C22
             event_times = get_rising_frames_from_ttl(traces, threshold=0.05)
+            if not len(event_times):
+                continue
 
             timestamps = times[event_times] if not stub_test else times[event_times][:100]
             events_df = pd.DataFrame(columns=["timestamp", "event_type"])
@@ -108,16 +111,16 @@ class PicoscopeEventInterface(BaseDataInterface):
             events_df["event_type"] = [event_id] * len(timestamps)
             events_dfs.append(events_df)
 
-        events_to_add = pd.concat(events_dfs, ignore_index=True)
-        events_to_add["event_type"] = events_to_add["event_type"].astype(np.uint8)
-        events_to_add = events_to_add.sort_values("timestamp")
+        if len(events_dfs):
+            events_to_add = pd.concat(events_dfs, ignore_index=True)
+            events_to_add["event_type"] = events_to_add["event_type"].astype(np.uint8)
+            events_to_add = events_to_add.sort_values("timestamp")
 
-        events_to_add = events.from_dataframe(
-            events_to_add, name=events_table_name, table_description=events_metadata["EventsTable"]["description"]
-        )
-        events_to_add.event_type.table = event_types_table
-
-        nwbfile.add_acquisition(events_to_add)
+            events_to_add = events.from_dataframe(
+                events_to_add, name=events_table_name, table_description=events_metadata["EventsTable"]["description"]
+            )
+            events_to_add.event_type.table = event_types_table
+            nwbfile.add_acquisition(events_to_add)
 
         ttls_table_name = "TtlsTable"
         assert ttls_table_name not in nwbfile.acquisition, f"The {ttls_table_name} is already in nwbfile."
@@ -141,7 +144,9 @@ class PicoscopeEventInterface(BaseDataInterface):
         ttls_table = TtlsTable(**events_metadata["TtlsTable"], target_tables={"ttl_type": ttl_types_table})
 
         ttls_dfs = []
-        waveform_traces = extractor.get_traces(channel_ids=["E"])
+        waveform_extractor = self.get_trace_extractor_from_picoscope(channel_name="E")
+        waveform_traces = waveform_extractor.get_traces(channel_ids=["E"])
+        times = waveform_extractor.get_times()
         ch405_event_times = get_falling_frames_from_ttl(waveform_traces, threshold=0.5)
         ch405_timestamps = times[ch405_event_times] if not stub_test else times[ch405_event_times][:100]
 
