@@ -43,7 +43,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self._processed_photometry_data = processed_photometry_data["data"]
         self._timestamps = None
         self._sampling_frequency = 100.0
-        self._crop_start = processed_photometry_data["cropStart"]
+        crop_point = processed_photometry_data["cropStart"]
+        # If the crop point is a list, it means that the end of the recording was cropped as well
+        self._crop_start = crop_point[0] if isinstance(crop_point, np.ndarray) else crop_point
 
     def get_starting_time(self) -> float:
         """
