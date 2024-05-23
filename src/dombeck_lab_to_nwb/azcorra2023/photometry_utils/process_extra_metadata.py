@@ -1,12 +1,15 @@
 from copy import deepcopy
 from pathlib import Path
 
-import numpy as np
 from neuroconv.utils import FilePathType, DeepDict
 from pymatreader import read_mat
 
 
-def process_extra_metadata(file_path: FilePathType, metadata: DeepDict):
+def process_extra_metadata(
+    file_path: FilePathType,
+    metadata: DeepDict,
+    allen_location_mapping: dict,
+):
     """
     Process the extra metadata from the processed photometry data ("data6").
 
@@ -16,6 +19,8 @@ def process_extra_metadata(file_path: FilePathType, metadata: DeepDict):
         The path to the processed photometry data file.
     metadata : DeepDict
         The metadata dictionary to update with the extra metadata.
+    allen_location_mapping : dict
+        A mapping of the location names in the processed photometry data to the Allen Brain Atlas location names.
     """
 
     extra_metadata = deepcopy(metadata)
@@ -30,27 +35,39 @@ def process_extra_metadata(file_path: FilePathType, metadata: DeepDict):
         sex=processed_photometry_data["Gen"].upper(),
     )
 
+    location_fiber_1 = processed_photometry_data["chG"].lower()
+    location_fiber_2 = processed_photometry_data["chR"].lower()
+    allen_location_fiber_1 = allen_location_mapping.get(location_fiber_1, None)
+    if allen_location_fiber_1 is None:
+        raise ValueError(
+            f"The location of the first fiber ({location_fiber_1}) is not recognized. Please update it using the allen_location_mapping argument."
+        )
+    allen_location_fiber_2 = allen_location_mapping.get(location_fiber_2, None)
+
+    # Update the metadata for the first fiber
     fiber_photometry_metadata = extra_metadata["Ophys"]["FiberPhotometry"]
-
     fibers_metadata = fiber_photometry_metadata["OpticalFibers"]
-
-    fiber_depth_in_mm = processed_photometry_data["depthG"]
-    # Update the metadata for the green fiber
+    fiber_description = fibers_metadata[0]["description"]
+    fiber_description += f"from the {allen_location_fiber_1} brain region."
     fibers_metadata[0].update(
+        description=fiber_description,
         coordinates=processed_photometry_data["RecLocGmm"],
-        depth=fiber_depth_in_mm,
-        location="SNc" if fiber_depth_in_mm > 3.0 else "Str",
+        fiber_depth_in_mm=processed_photometry_data["depthG"],
+        location=allen_location_fiber_1,
     )
 
-    if np.isnan(processed_photometry_data["depthR"]):
-        # For single fiber experiment the red fiber depth is NaN
+    if allen_location_fiber_2 is None:
+        fibers_metadata.pop(1)
         return extra_metadata
 
-    fiber_red_depth_in_mm = processed_photometry_data["depthG"]
+    # Update the metadata for the second fiber
+    fiber_2_description = fibers_metadata[1]["description"]
+    fiber_2_description += f" from the {allen_location_fiber_2} brain region."
     fibers_metadata[1].update(
+        description=fiber_2_description,
         coordinates=processed_photometry_data["RecLocRmm"],
-        depth=fiber_red_depth_in_mm,
-        location="SNc" if fiber_red_depth_in_mm > 3.0 else "Str",
+        fiber_depth_in_mm=processed_photometry_data["depthR"],
+        location=allen_location_fiber_2,
     )
 
     return extra_metadata
