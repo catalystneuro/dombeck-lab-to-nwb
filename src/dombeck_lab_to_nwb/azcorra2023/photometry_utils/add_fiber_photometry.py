@@ -3,6 +3,7 @@ from typing import Literal
 
 import numpy as np
 from neuroconv.tools import get_module
+from neuroconv.utils import calculate_regular_series_rate
 from pynwb import NWBFile
 from ndx_fiber_photometry import (
     FiberPhotometryTable,
@@ -40,7 +41,7 @@ def add_fiber_photometry_series(
     nwbfile: NWBFile,
     metadata: dict,
     data: np.ndarray,
-    rate: float,
+    timestamps: np.ndarray,
     fiber_photometry_series_name: str,
     table_region_ind: int = 0,
     parent_container: Literal["acquisition", "processing/ophys"] = "acquisition",
@@ -206,13 +207,20 @@ def add_fiber_photometry_series(
         region=[table_region_ind], description="source fibers"
     )
 
+    timing_kwargs = dict()
+    rate = calculate_regular_series_rate(series=timestamps)
+    if rate is not None:
+        timing_kwargs.update(rate=rate, starting_time=timestamps[0])
+    else:
+        timing_kwargs.update(timestamps=timestamps)
+
     fiber_photometry_response_series = FiberPhotometryResponseSeries(
         name=trace_metadata["name"],
         description=trace_metadata["description"],
         data=data,
         unit="n.a.",
-        rate=rate,
         fiber_photometry_table_region=fiber_photometry_table_region,
+        **timing_kwargs,
     )
 
     if parent_container == "acquisition":
