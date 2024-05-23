@@ -43,7 +43,6 @@ def add_fiber_photometry_series(
     rate: float,
     fiber_photometry_series_name: str,
     table_region_ind: int = 0,
-    unit: str = "F",
     parent_container: Literal["acquisition", "processing/ophys"] = "acquisition",
 ):
     fiber_photometry_metadata = metadata["Ophys"]["FiberPhotometry"]
@@ -211,7 +210,7 @@ def add_fiber_photometry_series(
         name=trace_metadata["name"],
         description=trace_metadata["description"],
         data=data,
-        unit=unit,
+        unit="n.a.",
         rate=rate,
         fiber_photometry_table_region=fiber_photometry_table_region,
     )

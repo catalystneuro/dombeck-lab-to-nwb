@@ -197,7 +197,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                     metadata=metadata,
                     data=data_to_add,
                     rate=self._sampling_frequency,
-                    unit="n.a.",
                     fiber_photometry_series_name=series_name,
                     table_region_ind=series_ind,
                     parent_container="processing/ophys",
