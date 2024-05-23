@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Literal
 
 import numpy as np
-from hdmf.common import DynamicTableRegion
 from neuroconv.tools import get_module
 from pynwb import NWBFile
 from ndx_fiber_photometry import (
@@ -61,8 +60,30 @@ def add_fiber_photometry_series(
         fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
         fiber_photometry_table = FiberPhotometryTable(**fiber_photometry_table_metadata)
         fiber_photometry_table.add_column(
-            name="fiber_depth_in_mm", description="The depth of the optical fiber in the unit of millimeters."
+            name="fiber_depth_in_mm",
+            description="The depth of the optical fiber in the unit of millimeters.",
         )
+        fiber_photometry_table.add_column(
+            name="baseline_fluorescence",
+            description="The baseline fluorescence value for each fiber.",
+        )
+        fiber_photometry_table.add_column(
+            name="normalized_fluorescence",
+            description="The normalized fluorescence value for each fiber.",
+        )
+        fiber_photometry_table.add_column(
+            name="recording_target_type",
+            description="Defines whether recordings are made in axons vs cell bodies.",
+        )
+        fiber_photometry_table.add_column(
+            name="signal_to_noise_ratio",
+            description="The signal to noise ratio for each fiber.",
+        )
+        fiber_photometry_table.add_column(
+            name="cross_correlation_with_acceleration",
+            description="The cross-correlation between ΔF/F and acceleration.",
+        )
+
         fiber_photometry_lab_meta_data = FiberPhotometry(
             name="FiberPhotometry",
             fiber_photometry_table=fiber_photometry_table,
@@ -80,17 +101,26 @@ def add_fiber_photometry_series(
         raise ValueError(f"Fiber metadata for '{fiber_to_add}' not found.")
 
     location = fiber_metadata["location"]
-    coordinates = fiber_metadata["coordinates"]
     fiber_depth_in_mm = fiber_metadata["fiber_depth_in_mm"]
 
     trace_description = trace_metadata["description"]
     trace_description += f" from {location} region at {fiber_depth_in_mm / 1000} meters depth."
     trace_metadata["description"] = trace_description
 
-    fiber_metadata = {
-        k: v for k, v in fiber_metadata.items() if k not in ["location", "coordinates", "fiber_depth_in_mm"]
+    all_attributes = set(fiber_metadata.keys())
+    optical_fiber_attributes = {
+        "name",
+        "description",
+        "manufacturer",
+        "model",
+        "numerical_aperture",
+        "core_diameter_in_um",
     }
-    add_photometry_device(nwbfile, device_metadata=fiber_metadata, device_type="OpticalFiber")
+    extra_fiber_attributes = all_attributes - optical_fiber_attributes
+    extra_fiber_metadata = {k: v for k, v in fiber_metadata.items() if k in extra_fiber_attributes}
+    optical_fiber_metadata = {k: v for k, v in fiber_metadata.items() if k in optical_fiber_attributes}
+
+    add_photometry_device(nwbfile, device_metadata=optical_fiber_metadata, device_type="OpticalFiber")
 
     indicator_to_add = trace_metadata["indicator"]
     indicator_metadata = next(
@@ -163,9 +193,7 @@ def add_fiber_photometry_series(
     add_photometry_device(nwbfile, device_metadata=emission_filter_metadata, device_type="BandOpticalFilter")
 
     fiber_photometry_table.add_row(
-        location=location,
-        coordinates=coordinates,
-        fiber_depth_in_mm=fiber_depth_in_mm,
+        **extra_fiber_metadata,
         indicator=nwbfile.devices[indicator_to_add],
         optical_fiber=nwbfile.devices[fiber_to_add],
         excitation_source=nwbfile.devices[excitation_source_to_add],
