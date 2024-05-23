@@ -14,7 +14,7 @@ from ndx_fiber_photometry import (
     DichroicMirror,
     BandOpticalFilter,
     FiberPhotometryResponseSeries,
-    CommandedVoltageSeries,
+    FiberPhotometry,
 )
 
 
@@ -56,16 +56,19 @@ def add_fiber_photometry_series(
     if trace_metadata is None:
         raise ValueError(f"Trace metadata for '{fiber_photometry_series_name}' not found.")
 
-    fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
-    table_name = fiber_photometry_table_metadata["name"]
-    if table_name not in nwbfile.acquisition:
+    if "FiberPhotometry" not in nwbfile.lab_meta_data:
+        fiber_photometry_table_metadata = fiber_photometry_metadata["FiberPhotometryTable"]
         fiber_photometry_table = FiberPhotometryTable(**fiber_photometry_table_metadata)
         fiber_photometry_table.add_column(
-            name="depth", description="The depth of the optical fiber in the unit of millimeters."
+            name="fiber_depth_in_mm", description="The depth of the optical fiber in the unit of millimeters."
         )
-        nwbfile.add_acquisition(fiber_photometry_table)
+        fiber_photometry_lab_meta_data = FiberPhotometry(
+            name="FiberPhotometry",
+            fiber_photometry_table=fiber_photometry_table,
+        )
+        nwbfile.add_lab_meta_data(fiber_photometry_lab_meta_data)
 
-    fiber_photometry_table = nwbfile.acquisition[table_name]
+    fiber_photometry_table = nwbfile.lab_meta_data["FiberPhotometry"].fiber_photometry_table
 
     fiber_to_add = trace_metadata["optical_fiber"]
     fiber_metadata = next(
@@ -159,7 +162,7 @@ def add_fiber_photometry_series(
     fiber_photometry_table.add_row(
         location=location,
         coordinates=coordinates,
-        depth=fiber_depth_in_mm,
+        fiber_depth_in_mm=fiber_depth_in_mm,
         indicator=nwbfile.devices[indicator_to_add],
         optical_fiber=nwbfile.devices[fiber_to_add],
         excitation_source=nwbfile.devices[excitation_source_to_add],
@@ -170,8 +173,8 @@ def add_fiber_photometry_series(
     )
 
     fiber_photometry_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
-            region=[table_region_ind], description="source fibers"
-        )
+        region=[table_region_ind], description="source fibers"
+    )
 
     fiber_photometry_response_series = FiberPhotometryResponseSeries(
         name=trace_metadata["name"],
