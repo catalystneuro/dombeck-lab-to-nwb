@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Optional
 
-from neuroconv.basedatainterface import BaseDataInterface
+import numpy as np
+from neuroconv import BaseTemporalAlignmentInterface
 from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 from pynwb import NWBFile
@@ -9,7 +10,7 @@ from pynwb import NWBFile
 from dombeck_lab_to_nwb.azcorra2023.photometry_utils.add_fiber_photometry import add_fiber_photometry_series
 
 
-class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
+class Azcorra2023FiberPhotometryInterface(BaseTemporalAlignmentInterface):
     """Data interface for Azcorra2023 fiber photometry data conversion."""
 
     display_name = "Azcorra2023BinnedPhotometry"
@@ -36,6 +37,8 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self.verbose = verbose
         binned_photometry_data = read_mat(filename=str(self.file_path))
         self._photometry_data = binned_photometry_data["#subsystem#"]["MCOS"][2]
+        self._sampling_frequency = 100.0
+        self._timestamps = None
 
         depth_ids = binned_photometry_data["#subsystem#"]["MCOS"][5]
         depth_ids = [depth_ids] if isinstance(depth_ids, str) else depth_ids
@@ -47,6 +50,24 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
         self.depth_index = depth_index
 
         self.column_names = binned_photometry_data["#subsystem#"]["MCOS"][7]
+
+    def get_original_timestamps(self) -> np.ndarray:
+        binned_photometry_data = read_mat(filename=str(self.file_path))["#subsystem#"]["MCOS"][2]
+        channel_index = self.column_names.index("chMov")
+        data = binned_photometry_data[channel_index]
+        if len(self.depth_ids) > 1:
+            data = data[self.depth_index]
+        num_frames = len(data)
+        return np.arange(num_frames) / self._sampling_frequency
+
+    def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
+        timestamps = self._timestamps if self._timestamps is not None else self.get_original_timestamps()
+        if stub_test:
+            return timestamps[:6000]
+        return timestamps
+
+    def set_aligned_timestamps(self, aligned_timestamps: np.ndarray) -> None:
+        self._timestamps = np.array(aligned_timestamps)
 
     def add_to_nwbfile(
         self,
@@ -87,11 +108,12 @@ class Azcorra2023FiberPhotometryInterface(BaseDataInterface):
             if len(self.depth_ids) > 1:
                 data = data[self.depth_index]
 
+            timestamps = self.get_timestamps(stub_test=stub_test)
             add_fiber_photometry_series(
                 nwbfile=nwbfile,
                 metadata=metadata,
                 data=data if not stub_test else data[:6000],
-                rate=100.0,
+                timestamps=timestamps,
                 fiber_photometry_series_name=series_name,
                 table_region_ind=series_ind,
                 parent_container="acquisition",
