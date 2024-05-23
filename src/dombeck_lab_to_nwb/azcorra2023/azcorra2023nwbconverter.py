@@ -29,3 +29,11 @@ class Azcorra2023NWBConverter(NWBConverter):
 
         backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
         configure_backend(nwbfile=nwbfile, backend_configuration=backend_configuration)
+
+    def temporally_align_data_interfaces(self):
+        """
+        Align the starting time of processed fiber photometry data after cropping.
+        """
+        processed_interface = self.data_interface_objects["ProcessedFiberPhotometry"]
+        aligned_starting_time = processed_interface.get_starting_time()
+        processed_interface.set_aligned_starting_time(aligned_starting_time=aligned_starting_time)
