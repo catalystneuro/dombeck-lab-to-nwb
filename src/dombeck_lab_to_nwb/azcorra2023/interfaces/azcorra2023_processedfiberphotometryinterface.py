@@ -374,15 +374,15 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
     def add_analysis(self, nwbfile: NWBFile) -> None:
         event_types_table = EventTypesTable(
-            name="EventTypes",
+            name="PeakFluorescenceEventTypes",
             description="Contains the type of events.",
         )
 
         event_names_mapping = dict(
-            peaksG="Large transient peaks for green fluorescence",
-            peaksR="Large transient peaks for red fluorescence",
-            peaksGRun="Large transient peaks occurring during running periods for green fluorescence",
-            peaksRRun="Large transient peaks occurring during running periods for red fluorescence",
+            peaksG="Large transient peaks for Fiber 1 fluorescence",
+            peaksR="Large transient peaks for Fiber 2 fluorescence",
+            peaksGRun="Large transient peaks occurring during running periods for Fiber 1 fluorescence",
+            peaksRRun="Large transient peaks occurring during running periods for Fiber 2 fluorescence",
         )
 
         for event_name, event_type_description in event_names_mapping.items():
@@ -397,7 +397,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             return
 
         events = EventsTable(
-            name="Events",
+            name="PeakFluorescenceEvents",
             description="Contains the onset times of events.",
             target_tables={"event_type": event_types_table},
         )
@@ -430,7 +430,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
         peak_events_table = events.from_dataframe(
             peak_events_to_add,
-            name="Events",
+            name="PeakFluorescenceEvents",
             table_description="Contains the onset times of large fluorescence peaks.",
         )
         peak_events_table.event_type.table = event_types_table
