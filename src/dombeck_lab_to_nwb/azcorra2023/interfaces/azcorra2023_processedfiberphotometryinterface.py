@@ -50,7 +50,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
     def get_starting_time(self) -> float:
         """
         Return the starting time of the processed photometry data.
-        If the start of the picoscope recording had artefacts, the corrupted segment was cut of manually cropping point
+        If the start of the picoscope recording had artefacts, the corrupted segment was cut off manually and the cropping point
         was saved as "cropStart". We are using this value to align the starting time of the processed data with the
         picoscope data.
         """
