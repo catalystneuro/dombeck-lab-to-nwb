@@ -43,6 +43,20 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self._processed_photometry_data = processed_photometry_data["data"]
         self._timestamps = None
         self._sampling_frequency = 100.0
+        crop_point = processed_photometry_data["cropStart"]
+        # If the crop point is a list, it means that the end of the recording was cropped as well
+        self._crop_start = crop_point[0] if isinstance(crop_point, np.ndarray) else crop_point
+
+    def get_starting_time(self) -> float:
+        """
+        Return the starting time of the processed photometry data.
+        If the start of the picoscope recording had artefacts, the corrupted segment was cut off manually and the cropping point
+        was saved as "cropStart". We are using this value to align the starting time of the processed data with the
+        picoscope data.
+        """
+        if self._crop_start == 1:
+            return 0.0
+        return self._crop_start / self._sampling_frequency
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -76,12 +90,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
     def get_original_timestamps(self) -> np.ndarray:
         processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]["data"]
-        traces = (
-            processed_photometry_data["chGreen"]
-            if "chGreen" in processed_photometry_data
-            else processed_photometry_data["chRed"]
-        )
-        num_frames = len(traces)
+        num_frames = len(processed_photometry_data["chMov"])
         return np.arange(num_frames) / self._sampling_frequency
 
     def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
@@ -105,9 +114,13 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         ), f"Velocity data not found in {self.source_data['file_path']}."
         velocity = self._processed_photometry_data["chMov"]
         velocity_metadata = behavior_metadata["Velocity"]
+
+        timestamps = self.get_timestamps()
+
         velocity_ts = TimeSeries(
             data=velocity,
             rate=self._sampling_frequency,
+            starting_time=timestamps[0],
             **velocity_metadata,
         )
 
@@ -119,6 +132,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         acceleration_ts = TimeSeries(
             data=acceleration,
             rate=self._sampling_frequency,
+            starting_time=timestamps[0],
             **acceleration_metadata,
         )
 
@@ -155,6 +169,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         """
         ophys_module = get_module(nwbfile=nwbfile, name="ophys", description=f"Processed fiber photometry data.")
 
+        timestamps = self.get_timestamps(stub_test=stub_test)
+
         for series_ind, (channel_name, series_name) in enumerate(
             channel_name_to_photometry_series_name_mapping.items()
         ):
@@ -181,6 +197,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                     data=data_to_add,
                     unit="n.a.",
                     rate=self._sampling_frequency,
+                    starting_time=timestamps[0],
                     fiber_photometry_table_region=fiber_photometry_table_region,
                 )
 
@@ -196,7 +213,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                     nwbfile=nwbfile,
                     metadata=metadata,
                     data=data_to_add,
-                    rate=self._sampling_frequency,
+                    timestamps=timestamps,
                     fiber_photometry_series_name=series_name,
                     table_region_ind=series_ind,
                     parent_container="processing/ophys",
