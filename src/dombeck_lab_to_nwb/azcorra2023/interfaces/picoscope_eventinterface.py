@@ -86,8 +86,6 @@ class PicoscopeEventInterface(BaseDataInterface):
                 event_type_description=f"The onset times of the {event_name} event.",
             )
 
-        nwbfile.add_acquisition(event_types_table)
-
         events = EventsTable(
             **events_metadata["EventsTable"],
             target_tables={"event_type": event_types_table},  # sets the dynamic table region link
@@ -116,11 +114,15 @@ class PicoscopeEventInterface(BaseDataInterface):
             events_to_add["event_type"] = events_to_add["event_type"].astype(np.uint8)
             events_to_add = events_to_add.sort_values("timestamp")
 
-            events_to_add = events.from_dataframe(
-                events_to_add, name=events_table_name, table_description=events_metadata["EventsTable"]["description"]
-            )
-            events_to_add.event_type.table = event_types_table
-            nwbfile.add_acquisition(events_to_add)
+            for row_index, row in events_to_add.reset_index(drop=True).iterrows():
+                events.add_row(
+                    timestamp=row["timestamp"],
+                    event_type=row["event_type"],
+                    check_ragged=False,
+                    id=row_index,
+                )
+            nwbfile.add_acquisition(event_types_table)
+            nwbfile.add_acquisition(events)
 
         ttls_table_name = "TtlsTable"
         assert ttls_table_name not in nwbfile.acquisition, f"The {ttls_table_name} is already in nwbfile."
@@ -179,10 +181,12 @@ class PicoscopeEventInterface(BaseDataInterface):
         ttls_to_add["ttl_type"] = ttls_to_add["ttl_type"].astype(np.uint8)
         ttls_to_add = ttls_to_add.sort_values("timestamp")
 
-        ttls_to_add = ttls_table.from_dataframe(
-            ttls_to_add, name=ttls_table_name, table_description=events_metadata["TtlsTable"]["description"]
-        )
-        ttls_to_add.ttl_type.table = ttl_types_table
-
+        for row_index, row in ttls_to_add.reset_index(drop=True).iterrows():
+            ttls_table.add_row(
+                timestamp=row["timestamp"],
+                ttl_type=row["ttl_type"],
+                check_ragged=False,
+                id=row_index,
+            )
         nwbfile.add_acquisition(ttl_types_table)
-        nwbfile.add_acquisition(ttls_to_add)
+        nwbfile.add_acquisition(ttls_table)
