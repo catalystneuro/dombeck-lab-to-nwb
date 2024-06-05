@@ -379,14 +379,15 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         wheel_events_to_add["event_type"] = wheel_events_to_add["event_type"].astype(np.uint8)
         wheel_events_to_add = wheel_events_to_add.sort_values("timestamp")
 
-        wheel_events_table = events_table.from_dataframe(
-            wheel_events_to_add,
-            name=events_metadata["EventsTable"]["name"],
-            table_description=events_metadata["EventsTable"]["description"],
-        )
+        for row_index, row in wheel_events_to_add.reset_index(drop=True).iterrows():
+            events_table.add_row(
+                timestamp=row["timestamp"],
+                event_type=row["event_type"],
+                check_ragged=False,
+                id=row_index,
+            )
         behavior.add(event_types_table)
-        wheel_events_table.event_type.table = event_types_table
-        behavior.add(wheel_events_table)
+        behavior.add(events_table)
 
     def add_analysis(self, nwbfile: NWBFile) -> None:
         event_types_table = EventTypesTable(
@@ -414,7 +415,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
         events = EventsTable(
             name="PeakFluorescenceEvents",
-            description="Contains the onset times of events.",
+            description="Contains the onset times of large fluorescence peaks.",
             target_tables={"event_type": event_types_table},
         )
         events.add_column(
@@ -444,14 +445,16 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         peak_events_to_add["event_type"] = peak_events_to_add["event_type"].astype(np.uint8)
         peak_events_to_add = peak_events_to_add.sort_values("timestamp")
 
-        peak_events_table = events.from_dataframe(
-            peak_events_to_add,
-            name="PeakFluorescenceEvents",
-            table_description="Contains the onset times of large fluorescence peaks.",
-        )
-        peak_events_table.event_type.table = event_types_table
+        for row_index, row in peak_events_to_add.reset_index(drop=True).iterrows():
+            events.add_row(
+                timestamp=row["timestamp"],
+                event_type=row["event_type"],
+                peak_fluorescence=row["peak_fluorescence"],
+                check_ragged=False,
+                id=row_index,
+            )
 
-        nwbfile.add_analysis(peak_events_table)
+        nwbfile.add_analysis(events)
         nwbfile.add_analysis(event_types_table)
 
     def add_to_nwbfile(
