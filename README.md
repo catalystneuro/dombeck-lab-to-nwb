@@ -23,8 +23,8 @@ Alternatively, if you want to avoid conda altogether (for example if you use ano
 you can install the repository with the following commands using only pip:
 
 ```
-git clone https://github.com/catalystneuro/turner-lab-to-nwb
-cd turner-lab-to-nwb
+git clone https://github.com/catalystneuro/dombeck-lab-to-nwb
+cd dombeck-lab-to-nwb
 pip install -e .
 ```
 
