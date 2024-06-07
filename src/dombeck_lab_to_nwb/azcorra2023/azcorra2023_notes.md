@@ -36,10 +36,12 @@ The variables in Picoscope (e.g. `20200129-0001_01.mat`)  are as follows:
 - `B` = fiber 2 fluorescence (from here on called channel red - chR)
 - `C` = fiber 1 fluorescence (channel green - chG)
 - `D` = light stimulus trigger
-- `E` = waveforem generator output indicating illumination wavelength (1 = 470nm, 0 = 405nm)
+- `E` = waveform generator output indicating illumination wavelength (1 = 470nm, 0 = 405nm)
 - `F` = reward delivery trigger
-- `G` = licking sensor ourput
+- `G` = licking sensor output
 - `H` = air puff delivery trigger
+
+Variables `D`, `F`, `G`, `H` are binary signals (threshold 0.05), `E` is used to separate the fluorescence due to 405 vs 470 nm illumination.
 
 ### Concatenated recordings
 
@@ -63,7 +65,9 @@ dict(
   H="AirPuff",
 )
 ```
-The separated fluorescence is saved to `"chRed405"` and `"chGreen405"` variables.
+Note:
+The data from the binned files "ChRed", "ChGreen" are added as raw fluorescence traces, and the data from
+"ChRed405", "ChGreen405" are added as 405 nm control traces.
 
 ### Processed recordings
 
@@ -121,7 +125,7 @@ fibers = {'chGreen' 'chRed'};
 
 ### NWB mapping
 
-The following table describes the initial mapping between the source data and the NWB file:
+The following table describes the mapping between the source data and the NWB file:
 
 ![Alt text](azcorra2023_uml.png)
 
