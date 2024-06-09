@@ -113,56 +113,56 @@ def session_to_nwb(
 
     # Determine whether single or multi-fiber experiment and adjust conversion options accordingly
     fibers_metadata = extra_metadata["Ophys"]["FiberPhotometry"]["OpticalFibers"]
-    channel_id_to_fiber_photometry_series_name_mapping = dict()
-    channel_id_to_time_series_name_mapping = dict(A="Velocity")
+    trace_name_to_channel_id_mapping = dict(
+        FiberPhotometryResponseSeries=[],
+        FiberPhotometryResponseSeriesIsosbestic=[],
+    )
+    time_series_name_to_channel_id_mapping = dict(Velocity=["A"], Fluorescence=[])
     for fiber_metadata in fibers_metadata:
         fiber_name = fiber_metadata["name"]
         channel_name = fiber_metadata.pop("label")
-        channel_id_to_fiber_photometry_series_name_mapping.update(
-            {
-                channel_name: f"FiberPhotometryResponseSeriesGreen{fiber_name}",
-                f"{channel_name}405": f"FiberPhotometryResponseSeriesGreenIsosbestic{fiber_name}",
-            }
-        )
+        isosbestic_channel_name = f"{channel_name}405"
+
+        trace_name_to_channel_id_mapping["FiberPhotometryResponseSeries"].append(channel_name)
+        trace_name_to_channel_id_mapping["FiberPhotometryResponseSeriesIsosbestic"].append(isosbestic_channel_name)
+
         picoscope_channel_name = "C" if fiber_name == "Fiber1" else "B"
-        channel_id_to_time_series_name_mapping.update({picoscope_channel_name: f"Fluorescence{fiber_name}"})
+        time_series_name_to_channel_id_mapping["Fluorescence"].append(picoscope_channel_name)
 
     if binned_photometry_mat_file_path:
         conversion_options.update(
             dict(
                 FiberPhotometry=dict(
-                    channel_name_to_photometry_series_name_mapping=channel_id_to_fiber_photometry_series_name_mapping,
+                    trace_name_to_channel_id_mapping=trace_name_to_channel_id_mapping,
                     stub_test=stub_test,
                 ),
             ),
         )
 
     dff_channel_name_mapping = {
-        ch_name: "DfOverF" + series_name
-        for ch_name, series_name in channel_id_to_fiber_photometry_series_name_mapping.items()
+        f"DfOverF{series_name}": channel_names
+        for series_name, channel_names in trace_name_to_channel_id_mapping.items()
     }
 
     # Update conversion options
     conversion_options.update(
         dict(
             ProcessedFiberPhotometry=dict(
-                channel_name_to_photometry_series_name_mapping=dff_channel_name_mapping,
+                trace_name_to_channel_id_mapping=dff_channel_name_mapping,
                 stub_test=stub_test,
             ),
             PicoScopeTimeSeries=dict(
-                channel_id_to_time_series_name_mapping=channel_id_to_time_series_name_mapping,
+                time_series_name_to_channel_id_mapping=time_series_name_to_channel_id_mapping,
                 stub_test=stub_test,
             ),
             PicoScopeEvents=dict(stub_test=stub_test),
         )
     )
 
-    metadata = dict_deep_update(metadata, extra_metadata)
-
     # Run conversion
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
-        metadata=metadata,
+        metadata=extra_metadata,
         conversion_options=conversion_options,
         overwrite=True,
     )

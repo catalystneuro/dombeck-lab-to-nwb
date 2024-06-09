@@ -166,6 +166,7 @@ if __name__ == "__main__":
     root_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/Azcorra2023/")
 
     # The folder containing the processed photometry data for each session.
+    # Use matlab_utils/convert_data6.m to convert the data6.mat files to .mat files expected by the converter.
     processed_photometry_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp2/")
 
     # Mapping of the location names in the processed photometry data to the Allen Brain Atlas location names.
