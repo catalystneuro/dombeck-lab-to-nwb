@@ -73,7 +73,7 @@ class Azcorra2023FiberPhotometryInterface(BaseTemporalAlignmentInterface):
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_name_to_photometry_series_name_mapping: dict,
+        trace_name_to_channel_id_mapping: dict,
         stub_test: Optional[bool] = False,
     ) -> None:
         """
@@ -85,36 +85,46 @@ class Azcorra2023FiberPhotometryInterface(BaseTemporalAlignmentInterface):
             The NWBFile to add the raw photometry data to.
         metadata : dict
             The metadata for the photometry data.
-        channel_name_to_photometry_series_name_mapping: dict
-            A dictionary that maps the channel names in the .mat file to the names of the photometry response series.
+        trace_name_to_channel_id_mapping: dict
+            A dictionary that maps the trace name to the channel ids. (e.g. {"FiberPhotometryResponseSeries": ["chRed", "chGreen"]})
         stub_test : bool, optional
             Whether to run the conversion as a stub test by writing 1-minute of data, by default False.
         """
 
-        channel_names = list(channel_name_to_photometry_series_name_mapping.keys())
-        assert all(
-            channel_name in self.column_names for channel_name in channel_names
-        ), f"Not all channel names are in {self.source_data['file_path']}."
+        for series_ind, (series_name, channel_names) in enumerate(trace_name_to_channel_id_mapping.items()):
+            assert all(
+                channel_name in self.column_names for channel_name in channel_names
+            ), f"Not all channel names are in {self.source_data['file_path']}."
 
-        for series_ind, (channel_name, series_name) in enumerate(
-            channel_name_to_photometry_series_name_mapping.items()
-        ):
             if series_name in nwbfile.acquisition:
-                raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
+                raise ValueError(f"The fiber photometry series '{series_name}' already exists in the NWBfile.")
 
-            channel_index = self.column_names.index(channel_name)
+            squeeze = False
+            if len(channel_names) == 1:
+                table_region = [series_ind]
+                squeeze = True
+            elif len(channel_names) == 2:
+                table_region_ind = series_ind * len(trace_name_to_channel_id_mapping.keys())
+                table_region = [table_region_ind, table_region_ind + 1]
+            else:
+                raise ValueError(f"Expected 1 or 2 channel names, found {len(channel_names)}.")
 
-            data = self._photometry_data[channel_index]
-            if len(self.depth_ids) > 1:
-                data = data[self.depth_index]
+            data_to_add = []
+            for channel_name in channel_names:
+                channel_index = self.column_names.index(channel_name)
+                data = self._photometry_data[channel_index]
+                if len(self.depth_ids) > 1:
+                    data = data[self.depth_index]
+                data_to_add.append(data if not stub_test else data[:6000])
 
+            fiber_data = np.column_stack(data_to_add)
             timestamps = self.get_timestamps(stub_test=stub_test)
             add_fiber_photometry_series(
                 nwbfile=nwbfile,
                 metadata=metadata,
-                data=data if not stub_test else data[:6000],
+                data=fiber_data if not squeeze else fiber_data.squeeze(axis=1),
                 timestamps=timestamps,
                 fiber_photometry_series_name=series_name,
-                table_region_ind=series_ind,
+                table_region=table_region,
                 parent_container="acquisition",
             )

@@ -97,5 +97,7 @@ def process_extra_metadata(
     if not len(updated_fibers_metadata):
         raise ValueError("No fiber metadata with location information found.")
     fiber_photometry_metadata["OpticalFibers"] = updated_fibers_metadata
+    for trace_metadata in fiber_photometry_metadata["FiberPhotometryResponseSeries"]:
+        trace_metadata["optical_fiber"] = [fiber["name"] for fiber in updated_fibers_metadata]
 
     return extra_metadata

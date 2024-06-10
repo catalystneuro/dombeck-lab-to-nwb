@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 from natsort import natsorted
 from neuroconv import BaseDataInterface
 from neuroconv.utils import FolderPathType
@@ -56,14 +57,9 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
         metadata["NWBFile"].update(session_start_time=session_start_time)
 
         metadata["PicoScopeTimeSeries"] = dict(
-            FluorescenceFiber1=dict(
-                name="FluorescenceFiber1",
-                description="The fluorescence traces from Fiber1 collected at 4000 Hz by Picoscope.",
-                unit="Volts",
-            ),
-            FluorescenceFiber2=dict(
-                name="FluorescenceFiber2",
-                description="The fluorescence traces from Fiber2 collected at 4000 Hz by Picoscope.",
+            Fluorescence=dict(
+                name="Fluorescence",
+                description="The fluorescence traces from one or two optical fibers during 405 nm and 470 nm illumination collected at 4000 Hz by Picoscope.",
                 unit="Volts",
             ),
             Velocity=dict(
@@ -86,7 +82,7 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_id_to_time_series_name_mapping: dict,
+        time_series_name_to_channel_id_mapping: dict,
         stub_test: bool = False,
     ) -> None:
         """
@@ -98,8 +94,8 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
             The NWBFile to which to add the Picoscope time series.
         metadata : dict
             The metadata for the Picoscope time series.
-        channel_id_to_time_series_name_mapping : dict
-            A mapping from the channel id to the time series name.
+        time_series_name_to_channel_id_mapping : dict
+            A mapping from the time series name to the channel id(s).
         stub_test : bool, optional
             Whether to run a stub test, by default False.
         """
@@ -109,16 +105,21 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
         end_frame = 1000 if stub_test else None
 
         # Create TimeSeries for each data channel
-        for channel_id, time_series_name in channel_id_to_time_series_name_mapping.items():
+        for time_series_name, channel_names in time_series_name_to_channel_id_mapping.items():
             time_series_metadata = picoscope_time_series_metadata[time_series_name]
 
-            trace_extractor = self.get_trace_extractor_from_picoscope(channel_name=channel_id)
-            sampling_frequency = trace_extractor.get_sampling_frequency()
-            data = trace_extractor.get_traces(end_frame=end_frame)
+            data_to_add = []
+            for channel_name in channel_names:
+                trace_extractor = self.get_trace_extractor_from_picoscope(channel_name=channel_name)
+                data = trace_extractor.get_traces(end_frame=end_frame)
+                data_to_add.append(data if not stub_test else data[:6000])
 
+            sampling_frequency = trace_extractor.get_sampling_frequency()
+
+            time_series = np.column_stack(data_to_add)
             picoscope_time_series = TimeSeries(
                 name=time_series_name,
-                data=data,
+                data=time_series if len(channel_names) > 1 else time_series.squeeze(axis=1),
                 rate=sampling_frequency,
                 description=time_series_metadata["description"],
                 unit=time_series_metadata["unit"],

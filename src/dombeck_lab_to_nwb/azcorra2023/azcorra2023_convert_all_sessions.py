@@ -1,6 +1,7 @@
 from collections import defaultdict
 from pathlib import Path
 
+from neuroconv.tools.data_transfers import automatic_dandi_upload
 from neuroconv.utils import FolderPathType
 from nwbinspector.inspector_tools import save_report, format_messages
 from tqdm import tqdm
@@ -166,6 +167,7 @@ if __name__ == "__main__":
     root_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/Azcorra2023/")
 
     # The folder containing the processed photometry data for each session.
+    # Use matlab_utils/convert_data6.m to convert the data6.mat files to .mat files expected by the converter.
     processed_photometry_folder_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/tmp2/")
 
     # Mapping of the location names in the processed photometry data to the Allen Brain Atlas location names.
@@ -194,4 +196,9 @@ if __name__ == "__main__":
         nwbfile_folder_path=nwbfile_folder_path,
         stub_test=stub_test,
         overwrite=overwrite,
+    )
+
+    automatic_dandi_upload(
+        dandiset_id="001038",
+        nwb_folder_path=nwbfile_folder_path,
     )

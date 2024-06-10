@@ -149,7 +149,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_name_to_photometry_series_name_mapping: dict,
+        trace_name_to_channel_id_mapping: dict,
         stub_test: bool = False,
     ):
         """
@@ -161,8 +161,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             The NWB file to which the data will be added.
         metadata : dict
             The metadata dictionary.
-        channel_name_to_photometry_series_name_mapping : dict
-            A dictionary mapping the channel names from the file to the photometry series names that are going to be added.
+        trace_name_to_channel_id_mapping : dict
+            A dictionary that maps the DF/F trace name to the channel ids. (e.g. {"DfOverFFiberPhotometryResponseSeries": ["chRed", "chGreen"]})
         stub_test : bool, optional
             Whether to run a stub test, by default False.
 
@@ -171,18 +171,32 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
         timestamps = self.get_timestamps(stub_test=stub_test)
 
-        for series_ind, (channel_name, series_name) in enumerate(
-            channel_name_to_photometry_series_name_mapping.items()
-        ):
-            if channel_name not in self._processed_photometry_data:
-                print(f"Channel {channel_name} not found in the processed photometry data.")
-                continue
+        for series_ind, (series_name, channel_names) in enumerate(trace_name_to_channel_id_mapping.items()):
             if series_name in ophys_module.data_interfaces:
                 raise ValueError(f"The DF/F series {series_name} already exists in the NWBfile.")
 
+            data_to_add = []
+            for channel_name in channel_names:
+                if channel_name not in self._processed_photometry_data:
+                    print(f"Channel {channel_name} not found in the processed photometry data.")
+                    continue
+
+                data = self._processed_photometry_data[channel_name]
+                data_to_add.append(data if not stub_test else data[:6000])
+
+            squeeze = False
+            if len(channel_names) == 1:
+                table_region = [series_ind]
+                squeeze = True
+            elif len(channel_names) == 2:
+                table_region_ind = series_ind * len(trace_name_to_channel_id_mapping.keys())
+                table_region = [table_region_ind, table_region_ind + 1]
+            else:
+                raise ValueError(f"Expected 1 or 2 channel names, found {len(channel_names)}.")
+
             raw_series_name = series_name.replace("DfOverF", "")
-            data = self._processed_photometry_data[channel_name]
-            data_to_add = data if not stub_test else data[:6000]
+
+            fiber_data = np.column_stack(data_to_add)
             if raw_series_name in nwbfile.acquisition:
                 # Retrieve references to the raw photometry data
                 raw_response_series = nwbfile.acquisition[raw_series_name]
@@ -194,7 +208,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 response_series = FiberPhotometryResponseSeries(
                     name=series_name,
                     description=description,
-                    data=data_to_add,
+                    data=fiber_data if not squeeze else fiber_data.squeeze(axis=1),
                     unit="n.a.",
                     rate=self._sampling_frequency,
                     starting_time=timestamps[0],
@@ -212,10 +226,10 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 add_fiber_photometry_series(
                     nwbfile=nwbfile,
                     metadata=metadata,
-                    data=data_to_add,
+                    data=fiber_data if not squeeze else fiber_data.squeeze(axis=1),
                     timestamps=timestamps,
                     fiber_photometry_series_name=series_name,
-                    table_region_ind=series_ind,
+                    table_region=table_region,
                     parent_container="processing/ophys",
                 )
 
@@ -461,7 +475,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_name_to_photometry_series_name_mapping: dict = None,
+        trace_name_to_channel_id_mapping: dict,
         stub_test: bool = False,
     ):
         """
@@ -473,8 +487,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             The NWB file to which the data will be added.
         metadata : dict
             The metadata dictionary.
-        channel_name_to_photometry_series_name_mapping : dict
-            A dictionary mapping the channel names from the file to the photometry series names that are going to be added.
+        trace_name_to_channel_id_mapping : dict
+            A dictionary that maps the DF/F trace name to the channel ids. (e.g. {"DfOverFFiberPhotometryResponseSeries": ["chRed", "chGreen"]})
         stub_test : bool, optional
             Whether to run a stub test, by default False.
 
@@ -492,6 +506,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self.add_delta_f_over_f_traces(
             nwbfile=nwbfile,
             metadata=metadata,
-            channel_name_to_photometry_series_name_mapping=channel_name_to_photometry_series_name_mapping,
+            trace_name_to_channel_id_mapping=trace_name_to_channel_id_mapping,
             stub_test=stub_test,
         )
