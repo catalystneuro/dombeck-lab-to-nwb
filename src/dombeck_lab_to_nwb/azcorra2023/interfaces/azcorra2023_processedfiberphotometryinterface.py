@@ -310,22 +310,17 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             RewardLongRest=["long", "rest"],
             RewardShortRest=["short", "rest"],
         )
-        reward_events_renamed = dict(
-            RewardLong="Reward",
-            RewardShort="Reward",
-            RewardRest="Reward",
-            RewardLongRest="Reward",
-            RewardShortRest="Reward",
-        )
 
-        for event_name, event_tag in reward_events.items():
+        for event_name in reward_events.keys():
             binary_event_data = self._processed_photometry_data[event_name]
             start_times, end_times = self._get_start_end_times(binary_event_data)
             if not len(start_times):
                 continue
             events_start_times.extend(start_times)
             events_end_times.extend(end_times)
-            events_types.extend([reward_events_renamed[event_name]] * len(start_times))
+            events_types.extend(["Reward"] * len(start_times))
+
+            event_tag = reward_events[event_name]
             events_tags.extend([event_tag] * len(start_times))
 
         if not len(events_start_times):
@@ -340,7 +335,13 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             }
         )
         df = df.sort_values(by="start_time")
-        df = df.reset_index(drop=True)
+
+        # Find duplicated events that have the same start and stop time and merges their tags
+        df = (
+            df.groupby(["start_time", "stop_time", "event_type"])
+            .agg({"tags": lambda x: list(set(sum(x, [])))})
+            .reset_index(drop=True)
+        )
 
         for row_ind, row in df.iterrows():
             event_type = row["event_type"]
