@@ -331,15 +331,25 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         if not len(events_start_times):
             return
 
-        df = pd.DataFrame(columns=["start_time", "stop_time", "event_type", "tags"])
-        df["start_time"] = events_start_times
-        df["stop_time"] = events_end_times
-        df["event_type"] = events_types
-        df["tags"] = events_tags
+        df = pd.DataFrame(
+            {
+                "start_time": events_start_times,
+                "stop_time": events_end_times,
+                "event_type": events_types,
+                "tags": events_tags,
+            }
+        )
         df = df.sort_values(by="start_time")
+        df = df.reset_index(drop=True)
 
-        for _, row in df.iterrows():
-            events.add_interval(**row)
+        for row_ind, row in df.iterrows():
+            event_type = row["event_type"]
+            time_series_name = "Velocity" if event_type == "MovOnOff" else event_type
+            events.add_interval(
+                **row,
+                timeseries=nwbfile.acquisition[time_series_name],
+                id=row_ind,
+            )
 
         behavior = get_module(nwbfile, name="behavior")
         behavior.add(events)
