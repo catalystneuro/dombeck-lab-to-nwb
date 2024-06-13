@@ -307,8 +307,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             RewardLong=["long"],
             RewardShort=["short"],
             RewardRest=["rest"],
-            RewardLongRest=["long", "rest"],
-            RewardShortRest=["short", "rest"],
         )
 
         for event_name in reward_events.keys():
@@ -336,13 +334,19 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         )
         df = df.sort_values(by="start_time")
 
-        # Find duplicated events that have the same start and stop time and merges their tags
-        df = (
-            df.groupby(["start_time", "stop_time", "event_type"])
-            .agg({"tags": lambda x: list(set(sum(x, [])))})
-            .reset_index(drop=True)
-        )
+        # Find duplicates based on specific columns
+        duplicates = df.duplicated(subset=["start_time", "stop_time", "event_type"], keep=False)
+        # Filter the DataFrame to get only the duplicated rows
+        duplicated_df = df[duplicates]
+        if not duplicated_df.empty:
+            # Find duplicated events that have the same start and stop time and merges their tags
+            df = (
+                df.groupby(["start_time", "stop_time", "event_type"])
+                .agg({"tags": lambda x: list(set(sum(x, [])))})
+                .reset_index()
+            )
 
+        df = df.reset_index(drop=True)
         for row_ind, row in df.iterrows():
             event_type = row["event_type"]
             time_series_name = "Velocity" if event_type == "MovOnOff" else event_type
