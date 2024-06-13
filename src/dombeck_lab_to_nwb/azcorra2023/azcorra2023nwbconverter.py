@@ -7,7 +7,7 @@ from pynwb import NWBFile
 
 from dombeck_lab_to_nwb.azcorra2023.interfaces import (
     PicoscopeTimeSeriesInterface,
-    PicoscopeEventInterface,
+    PicoscopeTtlInterface,
     Azcorra2023FiberPhotometryInterface,
     Azcorra2023ProcessedFiberPhotometryInterface,
 )
@@ -18,7 +18,7 @@ class Azcorra2023NWBConverter(NWBConverter):
 
     data_interface_classes = dict(
         PicoScopeTimeSeries=PicoscopeTimeSeriesInterface,
-        PicoScopeEvents=PicoscopeEventInterface,
+        PicoScopeTTLs=PicoscopeTtlInterface,
         FiberPhotometry=Azcorra2023FiberPhotometryInterface,
         ProcessedFiberPhotometry=Azcorra2023ProcessedFiberPhotometryInterface,
     )
