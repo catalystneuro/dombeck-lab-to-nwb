@@ -1,1 +1,2 @@
 neuroconv[scanimage,suite2p,video,dlc]
+dlc2nwb==0.3

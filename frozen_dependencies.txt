@@ -24,6 +24,7 @@ dandi==0.62.1
 dandischema==0.10.1
 decorator==5.1.1
 dill==0.3.8
+dlc2nwb==0.3
 dnspython==2.6.1
 docstring_parser==0.16
 email_validator==2.1.1
@@ -81,6 +82,7 @@ ndx-events @ git+https://github.com/rly/ndx-events.git@eb7c974fdf2b34c5218f09fbd
 ndx-fiber-photometry @ git+https://github.com/catalystneuro/ndx-fiber-photometry.git@94d80c2996cf3c71bd7e6f2b2c83f9b3fb9906ff
 ndx-grayscalevolume==0.0.2
 ndx-icephys-meta==0.1.0
+ndx-pose==0.1.1
 ndx-spectrum==0.2.2
 neo==0.13.1
 networkx==3.3
