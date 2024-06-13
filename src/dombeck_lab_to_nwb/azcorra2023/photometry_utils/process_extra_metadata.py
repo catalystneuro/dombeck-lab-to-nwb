@@ -29,6 +29,7 @@ def process_extra_metadata(
     processed_photometry_data = read_mat(filename=str(file_path))
     assert "data6" in processed_photometry_data, f"'data6' not found in {file_path}."
     processed_photometry_data = processed_photometry_data["data6"]
+    extra_metadata["experiment_type"] = processed_photometry_data["RunRew"]
 
     subject_gender = processed_photometry_data["Gen"].upper()
     subject_gender = subject_gender if subject_gender in ["M", "F"] else "U"
