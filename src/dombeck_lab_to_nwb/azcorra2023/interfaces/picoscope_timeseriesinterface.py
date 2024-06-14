@@ -67,6 +67,26 @@ class PicoscopeTimeSeriesInterface(BaseDataInterface):
                 description="Velocity from rotary encoder collected at 4000 Hz by Picoscope.",
                 unit="Volts",
             ),
+            Light=dict(
+                name="Light",
+                description="The raw voltage trace from the light stimulus sensor collected at 4000 Hz by Picoscope.",
+                unit="Volts",
+            ),
+            Licking=dict(
+                name="Licking",
+                description="The raw voltage trace from the licking sensor collected at 4000 Hz by Picoscope.",
+                unit="Volts",
+            ),
+            Reward=dict(
+                name="Reward",
+                description="The raw voltage trace from the reward delivery trigger collected at 4000 Hz by Picoscope.",
+                unit="Volts",
+            ),
+            AirPuff=dict(
+                name="AirPuff",
+                description="The raw voltage trace from the air puff stimulus sensor collected at 4000 Hz by Picoscope.",
+                unit="Volts",
+            ),
         )
 
         return metadata

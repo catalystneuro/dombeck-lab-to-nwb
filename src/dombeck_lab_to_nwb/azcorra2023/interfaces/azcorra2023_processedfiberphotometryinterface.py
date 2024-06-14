@@ -307,39 +307,54 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             RewardLong=["long"],
             RewardShort=["short"],
             RewardRest=["rest"],
-            RewardLongRest=["long", "rest"],
-            RewardShortRest=["short", "rest"],
-        )
-        reward_events_renamed = dict(
-            RewardLong="Reward",
-            RewardShort="Reward",
-            RewardRest="Reward",
-            RewardLongRest="Reward",
-            RewardShortRest="Reward",
         )
 
-        for event_name, event_tag in reward_events.items():
+        for event_name in reward_events.keys():
             binary_event_data = self._processed_photometry_data[event_name]
             start_times, end_times = self._get_start_end_times(binary_event_data)
             if not len(start_times):
                 continue
             events_start_times.extend(start_times)
             events_end_times.extend(end_times)
-            events_types.extend([reward_events_renamed[event_name]] * len(start_times))
+            events_types.extend(["Reward"] * len(start_times))
+
+            event_tag = reward_events[event_name]
             events_tags.extend([event_tag] * len(start_times))
 
         if not len(events_start_times):
             return
 
-        df = pd.DataFrame(columns=["start_time", "stop_time", "event_type", "tags"])
-        df["start_time"] = events_start_times
-        df["stop_time"] = events_end_times
-        df["event_type"] = events_types
-        df["tags"] = events_tags
+        df = pd.DataFrame(
+            {
+                "start_time": events_start_times,
+                "stop_time": events_end_times,
+                "event_type": events_types,
+                "tags": events_tags,
+            }
+        )
         df = df.sort_values(by="start_time")
 
-        for _, row in df.iterrows():
-            events.add_interval(**row)
+        # Find duplicates based on specific columns
+        duplicates = df.duplicated(subset=["start_time", "stop_time", "event_type"], keep=False)
+        # Filter the DataFrame to get only the duplicated rows
+        duplicated_df = df[duplicates]
+        if not duplicated_df.empty:
+            # Find duplicated events that have the same start and stop time and merges their tags
+            df = (
+                df.groupby(["start_time", "stop_time", "event_type"])
+                .agg({"tags": lambda x: list(set(sum(x, [])))})
+                .reset_index()
+            )
+
+        df = df.reset_index(drop=True)
+        for row_ind, row in df.iterrows():
+            event_type = row["event_type"]
+            time_series_name = "Velocity" if event_type == "MovOnOff" else event_type
+            events.add_interval(
+                **row,
+                timeseries=nwbfile.acquisition[time_series_name],
+                id=row_ind,
+            )
 
         behavior = get_module(nwbfile, name="behavior")
         behavior.add(events)

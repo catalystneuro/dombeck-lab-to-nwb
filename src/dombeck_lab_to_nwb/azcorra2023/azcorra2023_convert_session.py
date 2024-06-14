@@ -54,7 +54,7 @@ def session_to_nwb(
                 folder_path=str(picoscope_folder_path),
                 file_pattern=f"{picoscope_folder_path.stem.split('-')[0]}*.mat",
             ),
-            PicoScopeEvents=dict(folder_path=str(picoscope_folder_path)),
+            PicoScopeTTLs=dict(folder_path=str(picoscope_folder_path)),
         )
     )
 
@@ -118,6 +118,12 @@ def session_to_nwb(
         FiberPhotometryResponseSeriesIsosbestic=[],
     )
     time_series_name_to_channel_id_mapping = dict(Velocity=["A"], Fluorescence=[])
+
+    experiment_type = extra_metadata.pop("experiment_type")
+    # only reward recordings has binary signals (run recordings do not)
+    if experiment_type != "run":
+        time_series_name_to_channel_id_mapping.update(Light=["D"], Reward=["F"], Licking=["E"], AirPuff=["G"])
+
     for fiber_metadata in fibers_metadata:
         fiber_name = fiber_metadata["name"]
         channel_name = fiber_metadata.pop("label")
@@ -155,7 +161,7 @@ def session_to_nwb(
                 time_series_name_to_channel_id_mapping=time_series_name_to_channel_id_mapping,
                 stub_test=stub_test,
             ),
-            PicoScopeEvents=dict(stub_test=stub_test),
+            PicoScopeTTLs=dict(stub_test=stub_test),
         )
     )
 

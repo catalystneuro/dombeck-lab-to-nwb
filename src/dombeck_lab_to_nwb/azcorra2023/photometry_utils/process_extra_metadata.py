@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 
+import numpy as np
 from neuroconv.utils import FilePathType, DeepDict
 from pymatreader import read_mat
 
@@ -29,6 +30,21 @@ def process_extra_metadata(
     processed_photometry_data = read_mat(filename=str(file_path))
     assert "data6" in processed_photometry_data, f"'data6' not found in {file_path}."
     processed_photometry_data = processed_photometry_data["data6"]
+
+    extra_metadata.update(
+        has_licking_signal=False,
+        has_light_signal=False,
+        has_reward_signal=False,
+        has_airpuff_signal=False,
+    )
+
+    if processed_photometry_data["RunRew"] == "rew":
+        extra_metadata.update(
+            has_licking_signal=np.any(processed_photometry_data["data"]["Licking"]),
+            has_light_signal=np.any(processed_photometry_data["data"]["Light"]),
+            has_reward_signal=np.any(processed_photometry_data["data"]["RewardAll"]),
+            has_airpuff_signal=np.any(processed_photometry_data["data"]["AirPuff"]),
+        )
 
     subject_gender = processed_photometry_data["Gen"].upper()
     subject_gender = subject_gender if subject_gender in ["M", "F"] else "U"
