@@ -119,10 +119,18 @@ def session_to_nwb(
     )
     time_series_name_to_channel_id_mapping = dict(Velocity=["A"], Fluorescence=[])
 
-    experiment_type = extra_metadata.pop("experiment_type")
-    # only reward recordings has binary signals (run recordings do not)
-    if experiment_type != "run":
-        time_series_name_to_channel_id_mapping.update(Light=["D"], Reward=["F"], Licking=["E"], AirPuff=["G"])
+    has_licking_signal = extra_metadata.pop("has_licking_signal")
+    if has_licking_signal:
+        time_series_name_to_channel_id_mapping.update(Licking=["E"])
+    has_light_signal = extra_metadata.pop("has_light_signal")
+    if has_light_signal:
+        time_series_name_to_channel_id_mapping.update(Light=["D"])
+    has_reward_signal = extra_metadata.pop("has_reward_signal")
+    if has_reward_signal:
+        time_series_name_to_channel_id_mapping.update(Reward=["F"])
+    has_airpuff_signal = extra_metadata.pop("has_airpuff_signal")
+    if has_airpuff_signal:
+        time_series_name_to_channel_id_mapping.update(AirPuff=["G"])
 
     for fiber_metadata in fibers_metadata:
         fiber_name = fiber_metadata["name"]
