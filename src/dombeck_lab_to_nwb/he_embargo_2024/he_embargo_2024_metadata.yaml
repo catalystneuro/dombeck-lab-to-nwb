@@ -1,0 +1,7 @@
+NWBFile:
+#  related_publications:
+#    - https://doi.org/... # The publication DOI can be added here
+  institution: Northwestern University
+  lab: Dombeck
+  experimenter:
+    - He, Elena
