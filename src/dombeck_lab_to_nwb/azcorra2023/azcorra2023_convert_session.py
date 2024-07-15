@@ -121,7 +121,7 @@ def session_to_nwb(
 
     has_licking_signal = extra_metadata.pop("has_licking_signal")
     if has_licking_signal:
-        time_series_name_to_channel_id_mapping.update(Licking=["E"])
+        time_series_name_to_channel_id_mapping.update(Licking=["G"])
     has_light_signal = extra_metadata.pop("has_light_signal")
     if has_light_signal:
         time_series_name_to_channel_id_mapping.update(Light=["D"])
@@ -130,7 +130,7 @@ def session_to_nwb(
         time_series_name_to_channel_id_mapping.update(Reward=["F"])
     has_airpuff_signal = extra_metadata.pop("has_airpuff_signal")
     if has_airpuff_signal:
-        time_series_name_to_channel_id_mapping.update(AirPuff=["G"])
+        time_series_name_to_channel_id_mapping.update(AirPuff=["H"])
 
     for fiber_metadata in fibers_metadata:
         fiber_name = fiber_metadata["name"]
