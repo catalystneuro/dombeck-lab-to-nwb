@@ -1,1 +1,1 @@
-from .he_embargo_2024nwbconverter import HeEmbargo2023NWBConverter
+from .he_embargo_2024nwbconverter import HeEmbargo2024NWBConverter
