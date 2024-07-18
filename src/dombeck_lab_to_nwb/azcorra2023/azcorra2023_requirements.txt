@@ -1,2 +1,4 @@
 ndx-events @ git+https://github.com/rly/ndx-events.git # Until 0.3.0 is released
 ndx-fiber-photometry @ git+https://github.com/catalystneuro/ndx-fiber-photometry.git@main
+remfile>=0.1.13 # For the tutorial notebook (streaming NWB file from DANDI)
+spikeinterface # For reading the PicoScope file we are using ConcatenateSegmentRecording

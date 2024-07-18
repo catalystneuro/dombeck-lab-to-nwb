@@ -11,6 +11,8 @@ from pymatreader import read_mat
 from pynwb import TimeSeries, NWBFile
 from pynwb.epoch import TimeIntervals
 
+from dombeck_lab_to_nwb.azcorra2023.photometry_utils import add_fiber_photometry_series
+
 
 class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     """Data interface for Azcorra2023 fiber photometry data conversion."""
@@ -41,6 +43,20 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self._processed_photometry_data = processed_photometry_data["data"]
         self._timestamps = None
         self._sampling_frequency = 100.0
+        crop_point = processed_photometry_data["cropStart"]
+        # If the crop point is a list, it means that the end of the recording was cropped as well
+        self._crop_start = crop_point[0] if isinstance(crop_point, np.ndarray) else crop_point
+
+    def get_starting_time(self) -> float:
+        """
+        Return the starting time of the processed photometry data.
+        If the start of the picoscope recording had artefacts, the corrupted segment was cut off manually and the cropping point
+        was saved as "cropStart". We are using this value to align the starting time of the processed data with the
+        picoscope data.
+        """
+        if self._crop_start == 1:
+            return 0.0
+        return self._crop_start / self._sampling_frequency
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -73,8 +89,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         return metadata
 
     def get_original_timestamps(self) -> np.ndarray:
-        processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]
-        num_frames = len(processed_photometry_data["data"]["chGreen"])
+        processed_photometry_data = read_mat(filename=str(self.file_path))["data6"]["data"]
+        num_frames = len(processed_photometry_data["chMov"])
         return np.arange(num_frames) / self._sampling_frequency
 
     def get_timestamps(self, stub_test: bool = False) -> np.ndarray:
@@ -98,9 +114,13 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         ), f"Velocity data not found in {self.source_data['file_path']}."
         velocity = self._processed_photometry_data["chMov"]
         velocity_metadata = behavior_metadata["Velocity"]
+
+        timestamps = self.get_timestamps()
+
         velocity_ts = TimeSeries(
             data=velocity,
             rate=self._sampling_frequency,
+            starting_time=timestamps[0],
             **velocity_metadata,
         )
 
@@ -112,6 +132,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         acceleration_ts = TimeSeries(
             data=acceleration,
             rate=self._sampling_frequency,
+            starting_time=timestamps[0],
             **acceleration_metadata,
         )
 
@@ -128,7 +149,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_name_to_photometry_series_name_mapping: dict,
+        trace_name_to_channel_id_mapping: dict,
         stub_test: bool = False,
     ):
         """
@@ -140,47 +161,77 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             The NWB file to which the data will be added.
         metadata : dict
             The metadata dictionary.
-        channel_name_to_photometry_series_name_mapping : dict
-            A dictionary mapping the channel names from the file to the photometry series names that are going to be added.
+        trace_name_to_channel_id_mapping : dict
+            A dictionary that maps the DF/F trace name to the channel ids. (e.g. {"DfOverFFiberPhotometryResponseSeries": ["chRed", "chGreen"]})
         stub_test : bool, optional
             Whether to run a stub test, by default False.
 
         """
-        df_over_f_metadata = metadata["Ophys"]["FiberPhotometry"]["DfOverF"]
-
-        traces_metadata = df_over_f_metadata["FiberPhotometryResponseSeries"]
-        traces_metadata_to_add = [
-            trace
-            for trace in traces_metadata
-            if trace["name"] in channel_name_to_photometry_series_name_mapping.values()
-        ]
-
         ophys_module = get_module(nwbfile=nwbfile, name="ophys", description=f"Processed fiber photometry data.")
 
-        for channel_name, series_name in channel_name_to_photometry_series_name_mapping.items():
-            if series_name in ophys_module.data_interfaces:
-                raise ValueError(f"The fiber photometry series {series_name} already exists in the NWBfile.")
+        timestamps = self.get_timestamps(stub_test=stub_test)
 
-            # Get photometry response series metadata
-            photometry_response_series_metadata = next(
-                series_metadata for series_metadata in traces_metadata_to_add if series_metadata["name"] == series_name
-            )
+        for series_ind, (series_name, channel_names) in enumerate(trace_name_to_channel_id_mapping.items()):
+            if series_name in ophys_module.data_interfaces:
+                raise ValueError(f"The DF/F series {series_name} already exists in the NWBfile.")
+
+            data_to_add = []
+            for channel_name in channel_names:
+                if channel_name not in self._processed_photometry_data:
+                    print(f"Channel {channel_name} not found in the processed photometry data.")
+                    continue
+
+                data = self._processed_photometry_data[channel_name]
+                data_to_add.append(data if not stub_test else data[:6000])
+
+            squeeze = False
+            if len(channel_names) == 1:
+                table_region = [series_ind]
+                squeeze = True
+            elif len(channel_names) == 2:
+                table_region_ind = series_ind * len(trace_name_to_channel_id_mapping.keys())
+                table_region = [table_region_ind, table_region_ind + 1]
+            else:
+                raise ValueError(f"Expected 1 or 2 channel names, found {len(channel_names)}.")
 
             raw_series_name = series_name.replace("DfOverF", "")
-            # Retrieve references to the raw photometry data
-            description = photometry_response_series_metadata["description"]
 
-            data = self._processed_photometry_data[channel_name]
-            response_series = FiberPhotometryResponseSeries(
-                name=series_name,
-                description=description,
-                data=data if not stub_test else data[:6000],
-                unit="n.a.",
-                rate=self._sampling_frequency,
-                fiber_photometry_table_region=nwbfile.acquisition[raw_series_name].fiber_photometry_table_region,
-            )
+            fiber_data = np.column_stack(data_to_add)
+            if raw_series_name in nwbfile.acquisition:
+                # Retrieve references to the raw photometry data
+                raw_response_series = nwbfile.acquisition[raw_series_name]
+                raw_response_series_description = raw_response_series.description
+                description = raw_response_series_description.replace("Raw", "DF/F calculated from")
 
-            ophys_module.add(response_series)
+                fiber_photometry_table_region = raw_response_series.fiber_photometry_table_region
+
+                response_series = FiberPhotometryResponseSeries(
+                    name=series_name,
+                    description=description,
+                    data=fiber_data if not squeeze else fiber_data.squeeze(axis=1),
+                    unit="n.a.",
+                    rate=self._sampling_frequency,
+                    starting_time=timestamps[0],
+                    fiber_photometry_table_region=fiber_photometry_table_region,
+                )
+
+                ophys_module.add(response_series)
+
+            else:
+                # Create references for the fiber photometry table
+                traces_metadata = metadata["Ophys"]["FiberPhotometry"]["FiberPhotometryResponseSeries"][series_ind]
+                # Override name and description for the DF/F series
+                traces_metadata["name"] = series_name
+                traces_metadata["description"] = traces_metadata["description"].replace("Raw", "DF/F calculated from")
+                add_fiber_photometry_series(
+                    nwbfile=nwbfile,
+                    metadata=metadata,
+                    data=fiber_data if not squeeze else fiber_data.squeeze(axis=1),
+                    timestamps=timestamps,
+                    fiber_photometry_series_name=series_name,
+                    table_region=table_region,
+                    parent_container="processing/ophys",
+                )
 
     def _get_start_end_times(self, binary_event_data):
 
@@ -256,36 +307,54 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             RewardLong=["long"],
             RewardShort=["short"],
             RewardRest=["rest"],
-            RewardLongRest=["long", "rest"],
-            RewardShortRest=["short", "rest"],
-        )
-        reward_events_renamed = dict(
-            RewardLong="Reward",
-            RewardShort="Reward",
-            RewardRest="Reward",
-            RewardLongRest="Reward",
-            RewardShortRest="Reward",
         )
 
-        for event_name, event_tag in reward_events.items():
+        for event_name in reward_events.keys():
             binary_event_data = self._processed_photometry_data[event_name]
             start_times, end_times = self._get_start_end_times(binary_event_data)
             if not len(start_times):
                 continue
             events_start_times.extend(start_times)
             events_end_times.extend(end_times)
-            events_types.extend([reward_events_renamed[event_name]] * len(start_times))
+            events_types.extend(["Reward"] * len(start_times))
+
+            event_tag = reward_events[event_name]
             events_tags.extend([event_tag] * len(start_times))
 
-        df = pd.DataFrame(columns=["start_time", "stop_time", "event_type", "tags"])
-        df["start_time"] = events_start_times
-        df["stop_time"] = events_end_times
-        df["event_type"] = events_types
-        df["tags"] = events_tags
+        if not len(events_start_times):
+            return
+
+        df = pd.DataFrame(
+            {
+                "start_time": events_start_times,
+                "stop_time": events_end_times,
+                "event_type": events_types,
+                "tags": events_tags,
+            }
+        )
         df = df.sort_values(by="start_time")
 
-        for _, row in df.iterrows():
-            events.add_interval(**row)
+        # Find duplicates based on specific columns
+        duplicates = df.duplicated(subset=["start_time", "stop_time", "event_type"], keep=False)
+        # Filter the DataFrame to get only the duplicated rows
+        duplicated_df = df[duplicates]
+        if not duplicated_df.empty:
+            # Find duplicated events that have the same start and stop time and merges their tags
+            df = (
+                df.groupby(["start_time", "stop_time", "event_type"])
+                .agg({"tags": lambda x: list(set(sum(x, [])))})
+                .reset_index()
+            )
+
+        df = df.reset_index(drop=True)
+        for row_ind, row in df.iterrows():
+            event_type = row["event_type"]
+            time_series_name = "Velocity" if event_type == "MovOnOff" else event_type
+            events.add_interval(
+                **row,
+                timeseries=nwbfile.acquisition[time_series_name],
+                id=row_ind,
+            )
 
         behavior = get_module(nwbfile, name="behavior")
         behavior.add(events)
@@ -295,7 +364,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
 
         behavior = get_module(nwbfile, name="behavior")
         event_types_table = EventTypesTable(**events_metadata["EventTypesTable"])
-        behavior.add(event_types_table)
 
         events_table = EventsTable(
             **events_metadata["EventsTable"],
@@ -333,29 +401,34 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 )
             )
 
+        if not len(wheel_events_dfs):
+            return
+
         wheel_events_to_add = pd.concat(wheel_events_dfs, ignore_index=True)
         wheel_events_to_add["event_type"] = wheel_events_to_add["event_type"].astype(np.uint8)
         wheel_events_to_add = wheel_events_to_add.sort_values("timestamp")
 
-        wheel_events_table = events_table.from_dataframe(
-            wheel_events_to_add,
-            name=events_metadata["EventsTable"]["name"],
-            table_description=events_metadata["EventsTable"]["description"],
-        )
-        wheel_events_table.event_type.table = event_types_table
-        behavior.add(wheel_events_table)
+        for row_index, row in wheel_events_to_add.reset_index(drop=True).iterrows():
+            events_table.add_row(
+                timestamp=row["timestamp"],
+                event_type=row["event_type"],
+                check_ragged=False,
+                id=row_index,
+            )
+        behavior.add(event_types_table)
+        behavior.add(events_table)
 
     def add_analysis(self, nwbfile: NWBFile) -> None:
         event_types_table = EventTypesTable(
-            name="EventTypes",
+            name="PeakFluorescenceEventTypes",
             description="Contains the type of events.",
         )
 
         event_names_mapping = dict(
-            peaksG="Large transient peaks for green fluorescence",
-            peaksR="Large transient peaks for red fluorescence",
-            peaksGRun="Large transient peaks occurring during running periods for green fluorescence",
-            peaksRRun="Large transient peaks occurring during running periods for red fluorescence",
+            peaksG="Large transient peaks for Fiber 1 fluorescence",
+            peaksR="Large transient peaks for Fiber 2 fluorescence",
+            peaksGRun="Large transient peaks occurring during running periods for Fiber 1 fluorescence",
+            peaksRRun="Large transient peaks occurring during running periods for Fiber 2 fluorescence",
         )
 
         for event_name, event_type_description in event_names_mapping.items():
@@ -370,8 +443,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             return
 
         events = EventsTable(
-            name="Events",
-            description="Contains the onset times of events.",
+            name="PeakFluorescenceEvents",
+            description="Contains the onset times of large fluorescence peaks.",
             target_tables={"event_type": event_types_table},
         )
         events.add_column(
@@ -401,21 +474,23 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         peak_events_to_add["event_type"] = peak_events_to_add["event_type"].astype(np.uint8)
         peak_events_to_add = peak_events_to_add.sort_values("timestamp")
 
-        peak_events_table = events.from_dataframe(
-            peak_events_to_add,
-            name="Events",
-            table_description="Contains the onset times of large fluorescence peaks.",
-        )
-        peak_events_table.event_type.table = event_types_table
+        for row_index, row in peak_events_to_add.reset_index(drop=True).iterrows():
+            events.add_row(
+                timestamp=row["timestamp"],
+                event_type=row["event_type"],
+                peak_fluorescence=row["peak_fluorescence"],
+                check_ragged=False,
+                id=row_index,
+            )
 
-        nwbfile.add_analysis(peak_events_table)
+        nwbfile.add_analysis(events)
         nwbfile.add_analysis(event_types_table)
 
     def add_to_nwbfile(
         self,
         nwbfile: NWBFile,
         metadata: dict,
-        channel_name_to_photometry_series_name_mapping: dict = None,
+        trace_name_to_channel_id_mapping: dict,
         stub_test: bool = False,
     ):
         """
@@ -427,8 +502,8 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             The NWB file to which the data will be added.
         metadata : dict
             The metadata dictionary.
-        channel_name_to_photometry_series_name_mapping : dict
-            A dictionary mapping the channel names from the file to the photometry series names that are going to be added.
+        trace_name_to_channel_id_mapping : dict
+            A dictionary that maps the DF/F trace name to the channel ids. (e.g. {"DfOverFFiberPhotometryResponseSeries": ["chRed", "chGreen"]})
         stub_test : bool, optional
             Whether to run a stub test, by default False.
 
@@ -446,6 +521,6 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         self.add_delta_f_over_f_traces(
             nwbfile=nwbfile,
             metadata=metadata,
-            channel_name_to_photometry_series_name_mapping=channel_name_to_photometry_series_name_mapping,
+            trace_name_to_channel_id_mapping=trace_name_to_channel_id_mapping,
             stub_test=stub_test,
         )
