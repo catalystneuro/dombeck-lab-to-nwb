@@ -5,7 +5,7 @@ from typing import Union
 from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
-from dombeck_lab_to_nwb.he_embargo_2024 import HeEmbargo2023NWBConverter
+from dombeck_lab_to_nwb.he_embargo_2024 import HeEmbargo2024NWBConverter
 
 
 def session_to_nwb(
@@ -39,7 +39,7 @@ def session_to_nwb(
         )
     )
 
-    converter = HeEmbargo2023NWBConverter(source_data=source_data)
+    converter = HeEmbargo2024NWBConverter(source_data=source_data)
 
     # Add datetime to conversion
     metadata = converter.get_metadata()
@@ -58,7 +58,7 @@ def session_to_nwb(
     conversion_options.update(
         dict(
             AxonBinaryTimeSeries=dict(
-                channel_id_to_time_series_name_mapping={"520sig": "FluorescenceGreen", "treadmill": "Velocity"},
+                channel_id_to_time_series_name_mapping={"520sig": "Fluorescence", "treadmill": "Velocity"},
                 stub_test=stub_test,
             ),
         )
