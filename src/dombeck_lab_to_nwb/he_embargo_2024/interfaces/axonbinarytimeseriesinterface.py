@@ -45,9 +45,9 @@ class AxonBinaryTimeSeriesInterface(BaseDataInterface):
         )
 
         metadata["AxonBinaryTimeSeries"] = dict(
-            FluorescenceGreen=dict(
-                name="FluorescenceGreen",
-                description=f"The fluorescence traces from Green channel collected at {self._sampling_frequency} Hz by Axon Instruments.",
+            Fluorescence=dict(
+                name="Fluorescence",
+                description=f"The fluorescence traces collected at {self._sampling_frequency} Hz by Axon Instruments.",
                 unit="Volts",
             ),
             Velocity=dict(
