@@ -1,0 +1,16 @@
+# The metadata for the optogenetics stimulation experiment.
+Ophys:
+  Device:
+    - name: Laser
+      description: The laser used to deliver the optogenetic stimulation.
+      # manufacturer:
+  OptogeneticStimulusSite:
+    - name: OptogeneticStimulusSite
+      description: The site of optogenetic stimulation.
+      location: STR # The brain region where the optogenetic stimulation was performed.
+      excitation_lambda: 520.0 # The wavelength of light used for optogenetic stimulation.
+      device: Laser # The device used to deliver the optogenetic stimulation.
+  OptogeneticSeries:
+    - name: OptogeneticSeries
+      site: OptogeneticStimulusSite
+      description: The optogenetic stimulation series.
