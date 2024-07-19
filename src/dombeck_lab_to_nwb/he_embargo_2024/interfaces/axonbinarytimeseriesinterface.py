@@ -35,7 +35,7 @@ class AxonBinaryTimeSeriesInterface(BaseDataInterface):
         super().__init__(verbose=verbose, file_path=file_path)
 
         self.reader = ABF(abfFilePath=file_path, loadData=True)
-        self._sampling_frequency = self.reader.dataRate
+        self._sampling_frequency = float(self.reader.dataRate)
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
