@@ -1,1 +1,2 @@
 pyabf>=2.3.8
+ndx-events @ git+https://github.com/rly/ndx-events.git # Until 0.3.0 is released
