@@ -1,4 +1,5 @@
 """Primary script to run to convert an entire session for of data using the NWBConverter."""
+
 from pathlib import Path
 from typing import Union
 
@@ -6,11 +7,13 @@ from dateutil import tz
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
 from dombeck_lab_to_nwb.he_embargo_2024 import HeEmbargo2024NWBConverter
+from dombeck_lab_to_nwb.he_embargo_2024.optogenetic_utils import get_stimulation_parameters_from_mat_file
 
 
 def session_to_nwb(
     abf_file_path: Union[str, Path],
     optogenetic_stimulation_file_path: Union[str, Path],
+    stimulation_parameters_file_path: Union[str, Path],
     fiber_photometry_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
@@ -24,6 +27,8 @@ def session_to_nwb(
         The path to the Axon Binary Format (.abf) file.
     optogenetic_stimulation_file_path : Union[str, Path]
         The path to the .mat file containing the optogenetic stimulation data "opto".
+    stimulation_parameters_file_path : Union[str, Path]
+        The path to the .mat file containing the stimulation parameters (e.g., power, duration, frequency, pulse width).
     nwbfile_path : Union[str, Path]
         The path to the NWB file to be created.
     stub_test : bool, optional
@@ -46,12 +51,18 @@ def session_to_nwb(
 
     session_id = abf_file_path.stem
 
-    # Add optogenetic stimulation data
-    source_data.update(
-        dict(
-            OptogeneticStimulation=dict(file_path=str(optogenetic_stimulation_file_path), session_id=session_id),
-        )
+    stimulation_parameters = get_stimulation_parameters_from_mat_file(
+        mat_file_path=stimulation_parameters_file_path,
+        session_id=session_id,
     )
+
+    # Add optogenetic stimulation data
+    if stimulation_parameters is not None:
+        source_data.update(
+            dict(
+                OptogeneticStimulation=dict(file_path=str(optogenetic_stimulation_file_path), session_id=session_id),
+            )
+        )
 
     # Add fiber photometry data
     source_data.update(
@@ -88,17 +99,10 @@ def session_to_nwb(
     metadata = dict_deep_update(metadata, fiber_photometry_metadata)
 
     # Update conversion options
-    # Retrieve the sampling frequency from the abf file
-    sampling_frequency = converter.data_interface_objects["AxonBinaryTimeSeries"]._sampling_frequency
     conversion_options.update(
         dict(
             AxonBinaryTimeSeries=dict(
                 channel_id_to_time_series_name_mapping={"520sig": "Fluorescence", "treadmill": "Velocity"},
-                stub_test=stub_test,
-            ),
-            OptogeneticStimulation=dict(
-                optogenetic_series_name="OptogeneticSeries",
-                sampling_frequency=sampling_frequency,
                 stub_test=stub_test,
             ),
             TTL=dict(stub_test=stub_test),
@@ -108,6 +112,17 @@ def session_to_nwb(
             ),
         )
     )
+    if stimulation_parameters is not None:
+        conversion_options.update(
+            dict(
+                OptogeneticStimulation=dict(
+                    optogenetic_series_name="OptogeneticSeries",
+                    sampling_frequency=100.0,
+                    stimulation_parameters=stimulation_parameters,
+                    stub_test=stub_test,
+                ),
+            ),
+        )
 
     # Run conversion
     converter.run_conversion(
@@ -119,12 +134,14 @@ def session_to_nwb(
 
 
 if __name__ == "__main__":
-
     # Parameters for conversion
     abf_file_path = "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/2024_01_09_0003.abf"
 
     # The path to the opto file
-    opto_file_path = "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/processed/AnT60-new.mat"
+    opto_file_path = "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/processed/AnT60_data4-new.mat"
+    stimulation_parameters_file_path = (
+        "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/processed/AnT60-new.mat"
+    )
 
     fiber_photometry_file_path = (
         "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/processed/AnT60_data4-new.mat"
@@ -139,6 +156,7 @@ if __name__ == "__main__":
         abf_file_path=abf_file_path,
         optogenetic_stimulation_file_path=opto_file_path,
         fiber_photometry_file_path=fiber_photometry_file_path,
+        stimulation_parameters_file_path=stimulation_parameters_file_path,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,
     )

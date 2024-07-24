@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 from neuroconv import BaseTemporalAlignmentInterface
 from neuroconv.tools.optogenetics import create_optogenetic_stimulation_timeseries
-from neuroconv.tools.signal_processing import get_rising_frames_from_ttl
 from neuroconv.utils import FilePathType, DeepDict
 from pymatreader import read_mat
 from pynwb import NWBFile
@@ -47,18 +46,7 @@ class HeEmbargo2024OptogeneticStimulationInterface(BaseTemporalAlignmentInterfac
         session_ids = [filename.split(".")[0] for filename in filenames]
         assert session_id in session_ids, f"Expected session_id '{session_id}', found {session_ids}."
         self._session_index = session_ids.index(session_id)
-        self._opto_column_index = column_names.index("opto")
-
-        duration_in_ms = self._processed_data[column_names.index("length_stim")][self._session_index]
-        self._duration_in_s = duration_in_ms / 1000
-        power_in_mW = self._processed_data[column_names.index("power_stim")][self._session_index]
-        power_in_W = power_in_mW / 1000
-        self._power_in_W = power_in_W
-        type_stim = self._processed_data[column_names.index("type_stim")][self._session_index]
-        frequency_str, pulse_width_str = type_stim.split("-")
-        self._frequency_in_Hz = float(frequency_str.replace("Hz", ""))
-        pulse_width_ms = float(pulse_width_str.replace("ms", ""))
-        self._pulse_width_in_s = pulse_width_ms / 1000
+        self._opto_column_index = column_names.index("opto_idx")
 
         self._sampling_frequency = None
         self._timestamps = None
@@ -66,10 +54,9 @@ class HeEmbargo2024OptogeneticStimulationInterface(BaseTemporalAlignmentInterfac
         super().__init__(verbose=verbose, file_path=file_path, session_id=session_id)
 
     def get_original_timestamps(self) -> np.ndarray:
-        opto_stimuli = self._processed_data[self._opto_column_index][self._session_index]
-        rising_frames = get_rising_frames_from_ttl(opto_stimuli)
-        times = np.arange(opto_stimuli.shape[0]) / self._sampling_frequency
-        return times[rising_frames]
+        opto_onset_data = self._processed_data[self._opto_column_index][self._session_index]
+        opto_onset_times = opto_onset_data / self._sampling_frequency
+        return opto_onset_times
 
     def get_timestamps(self) -> np.ndarray:
         timestamps = self._timestamps if self._timestamps is not None else self.get_original_timestamps()
@@ -103,6 +90,7 @@ class HeEmbargo2024OptogeneticStimulationInterface(BaseTemporalAlignmentInterfac
         nwbfile: NWBFile,
         metadata: dict,
         sampling_frequency: float,
+        stimulation_parameters: dict,
         optogenetic_series_name: str = "OptogeneticSeries",
         stub_test: bool = False,
     ) -> None:
@@ -111,10 +99,10 @@ class HeEmbargo2024OptogeneticStimulationInterface(BaseTemporalAlignmentInterfac
         stimulation_onset_times = self.get_timestamps()
         timestamps, data = create_optogenetic_stimulation_timeseries(
             stimulation_onset_times=stimulation_onset_times,
-            duration=self._duration_in_s,  # in seconds
-            frequency=self._frequency_in_Hz,  # in Hz
-            pulse_width=self._pulse_width_in_s,  # in seconds
-            power=self._power_in_W,  # in W
+            duration=stimulation_parameters["duration_in_s"],  # in seconds
+            frequency=stimulation_parameters["frequency_in_Hz"],  # in Hz
+            pulse_width=stimulation_parameters["pulse_width_in_s"],  # in seconds
+            power=stimulation_parameters["power_in_W"],  # in W
         )
         add_optogenetic_series(
             nwbfile=nwbfile,
