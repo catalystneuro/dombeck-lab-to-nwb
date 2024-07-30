@@ -4,6 +4,7 @@ from neuroconv import NWBConverter
 from dombeck_lab_to_nwb.he_embargo_2024.interfaces import (
     AxonBinaryTimeSeriesInterface,
     HeEmbargo2024OptogeneticStimulationInterface,
+    AxonBinaryTtlInterface,
 )
 
 
@@ -13,4 +14,5 @@ class HeEmbargo2024NWBConverter(NWBConverter):
     data_interface_classes = dict(
         AxonBinaryTimeSeries=AxonBinaryTimeSeriesInterface,
         OptogeneticStimulation=HeEmbargo2024OptogeneticStimulationInterface,
+        TTL=AxonBinaryTtlInterface,
     )

@@ -40,10 +40,11 @@ def session_to_nwb(
     source_data = dict()
     conversion_options = dict()
 
-    # Add Picoscope data
+    # Add ABF data
     source_data.update(
         dict(
             AxonBinaryTimeSeries=dict(file_path=str(abf_file_path)),
+            TTL=dict(file_path=str(abf_file_path)),
         )
     )
 
@@ -89,6 +90,7 @@ def session_to_nwb(
                 channel_id_to_time_series_name_mapping={"520sig": "Fluorescence", "treadmill": "Velocity"},
                 stub_test=stub_test,
             ),
+            TTL=dict(stub_test=stub_test),
         )
     )
     if stimulation_parameters is not None:
@@ -125,7 +127,7 @@ if __name__ == "__main__":
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/AnT60-2024-01-09-0003.nwb")
 
-    stub_test = True
+    stub_test = False
 
     session_to_nwb(
         abf_file_path=abf_file_path,
