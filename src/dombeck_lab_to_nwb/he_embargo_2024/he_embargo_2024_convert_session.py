@@ -14,6 +14,7 @@ def session_to_nwb(
     abf_file_path: Union[str, Path],
     optogenetic_stimulation_file_path: Union[str, Path],
     stimulation_parameters_file_path: Union[str, Path],
+    fiber_photometry_file_path: Union[str, Path],
     nwbfile_path: Union[str, Path],
     stub_test: bool = False,
 ):
@@ -63,6 +64,13 @@ def session_to_nwb(
             )
         )
 
+    # Add fiber photometry data
+    source_data.update(
+        dict(
+            FiberPhotometry=dict(file_path=str(fiber_photometry_file_path), session_id=session_id),
+        )
+    )
+
     converter = HeEmbargo2024NWBConverter(source_data=source_data)
 
     # Add datetime to conversion
@@ -83,6 +91,13 @@ def session_to_nwb(
     ophys_metadata = load_dict_from_file(ophys_metadata_path)
     metadata = dict_deep_update(metadata, ophys_metadata)
 
+    # Update fiber photometry metadata
+    fiber_photometry_metadata_path = (
+        Path(__file__).parent / "metadata" / "he_embargo_2024_fiber_photometry_metadata.yaml"
+    )
+    fiber_photometry_metadata = load_dict_from_file(fiber_photometry_metadata_path)
+    metadata = dict_deep_update(metadata, fiber_photometry_metadata)
+
     # Update conversion options
     conversion_options.update(
         dict(
@@ -91,6 +106,10 @@ def session_to_nwb(
                 stub_test=stub_test,
             ),
             TTL=dict(stub_test=stub_test),
+            FiberPhotometry=dict(
+                sampling_frequency=100.0,
+                stub_test=stub_test,
+            ),
         )
     )
     if stimulation_parameters is not None:
@@ -124,6 +143,10 @@ if __name__ == "__main__":
         "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/processed/AnT60-new.mat"
     )
 
+    fiber_photometry_file_path = (
+        "/Volumes/LaCie/CN_GCP/Dombeck/sample_data/AnT60/stimulation/processed/AnT60_data4-new.mat"
+    )
+
     # The path to the NWB file to be created.
     nwbfile_path = Path("/Volumes/LaCie/CN_GCP/Dombeck/nwbfiles/AnT60-2024-01-09-0003.nwb")
 
@@ -132,6 +155,7 @@ if __name__ == "__main__":
     session_to_nwb(
         abf_file_path=abf_file_path,
         optogenetic_stimulation_file_path=opto_file_path,
+        fiber_photometry_file_path=fiber_photometry_file_path,
         stimulation_parameters_file_path=stimulation_parameters_file_path,
         nwbfile_path=nwbfile_path,
         stub_test=stub_test,

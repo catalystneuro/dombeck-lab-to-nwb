@@ -1,2 +1,3 @@
 from .axonbinaryinterfaces import AxonBinaryTimeSeriesInterface, AxonBinaryTtlInterface
 from .he_embargo_2024_optogeneticstimulationinterface import HeEmbargo2024OptogeneticStimulationInterface
+from .he_embargo_2024_fiberphotometryinterface import HeEmbargo2024FiberPhotometryInterface
