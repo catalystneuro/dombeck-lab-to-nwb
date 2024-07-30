@@ -1,7 +1,10 @@
 """Primary NWBConverter class for this dataset."""
 from neuroconv import NWBConverter
 
-from dombeck_lab_to_nwb.he_embargo_2024.interfaces import AxonBinaryTimeSeriesInterface
+from dombeck_lab_to_nwb.he_embargo_2024.interfaces import (
+    AxonBinaryTimeSeriesInterface,
+    HeEmbargo2024OptogeneticStimulationInterface,
+)
 
 
 class HeEmbargo2024NWBConverter(NWBConverter):
@@ -9,4 +12,5 @@ class HeEmbargo2024NWBConverter(NWBConverter):
 
     data_interface_classes = dict(
         AxonBinaryTimeSeries=AxonBinaryTimeSeriesInterface,
+        OptogeneticStimulation=HeEmbargo2024OptogeneticStimulationInterface,
     )
