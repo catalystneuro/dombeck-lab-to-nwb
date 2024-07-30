@@ -68,7 +68,7 @@ class AxonBinaryTimeSeriesInterface(AxonBinaryInterface):
             ),
             Velocity=dict(
                 name="Velocity",
-                description=f"Velocity from treadmill at {self._sampling_frequency} Hz by Axon Instruments.",
+                description=f"Treadmill velocity acquired at {self._sampling_frequency} Hz by Axon Instruments.",
                 unit="Volts",
             ),
         )
