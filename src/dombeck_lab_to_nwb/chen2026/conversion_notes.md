@@ -4,7 +4,7 @@
 
 **Manuscript:** "Leucine-rich repeat kinase 2 impairs the release sites of Parkinson's disease vulnerable dopamine axons", Chen, He et al. (in preparation)
 **Analysis code:** https://github.com/DombeckLab/lrrk2_photometry_analysis (Zenodo: 10.5281/zenodo.20244434)
-**Status:** Data inspection complete, metadata extracted from manuscript, code not yet written.
+**Status:** All fiber photometry interfaces implemented and stub-tested (27/27 sessions pass). Full conversion run pending.
 **Detailed notes:** see `lrrk2_investigation.md`
 
 ---
@@ -100,6 +100,11 @@ MATLAB table, one row per file. Read via h5py (`#subsystem#/MCOS`): column names
 
 Note: `stim_sequence` is a MATLAB categorical — pymatreader cannot parse it. Use h5py `MCOS[8]` (uint8), map 1→'a', 2→'b'.
 
+**Column order verified from `LRRK2_binning_and_processing.m`** — confirmed the 10-column layout above matches the MATLAB script output exactly. Processing steps also verified:
+- `corrected470`/`corrected405`: output of `baselineCorrect()` — sliding 8th-percentile baseline (window=2001 samples, subtraction factor 0.85)
+- `dff470`/`dff405`: output of `df_f()` — `(signal − F0) / F0 × 100`, then smoothed with `movmean(20)` (20-sample moving mean at 100 Hz = 200 ms window)
+- Binning: camera-trigger-aligned, `fps=100`, velocity calibration factor `calib = 0.6766 × 2 = 1.3532`
+
 ---
 
 ### Key Hardware Metadata (from manuscript)
@@ -142,6 +147,19 @@ Fiber implant DV depth = ferrule length (Doric convention), referenced from dura
 - New channels: `initiation` (Calb only), `stim_sequence` (session metadata)
 
 **ndx-fiber-photometry version:** use v0.2.x API (ndx-ophys-devices) — do **not** replicate the v0.1.0 approach used in he_embargo_2024 and azcorra2023.
+
+---
+
+### Implementation Notes
+
+#### Processed series routing to `processing/ophys`
+
+`BaseFiberPhotometryInterface` (neuroconv) hardcodes `nwbfile.add_acquisition(response_series)` with no override point for the target container. As a workaround, `Chen2026ProcessedFiberPhotometryInterface` overrides `add_to_nwbfile` to:
+1. Call `super().add_to_nwbfile(...)` (adds to acquisition)
+2. Delete the series from `nwbfile.acquisition` via `LabelledDict.__delitem__`
+3. Create `nwbfile.processing["ophys"]` if absent, then add the series there
+
+A TODO comment in the interface marks this for removal once a neuroconv PR adds a `parent_container: Literal["acquisition", "processing/ophys"] = "acquisition"` parameter to `BaseFiberPhotometryInterface.add_to_nwbfile`. The pattern already exists in `roiextractors.py` (lines 460–464) and uses the `get_module` utility already imported in the fiber photometry module.
 
 ---
 
