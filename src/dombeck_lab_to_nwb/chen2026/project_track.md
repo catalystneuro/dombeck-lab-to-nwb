@@ -22,9 +22,9 @@
 - [x] Processed fiber photometry interface (`processed_fiber_photometry_interface.py`) — reads `*_data.mat` (MATLAB v7.3 HDF5 via h5py reference chain); exposes corrected470, corrected405, dff470, dff405 at 100 Hz
 - [x] `Chen2026NWBConverter` — RawSignal + IsosbesticControl interfaces wired
 - [x] Stub test passes — Anxa group, animal 4007, session 2025-01-24-0002 ✓
-- [ ] Stub test — Calb group (need to download a Calb ABF)
-- [ ] ABF → animal ID mapping from `LRRK2-animal-list-meta.mat` (which ABF file corresponds to which animal?)
-- [ ] `convert_all_sessions.py` — batch script for all 27 animals
+- [x] Stub test — Calb group (need to download a Calb ABF)
+- [x] ABF → animal ID mapping from `LRRK2-animal-list-meta.mat` (which ABF file corresponds to which animal?)
+- [x] `convert_all_sessions.py` — batch script for all 27 animals
 - [ ] **Pending lab reply** — per-animal sex records, `stim_sequence` 'a' vs 'b' meaning, `initiation` channel meaning (Calb only), Calb DV fiber coordinate, Calb injection DV coordinate, publication DOI, experimenter name(s)
 
 ---
@@ -47,8 +47,8 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 - [x] `FiberPhotometryResponseSeriesRawSignal` — 470 nm functional channel (GRAB-DA3m)
 - [x] `FiberPhotometryResponseSeriesIsosbesticControl` — 405 nm isosbestic control
 - [x] Interfaces implemented and stub tested (Anxa group)
-- [ ] Enable for Calb group (stub test)
-- [ ] Wire into `convert_all_sessions.py`
+- [x] Enable for Calb group (stub test)
+- [x] Wire into `convert_all_sessions.py`
 
 #### Processed fluorescence (from `*_data.mat` — 100 Hz, regular timestamps)
 
