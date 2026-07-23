@@ -20,18 +20,18 @@ GROUP_TO_METADATA_KEYS = {
     "Anxa": {
         "RawSignal": "raw_signal_anxa",
         "IsosbesticControl": "isosbestic_anxa",
-        # "CorrectedSignal": "corrected_signal_anxa",
-        # "CorrectedIsosbestic": "corrected_isosbestic_anxa",
-        # "DfOverF": "dff_anxa",
-        # "DfOverFIsosbestic": "dff_isosbestic_anxa",
+        "CorrectedSignal": "corrected_signal_anxa",
+        "CorrectedIsosbestic": "corrected_isosbestic_anxa",
+        "DfOverF": "dff_anxa",
+        "DfOverFIsosbestic": "dff_isosbestic_anxa",
     },
     "Calb": {
         "RawSignal": "raw_signal_calb",
         "IsosbesticControl": "isosbestic_calb",
-        # "CorrectedSignal": "corrected_signal_calb",
-        # "CorrectedIsosbestic": "corrected_isosbestic_calb",
-        # "DfOverF": "dff_calb",
-        # "DfOverFIsosbestic": "dff_isosbestic_calb",
+        "CorrectedSignal": "corrected_signal_calb",
+        "CorrectedIsosbestic": "corrected_isosbestic_calb",
+        "DfOverF": "dff_calb",
+        "DfOverFIsosbestic": "dff_isosbestic_calb",
     },
 }
 
@@ -47,9 +47,10 @@ def convert_session(
     subject_id: str,
     group: Literal["Anxa", "Calb"] = "Anxa",
     genotype: Literal["WT", "GS"] = "WT",
+    mat_file: str | Path | None = None,
     stub_test: bool = False,
 ) -> None:
-    """Convert one ABF recording to NWB.
+    """Convert one ABF (and optionally its *_data.mat) recording to NWB.
 
     Parameters
     ----------
@@ -63,6 +64,9 @@ def convert_session(
         Experimental group: "Anxa" or "Calb".
     genotype : Literal["WT", "GS"], default "WT"
         Genotype: "WT" or "GS" (LRRK2-G2019S).
+    mat_file : str | Path | None
+        Path to the *_data.mat file. When provided the four processed
+        fluorescence series (corrected470/405, dff470/405) are also written.
     stub_test : bool
         If True write only the first 100 samples (for CI / smoke tests).
     """
@@ -81,19 +85,47 @@ def convert_session(
     subject_id += f"-{group.lower()}-{genotype.lower()}"
     nwbfile_path = nwb_folder_path / f"sub-{subject_id}_ses-{session_id}.nwb"
 
-    # Raw interfaces
+    # Raw interfaces — always present
     source_data: dict = {
         "RawSignal": {
-            "file_path": file_path,
+            "file_path": str(file_path),
             "stream_names": ["470nm"],
             "metadata_key": metadata_keys["RawSignal"],
         },
         "IsosbesticControl": {
-            "file_path": file_path,
+            "file_path": str(file_path),
             "stream_names": ["405nm"],
             "metadata_key": metadata_keys["IsosbesticControl"],
         },
     }
+
+    # Processed interfaces — present only when mat_file is provided
+    if mat_file is not None:
+        mat_file = str(mat_file)
+        source_data.update(
+            {
+                "CorrectedSignal": {
+                    "file_path": mat_file,
+                    "stream_names": ["corrected470"],
+                    "metadata_key": metadata_keys["CorrectedSignal"],
+                },
+                "CorrectedIsosbestic": {
+                    "file_path": mat_file,
+                    "stream_names": ["corrected405"],
+                    "metadata_key": metadata_keys["CorrectedIsosbestic"],
+                },
+                "DfOverF": {
+                    "file_path": mat_file,
+                    "stream_names": ["dff470"],
+                    "metadata_key": metadata_keys["DfOverF"],
+                },
+                "DfOverFIsosbestic": {
+                    "file_path": mat_file,
+                    "stream_names": ["dff405"],
+                    "metadata_key": metadata_keys["DfOverFIsosbestic"],
+                },
+            }
+        )
 
     converter = Chen2026NWBConverter(source_data=source_data)
     metadata = converter.get_metadata()
@@ -121,6 +153,15 @@ def convert_session(
         "RawSignal": {"stub_test": stub_test},
         "IsosbesticControl": {"stub_test": stub_test},
     }
+    if mat_file is not None:
+        conversion_options.update(
+            {
+                "CorrectedSignal": {"stub_test": stub_test},
+                "CorrectedIsosbestic": {"stub_test": stub_test},
+                "DfOverF": {"stub_test": stub_test},
+                "DfOverFIsosbestic": {"stub_test": stub_test},
+            }
+        )
 
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
@@ -133,16 +174,18 @@ def convert_session(
 
 if __name__ == "__main__":
     # --- Edit these paths and parameters before running ---
-    abf_file = Path("/Users/weian/lrrk2_data/Anxa-LRRK2/2025_01_24_0002.abf")
+    abf_file = Path("/Users/weian/lrrk2_data/Anxa-LRRK2/2025_08_13_0005.abf")
+    mat_file = Path("/Users/weian/lrrk2_data/Anxa-LRRK2/4007/4007_data.mat")  # set to None to skip processed
     output_path = Path("/Users/weian/lrrk2_data/nwb-output")
     animal_id = "4007"
     group = "Anxa"  # "Anxa" or "Calb"
-    genotype = "WT"  # "WT" or "GS"
+    genotype = "GS"  # "WT" or "GS"
     stub_test = False
     # ------------------------------------------------------
 
     convert_session(
         file_path=abf_file,
+        mat_file=mat_file,
         nwb_folder_path=output_path,
         subject_id=animal_id,
         group=group,

@@ -71,9 +71,11 @@ def _session_to_nwb(session: dict, data_dir: Path, nwb_output_dir: Path, stub_te
     group_dir = f"{group}-LRRK2"
 
     abf_file = data_dir / group_dir / session["abf_filename"]
+    mat_file = data_dir / group_dir / animal_id / f"{animal_id}_data.mat"
 
     convert_session(
         file_path=abf_file,
+        mat_file=mat_file,
         nwb_folder_path=nwb_output_dir,
         subject_id=animal_id,
         group=group,
