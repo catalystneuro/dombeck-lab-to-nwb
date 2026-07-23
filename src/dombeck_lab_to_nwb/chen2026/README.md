@@ -72,3 +72,11 @@ You can run the conversion of a single session with the following command:
 ```bash
 python src/dombeck_lab_to_nwb/chen2026/convert_session.py
 ```
+
+### Running the batch conversion
+
+You can run the conversion of all 27 sessions with the following command:
+
+```bash
+python src/dombeck_lab_to_nwb/chen2026/convert_all_sessions.py
+```
