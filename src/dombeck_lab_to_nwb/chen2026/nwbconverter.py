@@ -1,6 +1,11 @@
 from neuroconv import NWBConverter
 
-from .interfaces import Chen2026ProcessedFiberPhotometryInterface, Chen2026RawFiberPhotometryInterface
+from .interfaces import (
+    Chen2026BehaviorInterface,
+    Chen2026OptogeneticsInterface,
+    Chen2026ProcessedFiberPhotometryInterface,
+    Chen2026RawFiberPhotometryInterface,
+)
 
 
 class Chen2026NWBConverter(NWBConverter):
@@ -16,6 +21,8 @@ class Chen2026NWBConverter(NWBConverter):
       CorrectedIsosbestic    — baseline-corrected 405 nm (corrected405, 100 Hz)
       DfOverF                — % ΔF/F 470 nm, smoothed (dff470, 100 Hz)
       DfOverFIsosbestic      — % ΔF/F 405 nm, smoothed (dff405, 100 Hz)
+      Behavior               — treadmill velocity (m/s) and acceleration (m/s²)
+      Optogenetics           — stimulation epochs from TTL column
     """
 
     data_interface_classes = dict(
@@ -25,4 +32,6 @@ class Chen2026NWBConverter(NWBConverter):
         CorrectedIsosbestic=Chen2026ProcessedFiberPhotometryInterface,
         DfOverF=Chen2026ProcessedFiberPhotometryInterface,
         DfOverFIsosbestic=Chen2026ProcessedFiberPhotometryInterface,
+        Behavior=Chen2026BehaviorInterface,
+        Optogenetics=Chen2026OptogeneticsInterface,
     )
