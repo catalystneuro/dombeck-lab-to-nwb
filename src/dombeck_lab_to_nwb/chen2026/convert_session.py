@@ -99,7 +99,7 @@ def convert_session(
         },
     }
 
-    # Processed interfaces — present only when mat_file is provided
+    # Processed + optogenetics interfaces — present only when mat_file is provided
     if mat_file is not None:
         mat_file = str(mat_file)
         source_data.update(
@@ -124,6 +124,12 @@ def convert_session(
                     "stream_names": ["dff405"],
                     "metadata_key": metadata_keys["DfOverFIsosbestic"],
                 },
+                "Behavior": {
+                    "file_path": mat_file,
+                },
+                "Optogenetics": {
+                    "file_path": mat_file,
+                },
             }
         )
 
@@ -132,6 +138,10 @@ def convert_session(
 
     fp_metadata = load_dict_from_file(METADATA_DIR / "fiber_photometry.yaml")
     metadata = dict_deep_update(metadata, fp_metadata)
+
+    if mat_file is not None:
+        opto_metadata = load_dict_from_file(METADATA_DIR / "optogenetics.yaml")
+        metadata = dict_deep_update(metadata, opto_metadata)
 
     # NWBFile: static fields from YAML + dynamic per-session fields
     general_metadata = load_dict_from_file(METADATA_DIR / "general_metadata.yaml")
@@ -160,6 +170,19 @@ def convert_session(
                 "CorrectedIsosbestic": {"stub_test": stub_test},
                 "DfOverF": {"stub_test": stub_test},
                 "DfOverFIsosbestic": {"stub_test": stub_test},
+                "Behavior": {"stub_test": stub_test},
+                # Confirmed stim parameters (Chen et al. 2026, Methods):
+                # 8 ms on / 8 ms off pulses for 500 ms trains (period=16 ms, ~31 pulses/train).
+                # power_in_mW varies per epoch (0.1/0.5/1.0/4.0 mW pseudorandom); left as NaN
+                # until per-epoch power can be extracted from stim_sequence data.
+                "Optogenetics": {
+                    "stub_test": stub_test,
+                    "pulse_length_in_ms": 8.0,
+                    "period_in_ms": 16.0,
+                    "number_pulses_per_pulse_train": 31,
+                    "number_trains": 1,  # each epoch row = one 500ms pulse train
+                    "intertrain_interval_in_ms": 20000.0,
+                },
             }
         )
 
