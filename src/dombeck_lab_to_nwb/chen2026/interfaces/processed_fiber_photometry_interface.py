@@ -41,8 +41,19 @@ _COLUMNS = [
 _MAT_CACHE: dict[str, dict] = {}
 
 
+_CAMERA_SAMPLE_RATE = 2000.0  # Hz — raw ABF / camera-channel sampling rate
+_CAMERA_TRIGGER_THRESHOLD = 1.0  # V — threshold for camera trigger detection
+
+
 def _read_mat(file_path: str) -> dict:
-    """Read *_data.mat and return {column_name: np.ndarray} (cached)."""
+    """Read *_data.mat and return {column_name: np.ndarray} (cached).
+
+    In addition to the named columns, the returned dict contains:
+      "camera_trigger_times" — timestamps (in seconds, ABF clock) of each
+          camera trigger rising edge. These are the actual sample times for
+          all 100 Hz columns and are used as explicit timestamps in NWB to
+          align processed data with the raw ABF recording.
+    """
     if file_path in _MAT_CACHE:
         return _MAT_CACHE[file_path]
 
@@ -72,7 +83,17 @@ def _read_mat(file_path: str) -> dict:
                 result[col_name] = raw.flatten().astype(np.float64)
             elif raw.dtype == np.uint8:
                 result[col_name] = raw.flatten()
-            # stim_sequence (object/uint32 MCOS) and camera (2 kHz, skip) left out
+            # stim_sequence (object/uint32 MCOS) left unread
+
+    # Derive camera trigger timestamps from the 2 kHz camera TTL channel.
+    # The processed 100 Hz columns are binned on camera trigger rising edges;
+    # using these times as explicit timestamps aligns the processed data to
+    # the ABF recording clock.
+    if "camera" in result:
+        cam = result.pop("camera")  # discard raw 2 kHz signal after processing
+        above = cam > _CAMERA_TRIGGER_THRESHOLD
+        rising_indices = np.where(np.diff(above.astype(np.int8)) == 1)[0]
+        result["camera_trigger_times"] = rising_indices / _CAMERA_SAMPLE_RATE
 
     _MAT_CACHE[file_path] = result
     return result
@@ -137,8 +158,7 @@ class Chen2026ProcessedFiberPhotometryInterface(BaseFiberPhotometryInterface):
         return _read_mat(self.source_data["file_path"])[stream_name]
 
     def _get_stream_timestamps(self, *, stream_name: str) -> np.ndarray:
-        data = _read_mat(self.source_data["file_path"])[stream_name]
-        return np.arange(len(data), dtype=np.float64) / self.SAMPLING_RATE
+        return _read_mat(self.source_data["file_path"])["camera_trigger_times"]
 
     # TODO: this should be fixed in BaseFiberPhotometryInterface
     """
