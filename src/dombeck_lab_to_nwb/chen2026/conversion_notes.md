@@ -132,6 +132,23 @@ Note: `stim_sequence` is a MATLAB categorical — pymatreader cannot parse it. U
 
 Fiber implant DV depth = ferrule length (Doric convention), referenced from dura surface.
 
+**Optogenetics surgery (Anxa1+ group):**
+- SNc craniotomy: −3.20 mm caudal, +1.60 mm lateral from bregma (right hemisphere)
+- ChRmine injection: 4 depths (−3.8, −4.1, −4.4, −4.7 mm ventral from dura), 0.1 µL/depth = 0.4 µL total
+- Opto fiber implanted via same craniotomy just above SNc (tip at ~4.0 mm from dura)
+- Striatum GRAB-DA3m injection (DLS): +0.5 mm caudal, +1.8 mm lateral; −1.9 mm from dura
+
+**Optogenetics surgery (Calb1+ group):**
+- Same SNc craniotomy as Anxa1+ (−3.20 mm caudal, +1.60 mm lateral)
+- ChRmine injection: 1 depth only (−4.3 mm from dura) to prevent VTA/thalamus spillover
+- Striatum GRAB-DA3m injection (DMS): +0.5 mm caudal, +1.4 mm lateral; −1.9 mm from dura
+
+**Confirmed stimulation parameters:**
+- Pulse shape: 8 ms on / 8 ms off (period = 16 ms, ~31 pulses per 500 ms train)
+- Powers: 0.1, 0.5, 1.0, 4.0 mW at cannula tip (pseudorandom order, 8 reps each)
+- Intertrain interval: ≥20 s; each recording session = 20 minutes
+- TTL in `_data.mat` is HIGH for the full 500 ms train duration (not per-pulse)
+
 ---
 
 ### Comparison with Existing Pipelines
