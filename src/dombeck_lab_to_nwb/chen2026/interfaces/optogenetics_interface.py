@@ -9,8 +9,9 @@ camera-trigger-aligned binning) and writes:
 Confirmed stim parameters (from manuscript):
   - pulse_length_in_ms = 8.0 ms, period_in_ms = 16.0 ms (8 ms on / 8 ms off)
   - ~31 pulses per 500 ms train; trains spaced ≥ 20 s apart; 8 reps per power level
-  - Powers (pseudorandom order): 0.1, 0.5, 1.0, 4.0 mW — varies per epoch; leave as NaN
-    until per-epoch power can be read from stim_sequence data.
+  - Powers (pseudo-random order per stim_sequence): 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW
+    Per-epoch power comes from stimulation sequence LRRK2.xlsx; ExcitationSource.power_in_W
+    stores the peak power and the description notes the full power range.
 """
 
 import math
@@ -42,26 +43,46 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
         return _read_mat(self.source_data["file_path"])["TTL"]
 
     @staticmethod
-    def _extract_epochs(ttl: np.ndarray, trigger_times: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Return (start_times_s, stop_times_s) for each contiguous block of TTL=1.
+    def _extract_epochs(
+        ttl: np.ndarray, trigger_times: np.ndarray, merge_gap_s: float = 1.0
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return (start_times_s, stop_times_s) for each stimulation train.
 
         Uses actual camera trigger timestamps so epoch times are aligned to the
         ABF recording clock (same reference as the raw FP acquisition).
+
+        The mat-file TTL is sampled at 100 Hz (one value per camera frame).
+        When the raw ABF TTL amplitude is low (<0.5 V), the 8 ms on/off pulses
+        alias unevenly across 10 ms camera frames, fragmenting each 500 ms train
+        into multiple short blobs separated by a few frames. We merge blobs whose
+        gap is smaller than merge_gap_s (default 1 s) to recover the true train
+        boundaries; inter-train intervals are ≥20 s so the threshold is unambiguous.
         """
         padded = np.concatenate([[0], ttl.astype(np.int8), [0]])
         diff = np.diff(padded)
-        # diff[k]==1  → ttl transitions 0→1 at index k  → trigger_times[k]
-        # diff[k]==-1 → ttl transitions 1→0 after index k-1; stop = trigger_times[k]
-        #   (or last trigger + 1 sample if k == len(trigger_times))
         start_indices = np.where(diff == 1)[0]
         stop_indices = np.where(diff == -1)[0]
         n = len(trigger_times)
         dt = trigger_times[-1] - trigger_times[-2] if n >= 2 else 0.01
-        start_times = trigger_times[start_indices]
-        stop_times = np.array([trigger_times[k] if k < n else trigger_times[-1] + dt for k in stop_indices])
-        return start_times, stop_times
+        raw_starts = trigger_times[start_indices]
+        raw_stops = np.array([trigger_times[k] if k < n else trigger_times[-1] + dt for k in stop_indices])
 
-    def _add_optogenetics_metadata(self, nwbfile: NWBFile, opto_meta: dict, power_in_mW: float):
+        if len(raw_starts) == 0:
+            return raw_starts, raw_stops
+
+        # Merge fragments of the same train (gap < merge_gap_s)
+        merged_starts = [raw_starts[0]]
+        merged_stops = [raw_stops[0]]
+        for s, e in zip(raw_starts[1:], raw_stops[1:]):
+            if s - merged_stops[-1] < merge_gap_s:
+                merged_stops[-1] = e
+            else:
+                merged_starts.append(s)
+                merged_stops.append(e)
+
+        return np.array(merged_starts), np.array(merged_stops)
+
+    def _add_optogenetics_metadata(self, nwbfile: NWBFile, opto_meta: dict, power_in_mW: list | float):
         """Build all device + provenance objects and add OptogeneticExperimentMetadata.
 
         Returns the populated ``OptogeneticSitesTable`` for use in ``OptogeneticEpochsTable``.
@@ -96,13 +117,25 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
 
         # ExcitationSource
         es_meta = opto_meta.get("ExcitationSource", {})
+        peak_power_mW = max(power_in_mW) if isinstance(power_in_mW, list) else power_in_mW
+        base_description = es_meta.get("description", "")
+        if isinstance(power_in_mW, list):
+            unique_powers = sorted(set(power_in_mW))
+            power_note = (
+                f" Power varied pseudo-randomly across epochs {unique_powers} mW; "
+                f"power_in_W reflects the peak power ({peak_power_mW} mW). "
+                f"Per-epoch power is recorded in the OptogeneticEpochsTable."
+            )
+            description = base_description + power_note
+        else:
+            description = base_description
         laser_kwargs = dict(
             name=es_meta["name"],
-            description=es_meta.get("description", ""),
+            description=description,
             model=laser_model,
         )
-        if not math.isnan(power_in_mW):
-            laser_kwargs["power_in_W"] = power_in_mW / 1000.0
+        if not math.isnan(peak_power_mW):
+            laser_kwargs["power_in_W"] = peak_power_mW / 1000.0
         laser = ExcitationSource(**laser_kwargs)
         nwbfile.add_device(laser)
 
@@ -216,13 +249,14 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
         nwbfile: NWBFile,
         metadata: dict | None = None,
         stub_test: bool = False,
-        # Pulse-level stim parameters — fill from lab once confirmed; NaN/−1 until then.
+        # Pulse-level stim parameters
         pulse_length_in_ms: float = math.nan,
         period_in_ms: float = math.nan,
         number_pulses_per_pulse_train: int = -1,
         number_trains: int = -1,
         intertrain_interval_in_ms: float = math.nan,
-        power_in_mW: float = math.nan,
+        # Per-epoch power list (one entry per stimulation epoch) or a single scalar.
+        power_in_mW: list | float = math.nan,
     ) -> None:
         import ndx_optogenetics  # noqa: F401 — register namespace
         from ndx_optogenetics import OptogeneticEpochsTable
@@ -251,7 +285,11 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
         )
 
         site_indices = list(range(len(sites_table)))
-        for start, stop in zip(start_times, stop_times):
+        for i, (start, stop) in enumerate(zip(start_times, stop_times)):
+            if isinstance(power_in_mW, list):
+                epoch_power = float(power_in_mW[i]) if i < len(power_in_mW) else math.nan
+            else:
+                epoch_power = power_in_mW
             epochs_table.add_row(
                 start_time=float(start),
                 stop_time=float(stop),
@@ -261,7 +299,7 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
                 number_pulses_per_pulse_train=number_pulses_per_pulse_train,
                 number_trains=number_trains,
                 intertrain_interval_in_ms=intertrain_interval_in_ms,
-                power_in_mW=power_in_mW,
+                power_in_mW=epoch_power,
                 wavelength_in_nm=excitation_lambda,
                 optogenetic_sites=site_indices,
             )
