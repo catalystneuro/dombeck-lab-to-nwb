@@ -248,7 +248,39 @@ The trigger spacing is nominally 10 ms (100 Hz) with ±0.5 ms quantization noise
 
 ---
 
+### NWB File Content Summary
+
+Each converted `.nwb` file contains:
+
+| Location | Object | Source | Notes |
+|----------|--------|--------|-------|
+| `acquisition/` | `FiberPhotometryResponseSeriesRawSignal` | ABF `520sig` (470 nm demux) | 2000 Hz, explicit timestamps |
+| `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, explicit timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbestic` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbestic` | `_data.mat` `dff405` | 100 Hz, camera-trigger timestamps |
+| `processing/behavior/` | `BehavioralTimeSeries` → `velocity`, `acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
+| `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
+| `events/` | `OptoPulse` | ABF `opto_TTL` channel (rising+falling edges, threshold 0.01 V) | ~2048 interval events; onset + duration per individual pulse |
+
+The raw ABF is the sole source for `events/`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
+
+---
+
 ### Implementation Notes
+
+#### ABF Events Interface (`Chen2026ABFEventsInterface`)
+
+Class in `interfaces/events_interface.py`, registered as `ABFEvents` in the converter.
+
+Returns two `_EventsData` records from `_get_events_data_dict()`:
+
+- **`opto_pulse`** → `OptoPulse` `EventsTable`: rising/falling edge pairs from the `opto_TTL` channel (threshold 0.01 V). Each row has a `timestamp` (pulse onset) and `duration` (pulse width in seconds). The 0.01 V threshold catches both high-amplitude trains (~1.2 V, epochs 0–31) and low-amplitude trains (~0.05 V, epochs 32–63) without the aliasing problem that affects the 100 Hz mat-file TTL. ~2048 rows total (64 trains × 32 pulses).
+
+Camera frame trigger times are not stored as a separate EventsTable: they are already the explicit timestamps on every 100 Hz processed series and duplicating ~129k rows would add significant write time without new information. The interface reads the ABF once (not sharing the `_DEMUX_CACHE` used by `Chen2026RawFiberPhotometryInterface`).
+
+The interface is always present in the converter (not conditional on `mat_file`); `convert_session.py` includes `"ABFEvents"` in both `source_data` and `conversion_options`.
 
 #### Processed series routing to `processing/ophys`
 
