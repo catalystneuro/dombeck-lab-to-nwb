@@ -16,7 +16,7 @@ class Chen2026NWBConverter(NWBConverter):
     Raw interfaces (always present):
       RawSignal              — 470 nm demultiplexed from ABF
       IsosbesticControl      — 405 nm demultiplexed from ABF
-      ABFEvents              — camera frame-trigger + opto pulses (EventsTable)
+      ABFEvents              — individual opto pulses from raw opto_TTL (EventsTable)
 
     Processed interfaces (present when a *_data.mat file is provided):
       CorrectedSignal        — baseline-corrected 470 nm (corrected470, 100 Hz)
