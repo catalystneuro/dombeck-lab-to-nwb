@@ -6,6 +6,7 @@ bottom of this file, then run::
     python convert_session.py
 """
 
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -47,6 +48,9 @@ def convert_session(
     subject_id: str,
     group: Literal["Anxa", "Calb"] = "Anxa",
     genotype: Literal["WT", "GS"] = "WT",
+    sex: str = "U",
+    date_of_birth: datetime | None = None,
+    power_sequence: list[float] | None = None,
     mat_file: str | Path | None = None,
     stub_test: bool = False,
 ) -> None:
@@ -64,6 +68,13 @@ def convert_session(
         Experimental group: "Anxa" or "Calb".
     genotype : Literal["WT", "GS"], default "WT"
         Genotype: "WT" or "GS" (LRRK2-G2019S).
+    sex : str, default "U"
+        Subject sex: "M", "F", or "U".
+    date_of_birth : datetime | None
+        Subject date of birth (timezone-aware). Written as ``Subject.date_of_birth``.
+    power_sequence : list[float] | None
+        Per-epoch stimulation powers in mW, one entry per TTL epoch in the session.
+        If None the power field in the epochs table is left as NaN.
     mat_file : str | Path | None
         Path to the *_data.mat file. When provided the four processed
         fluorescence series (corrected470/405, dff470/405) are also written.
@@ -156,6 +167,9 @@ def convert_session(
     subject_meta = general_metadata["Subject"].copy()
     subject_meta["subject_id"] = subject_id
     subject_meta["genotype"] = genotype_label
+    subject_meta["sex"] = sex
+    if date_of_birth is not None:
+        subject_meta["date_of_birth"] = date_of_birth
     subject_meta["description"] = general_metadata["SubjectDescriptions"][group]
     metadata["Subject"] = subject_meta
 
@@ -171,17 +185,18 @@ def convert_session(
                 "DfOverF": {"stub_test": stub_test},
                 "DfOverFIsosbestic": {"stub_test": stub_test},
                 "Behavior": {"stub_test": stub_test},
-                # Confirmed stim parameters (Chen et al. 2026, Methods):
-                # 8 ms on / 8 ms off pulses for 500 ms trains (period=16 ms, ~31 pulses/train).
-                # power_in_mW varies per epoch (0.1/0.5/1.0/4.0 mW pseudorandom); left as NaN
-                # until per-epoch power can be extracted from stim_sequence data.
+                # Stim parameters measured from raw ABF (2000 Hz, channel 2 = opto_TTL).
+                # Epochs 1–32 (high amplitude): 9 ms ON / 1 ms OFF, 10 ms period, ~320 ms train.
+                # Epochs 33–64 (low amplitude):  8 ms ON / 8 ms OFF, 16 ms period, ~505 ms train.
+                # Both halves have 32 pulses per train.
                 "Optogenetics": {
                     "stub_test": stub_test,
-                    "pulse_length_in_ms": 8.0,
-                    "period_in_ms": 16.0,
-                    "number_pulses_per_pulse_train": 31,
-                    "number_trains": 1,  # each epoch row = one 500ms pulse train
+                    "pulse_length_in_ms": [9.0] * 32 + [8.0] * 32,
+                    "period_in_ms": [10.0] * 32 + [16.0] * 32,
+                    "number_pulses_per_pulse_train": [32] * 64,
+                    "number_trains": 1,  # each epoch row = one pulse train
                     "intertrain_interval_in_ms": 20000.0,
+                    "power_in_mW": power_sequence if power_sequence is not None else [float("nan")] * 64,
                 },
             }
         )
@@ -196,6 +211,8 @@ def convert_session(
 
 
 if __name__ == "__main__":
+    from datetime import timezone
+
     # --- Edit these paths and parameters before running ---
     abf_file = Path("/Users/weian/lrrk2_data/Anxa-LRRK2/2025_08_13_0005.abf")
     mat_file = Path("/Users/weian/lrrk2_data/Anxa-LRRK2/4007/4007_data.mat")  # set to None to skip processed
@@ -204,6 +221,76 @@ if __name__ == "__main__":
     group = "Anxa"  # "Anxa" or "Calb"
     genotype = "GS"  # "WT" or "GS"
     stub_test = False
+    # Per-animal metadata from metadata-LRRK2-chen2026.xlsx
+    subject_sex = "M"
+    subject_dob = datetime(2025, 1, 13, tzinfo=timezone.utc)
+    # Power sequence A from stimulation sequence LRRK2.xlsx (stim_sequence = 'a')
+    subject_power_sequence = [
+        2.0,
+        2.0,
+        3.0,
+        3.0,
+        0.25,
+        0.25,
+        1.5,
+        1.5,
+        2.0,
+        2.0,
+        3.0,
+        3.0,
+        0.25,
+        0.25,
+        1.5,
+        1.5,
+        2.0,
+        2.0,
+        3.0,
+        3.0,
+        0.25,
+        0.25,
+        1.5,
+        1.5,
+        2.0,
+        2.0,
+        3.0,
+        3.0,
+        0.25,
+        0.25,
+        1.5,
+        1.5,
+        1.0,
+        1.0,
+        0.1,
+        0.1,
+        0.5,
+        0.5,
+        4.0,
+        4.0,
+        1.0,
+        1.0,
+        0.1,
+        0.1,
+        0.5,
+        0.5,
+        4.0,
+        4.0,
+        1.0,
+        1.0,
+        0.1,
+        0.1,
+        0.5,
+        0.5,
+        4.0,
+        4.0,
+        1.0,
+        1.0,
+        0.1,
+        0.1,
+        0.5,
+        0.5,
+        4.0,
+        4.0,
+    ]
     # ------------------------------------------------------
 
     convert_session(
@@ -213,5 +300,8 @@ if __name__ == "__main__":
         subject_id=animal_id,
         group=group,
         genotype=genotype,
+        sex=subject_sex,
+        date_of_birth=subject_dob,
+        power_sequence=subject_power_sequence,
         stub_test=stub_test,
     )
