@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
 from tqdm import tqdm
 
 from dombeck_lab_to_nwb.chen2026.convert_session import convert_session
@@ -23,9 +25,52 @@ from dombeck_lab_to_nwb.chen2026.convert_session import convert_session
 # ---------------------------------------------------------------------------
 DATA_DIR = Path("/Users/weian/lrrk2_data")
 NWB_OUTPUT_DIR = Path("/Users/weian/lrrk2_data/nwb-output")
+SUBJECT_METADATA_XLSX = Path("/Users/weian/lrrk2_data/metadata-LRRK2-chen2026.xlsx")
+STIM_SEQUENCE_XLSX = Path("/Users/weian/lrrk2_data/stimulation sequence LRRK2.xlsx")
 STUB_TEST = False
 MAX_WORKERS = 4  # number of parallel conversion processes
 # ---------------------------------------------------------------------------
+
+# Code → power (mW) mapping from stimulation sequence LRRK2.xlsx
+_CODE_TO_POWER: dict[str, float] = {
+    "a": 0.1,
+    "b": 0.25,
+    "c": 0.5,
+    "d": 1.0,
+    "e": 1.5,
+    "f": 2.0,
+    "g": 3.0,
+    "h": 4.0,
+}
+
+
+def _load_stim_sequences(xlsx_path: Path) -> dict[str, list[float]]:
+    """Return {'a': [...64 powers...], 'b': [...64 powers...]} from the stim sequence xlsx."""
+    df = pd.read_excel(xlsx_path, header=None)
+    sequences: dict[str, list[float]] = {}
+    for _, row in df.iterrows():
+        label = str(row.iloc[0]).strip()
+        if label.lower().startswith("sequence a"):
+            codes = [str(v).strip("' ") for v in row.iloc[1:] if pd.notna(v)]
+            sequences["a"] = [_CODE_TO_POWER[c] for c in codes]
+        elif label.lower().startswith("sequence b"):
+            codes = [str(v).strip("' ") for v in row.iloc[1:] if pd.notna(v)]
+            sequences["b"] = [_CODE_TO_POWER[c] for c in codes]
+    return sequences
+
+
+def _load_subject_metadata(xlsx_path: Path) -> dict[str, dict]:
+    """Return a dict keyed by abf filename → {sex, date_of_birth, stim_sequence}."""
+    df = pd.read_excel(xlsx_path)
+    lookup: dict[str, dict] = {}
+    for _, row in df.iterrows():
+        filename = str(row["filename"]).strip("'")
+        sex = str(row["sex"]).strip().upper()
+        dob: datetime = pd.to_datetime(row["DOB"]).to_pydatetime().replace(tzinfo=timezone.utc)
+        stim_seq = str(row["stim_sequence"]).strip().lower()
+        lookup[filename] = {"sex": sex, "date_of_birth": dob, "stim_sequence": stim_seq}
+    return lookup
+
 
 # Complete animal × session table derived from LRRK2-animal-list-meta.mat
 # and the filename column of each *_data.mat file.
@@ -63,7 +108,14 @@ SESSIONS = [
 ]
 
 
-def _session_to_nwb(session: dict, data_dir: Path, nwb_output_dir: Path, stub_test: bool) -> str:
+def _session_to_nwb(
+    session: dict,
+    data_dir: Path,
+    nwb_output_dir: Path,
+    stub_test: bool,
+    subject_lookup: dict[str, dict],
+    stim_sequences: dict[str, list[float]],
+) -> str:
     """Convert one session; return a status string."""
     animal_id = session["animal_id"]
     group = session["group"]
@@ -73,6 +125,12 @@ def _session_to_nwb(session: dict, data_dir: Path, nwb_output_dir: Path, stub_te
     abf_file = data_dir / group_dir / session["abf_filename"]
     mat_file = data_dir / group_dir / animal_id / f"{animal_id}_data.mat"
 
+    subject_info = subject_lookup.get(session["abf_filename"], {})
+    sex = subject_info.get("sex", "U")
+    date_of_birth = subject_info.get("date_of_birth")
+    stim_seq_key = subject_info.get("stim_sequence")
+    power_sequence = stim_sequences.get(stim_seq_key) if stim_seq_key else None
+
     convert_session(
         file_path=abf_file,
         mat_file=mat_file,
@@ -80,15 +138,25 @@ def _session_to_nwb(session: dict, data_dir: Path, nwb_output_dir: Path, stub_te
         subject_id=animal_id,
         group=group,
         genotype=genotype,
+        sex=sex,
+        date_of_birth=date_of_birth,
+        power_sequence=power_sequence,
         stub_test=stub_test,
     )
     return f"OK  {animal_id}"
 
 
-def _safe_session_to_nwb(session: dict, data_dir: Path, nwb_output_dir: Path, stub_test: bool) -> str:
+def _safe_session_to_nwb(
+    session: dict,
+    data_dir: Path,
+    nwb_output_dir: Path,
+    stub_test: bool,
+    subject_lookup: dict[str, dict],
+    stim_sequences: dict[str, list[float]],
+) -> str:
     """Wrapper that catches exceptions and writes an error log instead of crashing the pool."""
     try:
-        return _session_to_nwb(session, data_dir, nwb_output_dir, stub_test)
+        return _session_to_nwb(session, data_dir, nwb_output_dir, stub_test, subject_lookup, stim_sequences)
     except Exception:
         animal_id = session["animal_id"]
         error_path = nwb_output_dir / f"error_{animal_id}.txt"
@@ -100,15 +168,22 @@ def _safe_session_to_nwb(session: dict, data_dir: Path, nwb_output_dir: Path, st
 def dataset_to_nwb(
     data_dir: Path = DATA_DIR,
     nwb_output_dir: Path = NWB_OUTPUT_DIR,
+    subject_metadata_xlsx: Path = SUBJECT_METADATA_XLSX,
+    stim_sequence_xlsx: Path = STIM_SEQUENCE_XLSX,
     stub_test: bool = STUB_TEST,
     max_workers: int = MAX_WORKERS,
 ) -> None:
     nwb_output_dir.mkdir(parents=True, exist_ok=True)
 
+    subject_lookup = _load_subject_metadata(subject_metadata_xlsx)
+    stim_sequences = _load_stim_sequences(stim_sequence_xlsx)
+
     futures = {}
     with ProcessPoolExecutor(max_workers=max_workers) as pool:
         for session in SESSIONS:
-            future = pool.submit(_safe_session_to_nwb, session, data_dir, nwb_output_dir, stub_test)
+            future = pool.submit(
+                _safe_session_to_nwb, session, data_dir, nwb_output_dir, stub_test, subject_lookup, stim_sequences
+            )
             futures[future] = session["animal_id"]
 
         results = []
