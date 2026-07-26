@@ -93,7 +93,11 @@ def _read_mat(file_path: str) -> dict:
         cam = result.pop("camera")  # discard raw 2 kHz signal after processing
         above = cam > _CAMERA_TRIGGER_THRESHOLD
         rising_indices = np.where(np.diff(above.astype(np.int8)) == 1)[0]
-        result["camera_trigger_times"] = rising_indices / _CAMERA_SAMPLE_RATE
+        trigger_times = rising_indices / _CAMERA_SAMPLE_RATE
+        # MATLAB bins exactly N samples starting at each trigger; Python edge
+        # detection occasionally finds one extra trailing trigger — trim to match.
+        data_len = len(result.get("corrected470", result.get("dff470", trigger_times)))
+        result["camera_trigger_times"] = trigger_times[:data_len]
 
     _MAT_CACHE[file_path] = result
     return result
