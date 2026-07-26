@@ -262,6 +262,26 @@ Each converted `.nwb` file contains:
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbestic` | `_data.mat` `dff405` | 100 Hz, camera-trigger timestamps |
 | `processing/behavior/` | `BehavioralTimeSeries` → `velocity`, `acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
 | `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
+| `events/` | `OptoPulse` | ABF `opto_TTL` channel (rising+falling edges, threshold 0.01 V) | ~2048 interval events; onset + duration per individual pulse |
+
+The raw ABF is the sole source for `events/`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
+
+---
+
+### NWB File Content Summary
+
+Each converted `.nwb` file contains:
+
+| Location | Object | Source | Notes |
+|----------|--------|--------|-------|
+| `acquisition/` | `FiberPhotometryResponseSeriesRawSignal` | ABF `520sig` (470 nm demux) | 2000 Hz, explicit timestamps |
+| `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, explicit timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbestic` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbestic` | `_data.mat` `dff405` | 100 Hz, camera-trigger timestamps |
+| `processing/behavior/` | `BehavioralTimeSeries` → `velocity`, `acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
+| `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
 | `events/` | `OptoTTL` | ABF `opto_TTL` channel (rising+falling edges, threshold 0.01 V) | ~2048 interval events; onset + duration per individual pulse |
 
 The raw ABF is the sole source for `events/`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
