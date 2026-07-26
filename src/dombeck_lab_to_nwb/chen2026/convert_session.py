@@ -41,6 +41,67 @@ GENOTYPE_LABELS = {
     "GS": "LRRK2-G2019S",
 }
 
+_OPTO_THRESHOLD_V = 0.01  # V — catches both high (~1.2 V) and low (~0.05 V) amplitude trains
+
+
+def _detect_opto_pulse_params(
+    abf_file: str | Path,
+) -> tuple[list[float], list[float], list[int]]:
+    """Detect per-epoch pulse parameters from the raw ABF opto_TTL channel.
+
+    Returns (pulse_length_in_ms, period_in_ms, number_pulses_per_pulse_train),
+    one value per detected stimulation train. Trains are separated by gaps > 1 s
+    between consecutive pulse onsets; intra-train inter-onset intervals are used
+    to compute the period.
+    """
+    import math
+
+    import numpy as np
+    import pyabf
+
+    abf = pyabf.ABF(str(abf_file), loadData=True)
+    channel_names = [abf.adcNames[i].strip() for i in range(abf.channelCount)]
+
+    opto_idx = channel_names.index("opto_TTL")
+    opto = abf.data[opto_idx]
+    sr = float(abf.dataRate)
+
+    above = opto > _OPTO_THRESHOLD_V
+    diff = np.diff(above.astype(np.int8))
+    rising = np.where(diff == 1)[0]
+    falling = np.where(diff == -1)[0]
+
+    if len(falling) and len(rising) and falling[0] < rising[0]:
+        falling = falling[1:]
+    n = min(len(rising), len(falling))
+    rising = rising[:n]
+    falling = falling[:n]
+
+    if n == 0:
+        return [], [], []
+
+    onsets = rising / sr
+    durations = (falling - rising) / sr
+
+    # Split into trains: gap > 1 s between consecutive pulse onsets
+    inter_onset = np.diff(onsets)
+    breaks = np.where(inter_onset > 1.0)[0]
+    starts = np.concatenate([[0], breaks + 1])
+    ends = np.concatenate([breaks + 1, [n]])
+
+    pulse_length_ms: list[float] = []
+    period_ms: list[float] = []
+    n_pulses: list[int] = []
+
+    for s, e in zip(starts, ends):
+        epoch_onsets = onsets[s:e]
+        epoch_durations = durations[s:e]
+        pulse_length_ms.append(round(float(np.mean(epoch_durations)) * 1000, 3))
+        period_ms.append(round(float(np.mean(np.diff(epoch_onsets))) * 1000, 3) if len(epoch_onsets) > 1 else math.nan)
+        n_pulses.append(int(e - s))
+
+    return pulse_length_ms, period_ms, n_pulses
+
 
 def convert_session(
     file_path: str | Path,
@@ -182,6 +243,8 @@ def convert_session(
         "ABFEvents": {},
     }
     if mat_file is not None:
+        pulse_length_ms, period_ms, n_pulses = _detect_opto_pulse_params(file_path)
+        n_epochs = len(pulse_length_ms)
         conversion_options.update(
             {
                 "CorrectedSignal": {"stub_test": stub_test},
@@ -189,18 +252,14 @@ def convert_session(
                 "DfOverF": {"stub_test": stub_test},
                 "DfOverFIsosbestic": {"stub_test": stub_test},
                 "Behavior": {"stub_test": stub_test},
-                # Stim parameters measured from raw ABF (2000 Hz, channel 2 = opto_TTL).
-                # Epochs 1–32 (high amplitude): 9 ms ON / 1 ms OFF, 10 ms period, ~320 ms train.
-                # Epochs 33–64 (low amplitude):  8 ms ON / 8 ms OFF, 16 ms period, ~505 ms train.
-                # Both halves have 32 pulses per train.
                 "Optogenetics": {
                     "stub_test": stub_test,
-                    "pulse_length_in_ms": [9.0] * 32 + [8.0] * 32,
-                    "period_in_ms": [10.0] * 32 + [16.0] * 32,
-                    "number_pulses_per_pulse_train": [32] * 64,
-                    "number_trains": 1,  # each epoch row = one pulse train
+                    "pulse_length_in_ms": pulse_length_ms,
+                    "period_in_ms": period_ms,
+                    "number_pulses_per_pulse_train": n_pulses,
+                    "number_trains": 1,
                     "intertrain_interval_in_ms": 20000.0,
-                    "power_in_mW": power_sequence if power_sequence is not None else [float("nan")] * 64,
+                    "power_in_mW": power_sequence if power_sequence is not None else [float("nan")] * n_epochs,
                 },
             }
         )
