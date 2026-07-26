@@ -1,9 +1,9 @@
 """Raw ABF events interface for Chen et al. 2026 (LRRK2 dataset).
 
 Reads the opto_TTL channel from the raw ABF file and writes individual
-optogenetic pulses as an ``OptoPulse`` ``EventsTable`` in ``nwbfile.events``.
+optogenetic pulses as an ``OptoTTL`` ``EventsTable`` in ``nwbfile.events``.
 
-  OptoPulse — individual optogenetic pulses (interval events)
+  OptoTTL — individual optogenetic pulses (interval events)
       (ABF channel 'opto_TTL', 2000 Hz)
       Pulse-level events complementing the train-level OptogeneticEpochsTable.
       Both halves of the session are detectable at 2 kHz (threshold 0.01 V):
@@ -31,7 +31,7 @@ class Chen2026ABFEventsInterface(BaseEventsInterface):
 
     Writes one ``EventsTable`` in ``nwbfile.events``:
 
-    * ``OptoPulse`` — ~2048 interval events (onset + duration per pulse;
+    * ``OptoTTL`` — ~2048 interval events (onset + duration per pulse;
       32 pulses × 64 trains). Complements the train-level
       ``OptogeneticEpochsTable`` in ``nwbfile.intervals``.
     """
