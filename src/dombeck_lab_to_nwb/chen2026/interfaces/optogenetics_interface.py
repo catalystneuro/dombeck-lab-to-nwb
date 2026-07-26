@@ -6,12 +6,13 @@ camera-trigger-aligned binning) and writes:
   - ``OptogeneticExperimentMetadata`` (lab_meta_data): LED, fiber, virus, injection, effector
   - ``OptogeneticEpochsTable`` (intervals): one row per contiguous TTL-on epoch
 
-Confirmed stim parameters (from manuscript):
-  - pulse_length_in_ms = 8.0 ms, period_in_ms = 16.0 ms (8 ms on / 8 ms off)
-  - ~31 pulses per 500 ms train; trains spaced ≥ 20 s apart; 8 reps per power level
-  - Powers (pseudo-random order per stim_sequence): 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW
-    Per-epoch power comes from stimulation sequence LRRK2.xlsx; ExcitationSource.power_in_W
-    stores the peak power and the description notes the full power range.
+Stim parameters measured from raw ABF (2000 Hz, channel 2 = opto_TTL):
+  Epochs 1–32 (high amplitude, ~1.2 V): 32 pulses, 9 ms ON / 1 ms OFF, 10 ms period, ~320 ms train
+  Epochs 33–64 (low amplitude, ~0.05 V): 32 pulses, 8 ms ON / 8 ms OFF, 16 ms period, ~505 ms train
+  Trains spaced ≥ 20 s apart; 8 reps per power level (64 trains total).
+  Powers (pseudo-random order per stim_sequence): 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW
+  Per-epoch power comes from stimulation sequence LRRK2.xlsx; ExcitationSource.power_in_W
+  stores the peak power and the description notes the full power range.
 """
 
 import math
@@ -249,14 +250,13 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
         nwbfile: NWBFile,
         metadata: dict | None = None,
         stub_test: bool = False,
-        # Pulse-level stim parameters
-        pulse_length_in_ms: float = math.nan,
-        period_in_ms: float = math.nan,
-        number_pulses_per_pulse_train: int = -1,
+        # Per-epoch pulse parameters — one value per stimulation epoch.
+        pulse_length_in_ms: list[float] = (),
+        period_in_ms: list[float] = (),
+        number_pulses_per_pulse_train: list[int] = (),
         number_trains: int = -1,
         intertrain_interval_in_ms: float = math.nan,
-        # Per-epoch power list (one entry per stimulation epoch) or a single scalar.
-        power_in_mW: list | float = math.nan,
+        power_in_mW: list[float] = (),
     ) -> None:
         import ndx_optogenetics  # noqa: F401 — register namespace
         from ndx_optogenetics import OptogeneticEpochsTable
@@ -286,20 +286,16 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
 
         site_indices = list(range(len(sites_table)))
         for i, (start, stop) in enumerate(zip(start_times, stop_times)):
-            if isinstance(power_in_mW, list):
-                epoch_power = float(power_in_mW[i]) if i < len(power_in_mW) else math.nan
-            else:
-                epoch_power = power_in_mW
             epochs_table.add_row(
                 start_time=float(start),
                 stop_time=float(stop),
                 stimulation_on=True,
-                pulse_length_in_ms=pulse_length_in_ms,
-                period_in_ms=period_in_ms,
-                number_pulses_per_pulse_train=number_pulses_per_pulse_train,
+                pulse_length_in_ms=pulse_length_in_ms[i],
+                period_in_ms=period_in_ms[i],
+                number_pulses_per_pulse_train=number_pulses_per_pulse_train[i],
                 number_trains=number_trains,
                 intertrain_interval_in_ms=intertrain_interval_in_ms,
-                power_in_mW=epoch_power,
+                power_in_mW=power_in_mW[i],
                 wavelength_in_nm=excitation_lambda,
                 optogenetic_sites=site_indices,
             )
