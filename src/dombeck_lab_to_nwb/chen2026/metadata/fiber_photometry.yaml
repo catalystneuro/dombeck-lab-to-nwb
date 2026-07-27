@@ -276,6 +276,22 @@ FiberPhotometry:
         dichroic_mirror_metadata_key: em_dichroic
 
   # ---------------------------------------------------------------------------
+  # Commanded voltage series — the LED switching square wave from the function
+  # generator. One series covers both excitation wavelengths (no need to split):
+  # high voltage (>1 V) = 470 nm LED on; low voltage (<1 V) = 405 nm LED on.
+  # ---------------------------------------------------------------------------
+  CommandedVoltageSeries:
+    fxn_gen:
+      name: CommandedVoltageSeries
+      description: >
+        LED switching square wave from the function generator at 2000 Hz.
+        High voltage (>1 V) marks 470 nm excitation periods; low voltage (<1 V) marks
+        405 nm isosbestic periods.
+      stream_name: fxn_gen
+      unit: V
+      frequency: 100.0
+
+  # ---------------------------------------------------------------------------
   # Response series entries — one per interface instance (one stream each).
   # The converter passes metadata_key matching one of these keys to the interface.
   # ---------------------------------------------------------------------------
