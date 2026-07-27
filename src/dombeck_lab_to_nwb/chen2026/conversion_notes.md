@@ -331,7 +331,4 @@ A TODO comment in the interface marks this for removal once a neuroconv PR adds 
 ### Open Questions (needs lab confirmation)
 
 1. **`stim_sequence` 'a' vs 'b'**: resolved — encodes the pseudorandom power order. Per-epoch `power_in_mW` is now populated in `OptogeneticEpochsTable` for all 27 sessions from `LRRK2.xlsx`.
-2. **`initiation` channel**: What does this signal represent? Store in NWB?
-3. **Per-animal sex records** — manuscript says both sexes used but no individual records confirmed
-4. **Publication DOI** — manuscript not yet published; Zenodo: 10.5281/zenodo.20244434
-5. **Experimenter names** — confirm which authors collected the photometry data
+2. **Publication DOI** — manuscript not yet published; Zenodo: 10.5281/zenodo.20244434

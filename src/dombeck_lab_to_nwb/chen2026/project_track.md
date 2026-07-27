@@ -133,5 +133,4 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 | 3 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
 | 4 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
 | 5 | Publication DOI | `NWBFile.related_publications` |
-| 6 | Experimenter name(s) who collected photometry data | `NWBFile.experimenter` (currently `He, Elena`) |
 | 7 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` |
