@@ -36,10 +36,7 @@ class Chen2026RawTreadmillInterface(BaseDataInterface):
         cache = _load_and_demux(self.source_data["file_path"])
         data, timestamps = cache["treadmill"]
 
-        description = (
-            "Raw analog output of the rotary encoder (ABF 'treadmill' channel, 2000 Hz, ~1.2–2.0 V). "
-            "Stored for data provenance. Velocity and acceleration derived from this signal are in nwb.processing['behavior']['BehavioralTimeSeries']."
-        )
+        description = "Raw analog output of the rotary encoder acquired at 2000 Hz, signal range ~1.2–2.0 V. "
         treadmill_series = TimeSeries(
             name=self.SERIES_NAME,
             data=data,
