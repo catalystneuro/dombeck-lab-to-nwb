@@ -96,8 +96,8 @@ def _detect_opto_pulse_params(
     for s, e in zip(starts, ends):
         epoch_onsets = onsets[s:e]
         epoch_durations = durations[s:e]
-        pulse_length_ms.append(round(float(np.mean(epoch_durations)) * 1000, 3))
-        period_ms.append(round(float(np.mean(np.diff(epoch_onsets))) * 1000, 3) if len(epoch_onsets) > 1 else math.nan)
+        pulse_length_ms.append(round(float(np.mean(epoch_durations)) * 1000))
+        period_ms.append(round(float(np.mean(np.diff(epoch_onsets))) * 1000) if len(epoch_onsets) > 1 else math.nan)
         n_pulses.append(int(e - s))
 
     return pulse_length_ms, period_ms, n_pulses
