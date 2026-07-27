@@ -113,6 +113,8 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
             laser_model_kwargs["manufacturer"] = esm_meta["manufacturer"]
         if esm_meta.get("model_number"):
             laser_model_kwargs["model_number"] = esm_meta["model_number"]
+        if esm_meta.get("description"):
+            laser_model_kwargs["description"] = esm_meta["description"]
         laser_model = ExcitationSourceModel(**laser_model_kwargs)
         nwbfile.add_device_model(laser_model)
 

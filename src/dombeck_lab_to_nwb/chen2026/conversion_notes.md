@@ -315,10 +315,31 @@ A TODO comment in the interface marks this for removal once a neuroconv PR adds 
 
 ---
 
+### NWBInspector Report (2026-07-27)
+
+Run command: `nwbinspector /Users/weian/lrrk2_data/nwb-output/ --config dandi`
+NWBInspector version: 0.7.2 · Files scanned: 27
+
+#### Issues found and resolved
+
+| Severity | Check | Object | Files | Resolution |
+|----------|-------|--------|-------|------------|
+| `BEST_PRACTICE_VIOLATION` | `check_regular_timestamps` | `acquisition/RawTreadmillVoltage` | all 27 | Use `starting_time=0.0, rate=2000.0` instead of explicit timestamps. `calculate_regular_series_rate` (neuroconv) is called at write time; falls back to explicit timestamps if the series is irregular. Fixed in `raw_treadmill_interface.py`. |
+| `BEST_PRACTICE_SUGGESTION` | `check_description` | `ViralVectorInjection/GRAB_DA3m_injection_DLS` | all 27 | Added `description` field to `inj_grab_dls` entry in `fiber_photometry.yaml`. |
+| `BEST_PRACTICE_SUGGESTION` | `check_description` | `ViralVectorInjection/GRAB_DA3m_injection_DMS` | all 27 | Added `description` field to `inj_grab_dms` entry in `fiber_photometry.yaml`. |
+| `BEST_PRACTICE_SUGGESTION` | `check_description` | `ExcitationSourceModel/led_635nm_model` | all 27 | Added `description` field to `ExcitationSourceModel` block in `optogenetics.yaml` and wired it through in `optogenetics_interface.py` (`laser_model_kwargs`). |
+
+#### Issues not resolved
+
+| Severity | Check | Object | Reason |
+|----------|-------|--------|--------|
+| `BEST_PRACTICE_SUGGESTION` | `check_single_row` | `OptogeneticSitesTable/optogenetic_sites_table` | Structural constraint of the ndx-optogenetics extension — a table is required even for a single stimulation site. Not actionable without changing the extension schema. |
+
+After fixes: 0 violations, 1 unresolvable suggestion (single-row table) across all 27 files.
+
+---
+
 ### Open Questions (needs lab confirmation)
 
 1. **`stim_sequence` 'a' vs 'b'**: resolved — encodes the pseudorandom power order. Per-epoch `power_in_mW` is now populated in `OptogeneticEpochsTable` for all 27 sessions from `LRRK2.xlsx`.
-2. **`initiation` channel**: What does this signal represent? Store in NWB?
-3. **Per-animal sex records** — manuscript says both sexes used but no individual records confirmed
-4. **Publication DOI** — manuscript not yet published; Zenodo: 10.5281/zenodo.20244434
-5. **Experimenter names** — confirm which authors collected the photometry data
+2. **Publication DOI** — manuscript not yet published; Zenodo: 10.5281/zenodo.20244434

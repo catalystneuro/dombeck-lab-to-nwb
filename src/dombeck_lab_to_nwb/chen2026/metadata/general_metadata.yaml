@@ -33,6 +33,7 @@ NWBFile:
   lab: Dombeck Lab
   experimenter:
     - He, Elena
+    - Quinn, Kaitlyn
 
 # Per-group session descriptions. The placeholder {genotype_label} is substituted
 # at runtime with either "LRRK2-WT" or "LRRK2-G2019S".

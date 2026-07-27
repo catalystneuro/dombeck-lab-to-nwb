@@ -19,6 +19,7 @@ Optogenetics:
 
   ExcitationSourceModel:
     name: led_635nm_model
+    description: "Doric fiber-coupled 635 nm LED for one-photon optogenetic excitation of ChRmine in SNc dopamine neurons."
     manufacturer: "Doric Lenses"
     model_number: "LEDFRJ_635"
     source_type: "LED"

@@ -187,6 +187,7 @@ FiberPhotometry:
   FiberPhotometryVirusInjections:
     inj_grab_dls:
       name: GRAB_DA3m_injection_DLS
+      description: "Unilateral injection of pAAV-hSyn-GRAB-gDA3m (AAV1, Addgene #208698) into the right dorsal lateral striatum (DLS) for GRAB-DA3m dopamine sensor expression in Anxa-LRRK2 animals."
       location: dorsal lateral striatum
       hemisphere: right
       ap_in_mm: 0.50
@@ -198,6 +199,7 @@ FiberPhotometry:
 
     inj_grab_dms:
       name: GRAB_DA3m_injection_DMS
+      description: "Unilateral injection of pAAV-hSyn-GRAB-gDA3m (AAV1, Addgene #208698) into the right dorsal medial striatum (DMS) for GRAB-DA3m dopamine sensor expression in Calb-LRRK2 animals."
       location: dorsal medial striatum
       hemisphere: right
       ap_in_mm: 0.50

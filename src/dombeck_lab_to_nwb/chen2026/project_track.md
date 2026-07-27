@@ -6,7 +6,8 @@
 **Conversion folder:** `src/dombeck_lab_to_nwb/chen2026/`
 **Detailed data notes:** [`conversion_notes.md`](src/dombeck_lab_to_nwb/chen2026/conversion_notes.md), [`lrrk2_investigation.md`](src/dombeck_lab_to_nwb/chen2026/lrrk2_investigation.md)
 
-**Progress: 27 / 27 sessions converted** *(re-run needed after session-688 bug fix — see below)*
+**Progress: 27 / 27 sessions converted and uploaded to DANDI**
+**Dandiset:** [DANDI:001933](https://dandiarchive.org/dandiset/001933) (embargoed draft)
 
 ---
 
@@ -111,12 +112,13 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 
 ### Post-Conversion
 
-- [x] Re-run batch conversion (27/27 sessions)
-- [ ] Run NWBInspector on a full (non-stub) NWB file
-- [ ] Fix any NWBInspector warnings
-- [ ] Setup Dandiset (embargoed until publication — DOI pending)
-- [ ] Upload all 27 NWB files to DANDI
-- [ ] Confirm per-animal sex records with lab and update `Subject.sex` (currently `U` for all)
+- [x] Re-run batch conversion (27/27 sessions, all fixes applied)
+- [x] Run NWBInspector with `--config dandi` — 0 violations, 1 unresolvable suggestion (`OptogeneticSitesTable` single-row, structural constraint of ndx-optogenetics)
+- [x] Fix NWBInspector findings — `RawTreadmillVoltage` rate/starting_time, missing descriptions on viral vector injections and LED model
+- [x] Setup Dandiset — [DANDI:001933](https://dandiarchive.org/dandiset/001933) (embargoed draft, created 2026-07-27)
+- [x] Upload all 27 NWB files to DANDI — 572.9 MB, 0 errors (2026-07-27); files organized with `dandi organize --files-mode move`, `_behavior` suffix added by DANDI per detected NWB data types
+- [x] Confirm per-animal sex records with lab and update `Subject.sex` (currently `U` for all) — re-upload affected files after update
+- [ ] Update `NWBFile.related_publications` with DOI once manuscript is published and re-upload
 
 ---
 
@@ -127,5 +129,4 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 | 3 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
 | 4 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
 | 5 | Publication DOI | `NWBFile.related_publications` |
-| 6 | Experimenter name(s) who collected photometry data | `NWBFile.experimenter` (currently `He, Elena`) |
 | 7 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` |
