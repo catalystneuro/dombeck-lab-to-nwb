@@ -53,10 +53,7 @@ SessionDescriptions:
 Subject:
   species: Mus musculus
   strain: C57BL/6J
-  # Approximate age: surgeries at ~6 months; recordings ~4 weeks post-surgery.
-  age: P210D
-  # TODO: confirm per-animal sex with lab; using "U" (unknown) until records are provided.
-  sex: U
+  # sex and date_of_birth are set per-animal at runtime from metadata-LRRK2-chen2026.xlsx
   # genotype is set per-animal at runtime ("LRRK2-WT" or "LRRK2-G2019S")
 
 # Per-group subject descriptions (set as Subject.description in the NWB file).

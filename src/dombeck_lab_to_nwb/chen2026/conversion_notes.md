@@ -4,7 +4,7 @@
 
 **Manuscript:** "Leucine-rich repeat kinase 2 impairs the release sites of Parkinson's disease vulnerable dopamine axons", Chen, He et al. (in preparation)
 **Analysis code:** https://github.com/DombeckLab/lrrk2_photometry_analysis (Zenodo: 10.5281/zenodo.20244434)
-**Status:** All fiber photometry interfaces implemented and stub-tested (27/27 sessions pass). Full conversion run pending.
+**Status:** All interfaces implemented; 27/27 sessions converted successfully.
 **Detailed notes:** see `lrrk2_investigation.md`
 
 ---
@@ -132,6 +132,32 @@ Note: `stim_sequence` is a MATLAB categorical — pymatreader cannot parse it. U
 
 Fiber implant DV depth = ferrule length (Doric convention), referenced from dura surface.
 
+**Optogenetics surgery (Anxa1+ group):**
+- SNc craniotomy: −3.20 mm caudal, +1.60 mm lateral from bregma (right hemisphere)
+- ChRmine injection: 4 depths (−3.8, −4.1, −4.4, −4.7 mm ventral from dura), 0.1 µL/depth = 0.4 µL total
+- Opto fiber implanted via same craniotomy just above SNc (tip at ~4.0 mm from dura)
+- Striatum GRAB-DA3m injection (DLS): +0.5 mm caudal, +1.8 mm lateral; −1.9 mm from dura
+
+**Optogenetics surgery (Calb1+ group):**
+- Same SNc craniotomy as Anxa1+ (−3.20 mm caudal, +1.60 mm lateral)
+- ChRmine injection: 1 depth only (−4.3 mm from dura) to prevent VTA/thalamus spillover
+- Striatum GRAB-DA3m injection (DMS): +0.5 mm caudal, +1.4 mm lateral; −1.9 mm from dura
+
+**Confirmed stimulation parameters (measured from raw ABF, channel `opto_TTL`, 2000 Hz):**
+
+Each session contains **64 trains total** (8 power levels × 8 repetitions). The two halves of the session use different pulse protocols:
+
+| Epoch range | Amplitude | Pulse ON | Pulse OFF | Period | Pulses/train | Train duration |
+|-------------|-----------|----------|-----------|--------|--------------|----------------|
+| 0 – 31 (first half) | ~1.2 V | 9 ms | 1 ms | 10 ms (100 Hz) | 32 | ~320 ms |
+| 32 – 63 (second half) | ~0.05 V | 8 ms | 8 ms | 16 ms (62.5 Hz) | 32 | ~505 ms |
+
+The manuscript states "8 ms on / 8 ms off" (16 ms period, ~31 pulses), which describes only the second half. Both halves have exactly 32 pulses per train. The first-half trains fire at 100 Hz (one pulse per camera frame). Per-epoch values are stored in `OptogeneticEpochsTable` columns — see `convert_session.py`.
+
+- Powers: 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW at cannula tip (pseudorandom order, 8 reps each)
+- Intertrain interval: ≥20 s; each recording session = 20 minutes
+- TTL in `_data.mat` is HIGH for the full train duration (not per-pulse)
+
 ---
 
 ### Comparison with Existing Pipelines
@@ -229,10 +255,11 @@ The trigger spacing is nominally 10 ms (100 Hz) with ±0.5 ms quantization noise
 
 #### Optogenetic stimulation epochs
 
-- **Source:** `TTL` column in `_data.mat` (uint8, 0 or 1, 100 Hz), which encodes whether the 635 nm LED was on during each camera-trigger bin.
-- **Epoch extraction:** contiguous runs of `TTL = 1` are detected. At 10 ms/sample, the 8 ms on / 8 ms off pulse pattern within a 500 ms train appears as a single block of ~33 consecutive samples (~330 ms) because the 8 ms on-phase dominates each 10 ms bin. Each extracted epoch row corresponds to one 500 ms pulse train.
+- **Source:** `TTL` column in `_data.mat` (uint8, 0 or 1, 100 Hz). The MATLAB script binarizes via `any(opto > 0.05 V)` per 10 ms camera bin.
+- **TTL fragmentation problem:** first-half trains (~1.2 V, 10 ms period) appear as clean single blobs in the mat TTL. Second-half trains (~0.05 V, barely above the 0.05 V threshold) fragment into 2–10 blobs per train because the low-amplitude ABF pulses alias unevenly across 10 ms camera bins. Naively detected blobs = 122 for these sessions; correct train count = 64.
+- **Merge fix:** `_extract_epochs()` merges blobs whose gap is < 1 s into a single epoch. Inter-train intervals are ≥20 s, so the 1 s threshold is unambiguous. All 27 sessions yield exactly 64 epochs after merging.
 - **Epoch times:** `start_time = camera_trigger_times[first_high_sample]`, `stop_time = camera_trigger_times[first_low_sample_after_epoch]`. These are in the ABF clock, aligned with all other signals.
-- **Note:** stimulation begins at ~30–50 s into the session (well after the ~21 s camera-start offset), so all 122 epochs fall within the processed FP time range.
+- **Note:** stimulation begins at ~30–50 s into the session (well after the ~21 s camera-start offset), so all 64 epochs fall within the processed FP time range.
 
 #### Summary: what defines `t = 0` for this dataset
 
@@ -255,9 +282,8 @@ A TODO comment in the interface marks this for removal once a neuroconv PR adds 
 
 ### Open Questions (needs lab confirmation)
 
-1. **`stim_sequence` 'a' vs 'b'**: 18 animals have 'a', 9 have 'b', mixed across groups and genotypes. Likely encodes the pseudorandom power order (0.1/0.5/1.0/4.0 mW). Needed to set per-epoch `power_in_mW` in `OptogeneticEpochsTable`.
+1. **`stim_sequence` 'a' vs 'b'**: resolved — encodes the pseudorandom power order. Per-epoch `power_in_mW` is now populated in `OptogeneticEpochsTable` for all 27 sessions from `LRRK2.xlsx`.
 2. **`initiation` channel**: What does this signal represent? Store in NWB?
 3. **Per-animal sex records** — manuscript says both sexes used but no individual records confirmed
 4. **Publication DOI** — manuscript not yet published; Zenodo: 10.5281/zenodo.20244434
 5. **Experimenter names** — confirm which authors collected the photometry data
-6. **`power_in_mW` per epoch** — currently NaN in OptogeneticEpochsTable; resolve via stim_sequence 'a'/'b' mapping with lab
