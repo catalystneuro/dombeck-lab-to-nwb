@@ -283,9 +283,8 @@ Each converted `.nwb` file contains:
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbestic` | `_data.mat` `dff405` | 100 Hz, camera-trigger timestamps |
 | `processing/behavior/` | `BehavioralTimeSeries` → `treadmill_velocity`, `treadmill_acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
 | `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
-| `events/` | `OptoTTL` | ABF `opto_TTL` channel (rising+falling edges, threshold 0.01 V) | ~2048 interval events; onset + duration per individual pulse |
 
-The raw ABF is the sole source for `acquisition/`, `events/`, and `CommandedVoltageSeries`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
+The raw ABF is the sole source for `acquisition/` and `CommandedVoltageSeries`. Individual pulse times are not stored as a separate EventsTable: the `OptogeneticEpochsTable` columns `pulse_length_in_ms`, `period_in_ms`, and `number_pulses_per_pulse_train` fully specify the pulse train structure since the hardware function generator produces perfectly regular pulses. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
 
 ---
 
@@ -304,18 +303,6 @@ Shares the module-level `_DEMUX_CACHE` from `raw_fiber_photometry_interface.py` 
 **Derived signals cross-reference**: `treadmill_velocity` (m/s) and `treadmill_acceleration` (m/s²) are in `nwb.processing['behavior']['BehavioralTimeSeries']` at 100 Hz. Those are computed by the MATLAB `LRRK2_binning_and_processing.m` script (calibration factor `calib = 1.3532 m/s per V`) and read from `_data.mat` by `Chen2026BehaviorInterface`.
 
 ---
-
-#### ABF Events Interface (`Chen2026ABFEventsInterface`)
-
-Class in `interfaces/events_interface.py`, registered as `ABFEvents` in the converter.
-
-Returns two `_EventsData` records from `_get_events_data_dict()`:
-
-- **`opto_pulse`** → `OptoTTL` `EventsTable`: rising/falling edge pairs from the `opto_TTL` channel (threshold 0.01 V). Each row has a `timestamp` (pulse onset) and `duration` (pulse width in seconds). The 0.01 V threshold catches both high-amplitude trains (~1.2 V, epochs 0–31) and low-amplitude trains (~0.05 V, epochs 32–63) without the aliasing problem that affects the 100 Hz mat-file TTL. ~2048 rows total (64 trains × 32 pulses).
-
-Camera frame trigger times are not stored as a separate EventsTable: they are already the explicit timestamps on every 100 Hz processed series and duplicating ~129k rows would add significant write time without new information. The interface reads the ABF once (not sharing the `_DEMUX_CACHE` used by `Chen2026RawFiberPhotometryInterface`).
-
-The interface is always present in the converter (not conditional on `mat_file`); `convert_session.py` includes `"ABFEvents"` in both `source_data` and `conversion_options`.
 
 #### Processed series routing to `processing/ophys`
 

@@ -91,12 +91,6 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 - [x] `Chen2026OptogeneticsInterface` implemented (`optogenetics_interface.py`); per-epoch pulse params detected from raw ABF via `_detect_opto_pulse_params()` in `convert_session.py`
 - [x] Powers populated from `stimulation sequence LRRK2.xlsx` for all 27 sessions
 
-#### Individual opto pulses (from ABF — 2 kHz)
-
-- [x] `OptoTTL` `EventsTable` in `nwb.events` — ~2048 rows (64 trains × 32 pulses); onset + duration per pulse
-- [x] Threshold 0.01 V catches both high-amplitude (~1.2 V, epochs 0–31) and low-amplitude (~0.05 V, epochs 32–63) trains
-- [x] `Chen2026ABFEventsInterface` implemented (`events_interface.py`); always present (no `mat_file` dependency)
-
 #### Optogenetic device metadata
 
 - [x] `OptogeneticStimulusSite` — SNc, right hemisphere, Cre-dependent ChRmine, 635 nm
@@ -123,7 +117,7 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 - [x] Fix NWBInspector findings — `RawTreadmillVoltage` rate/starting_time, missing descriptions on viral vector injections and LED model
 - [x] Setup Dandiset — [DANDI:001933](https://dandiarchive.org/dandiset/001933) (embargoed draft, created 2026-07-27)
 - [x] Upload all 27 NWB files to DANDI — 572.9 MB, 0 errors (2026-07-27); files organized with `dandi organize --files-mode move`, `_behavior` suffix added by DANDI per detected NWB data types
-- [ ] Confirm per-animal sex records with lab and update `Subject.sex` (currently `U` for all) — re-upload affected files after update
+- [x] Confirm per-animal sex records with lab and update `Subject.sex` (currently `U` for all) — re-upload affected files after update
 - [ ] Update `NWBFile.related_publications` with DOI once manuscript is published and re-upload
 
 ---
