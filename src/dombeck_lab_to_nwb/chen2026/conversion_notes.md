@@ -275,39 +275,35 @@ Each converted `.nwb` file contains:
 |----------|--------|--------|-------|
 | `acquisition/` | `FiberPhotometryResponseSeriesRawSignal` | ABF `520sig` (470 nm demux) | 2000 Hz, explicit timestamps |
 | `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, explicit timestamps |
+| `acquisition/` | `CommandedVoltageSeries` | ABF `fxn_gen` (LED switching waveform) | 2000 Hz, rate-based timestamps; linked to FiberPhotometryTable |
+| `acquisition/` | `RawTreadmillVoltage` | ABF `treadmill` channel | 2000 Hz, analog ~1.2–2.0 V; data provenance for velocity/acceleration |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbestic` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbestic` | `_data.mat` `dff405` | 100 Hz, camera-trigger timestamps |
-| `processing/behavior/` | `BehavioralTimeSeries` → `velocity`, `acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
-| `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
-| `events/` | `OptoPulse` | ABF `opto_TTL` channel (rising+falling edges, threshold 0.01 V) | ~2048 interval events; onset + duration per individual pulse |
-
-The raw ABF is the sole source for `events/`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
-
----
-
-### NWB File Content Summary
-
-Each converted `.nwb` file contains:
-
-| Location | Object | Source | Notes |
-|----------|--------|--------|-------|
-| `acquisition/` | `FiberPhotometryResponseSeriesRawSignal` | ABF `520sig` (470 nm demux) | 2000 Hz, explicit timestamps |
-| `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, explicit timestamps |
-| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
-| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbestic` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
-| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, camera-trigger timestamps |
-| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbestic` | `_data.mat` `dff405` | 100 Hz, camera-trigger timestamps |
-| `processing/behavior/` | `BehavioralTimeSeries` → `velocity`, `acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
+| `processing/behavior/` | `BehavioralTimeSeries` → `treadmill_velocity`, `treadmill_acceleration` | `_data.mat` `velocity`, `acceleration` | 100 Hz, camera-trigger timestamps |
 | `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
 | `events/` | `OptoTTL` | ABF `opto_TTL` channel (rising+falling edges, threshold 0.01 V) | ~2048 interval events; onset + duration per individual pulse |
 
-The raw ABF is the sole source for `events/`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
+The raw ABF is the sole source for `acquisition/`, `events/`, and `CommandedVoltageSeries`. Camera frame times are not stored as a separate EventsTable because they are already the explicit timestamps of every 100 Hz processed series — duplicating ~129k rows would add significant write time without new information.
 
 ---
 
 ### Implementation Notes
+
+#### Raw Treadmill Interface (`Chen2026RawTreadmillInterface`)
+
+Class in `interfaces/raw_treadmill_interface.py`, registered as `RawTreadmill` in the converter. Always present (no `mat_file` required).
+
+Writes one `TimeSeries` to `nwb.acquisition`:
+
+- **`RawTreadmillVoltage`**: the raw analog voltage from the rotary encoder (ABF `treadmill` channel, 2000 Hz, explicit timestamps). Voltage range ~1.2–2.0 V across the Anxa/Calb cohorts. Unit: V.
+
+Shares the module-level `_DEMUX_CACHE` from `raw_fiber_photometry_interface.py` (keyed by `file_path`), so the ABF is read only once regardless of which interface runs first. The cache stores all channels including `treadmill` alongside the demultiplexed 470/405 nm streams.
+
+**Derived signals cross-reference**: `treadmill_velocity` (m/s) and `treadmill_acceleration` (m/s²) are in `nwb.processing['behavior']['BehavioralTimeSeries']` at 100 Hz. Those are computed by the MATLAB `LRRK2_binning_and_processing.m` script (calibration factor `calib = 1.3532 m/s per V`) and read from `_data.mat` by `Chen2026BehaviorInterface`.
+
+---
 
 #### ABF Events Interface (`Chen2026ABFEventsInterface`)
 
