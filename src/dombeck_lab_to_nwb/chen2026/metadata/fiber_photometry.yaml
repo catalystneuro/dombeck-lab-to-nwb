@@ -1,0 +1,441 @@
+# Fiber photometry metadata for Chen et al. 2026 (LRRK2 dataset)
+#
+# Shared hardware metadata for all 27 animals. Both experimental groups are
+# covered here (Anxa-LRRK2 → DLS rows; Calb-LRRK2 → DMS rows). The
+# converter selects the appropriate FiberPhotometryTable rows and response
+# series entry for each animal based on its group.
+#
+# Coordinates: AP and ML from Bregma at the cortical surface (Paxinos atlas).
+# DV from the dura surface. Fiber tip depth = ferrule length (Doric convention).
+# All implants in the right hemisphere.
+#
+# Reference: Chen, He et al. (in preparation).
+
+# ---------------------------------------------------------------------------
+# Device models — hardware specifications, one entry per model variant.
+# ---------------------------------------------------------------------------
+
+DeviceModels:
+
+  ofm_photometry:
+    type: OpticalFiberModel
+    name: optical_fiber_model
+    description: "Doric Lenses fiber cannula (MFC series, ZF1.25(G) ferrule) used for fiber photometry in both experimental groups. Shared model; ferrule length varies by implant site: 2 mm for Anxa-LRRK2 (DLS) and 3 mm for Calb-LRRK2 (DMS); tip depth from dura surface recorded per-fiber in the FiberPhotometryTable."
+    manufacturer: Doric Lenses
+    model_number: MFC_200/250-0.66_ZF1.25(G)_FLT
+    numerical_aperture: 0.66
+    core_diameter_in_um: 200.0
+    ferrule_model: ZF1.25(G)
+    ferrule_diameter_in_mm: 1.25
+
+  esm_470:
+    type: ExcitationSourceModel
+    name: thorlabs_signal_led_model
+    description: "Thorlabs M470F3 470 nm fiber-coupled LED for GRAB-DA3m functional excitation."
+    manufacturer: Thorlabs
+    model_number: M470F3
+    source_type: LED
+    excitation_mode: one-photon
+    wavelength_range_in_nm: [460.0, 480.0]  # peak 470 nm, FWHM ~20 nm
+
+  esm_405:
+    type: ExcitationSourceModel
+    name: thorlabs_isosbestic_led_model
+    description: "Thorlabs M405FP1 405 nm fiber-coupled LED for isosbestic control (motion artifact correction)."
+    manufacturer: Thorlabs
+    model_number: M405FP1
+    source_type: LED
+    excitation_mode: one-photon
+    wavelength_range_in_nm: [399.0, 411.0]  # peak 405 nm, FWHM ~12 nm
+
+  pdm:
+    type: PhotodetectorModel
+    name: photodetector_model
+    description: "Hamamatsu H10770PA-40 GaAsP PMT photosensor module for green fluorescence detection."
+    manufacturer: Hamamatsu
+    model_number: H10770PA-40
+    detector_type: PMT
+    wavelength_range_in_nm: [300.0, 740.0]  # GaAsP photocathode spectral response range
+    # TODO: confirm gain value from datasheet (PMT module; typical GaAsP gain ~1e6)
+    # gain: 1000000.0
+    # gain_unit: A/A
+
+  bofm_470:
+    type: BandOpticalFilterModel
+    name: signal_excitation_filter_model
+    description: "Semrock FF02-472/30-25 bandpass filter for 470 nm excitation path."
+    manufacturer: Semrock
+    center_wavelength_in_nm: 472.0
+    bandwidth_in_nm: 30.0
+    filter_type: Bandpass
+
+  bofm_405:
+    type: BandOpticalFilterModel
+    name: isosbestic_excitation_filter_model
+    description: "Semrock FF01-406/15-25 bandpass filter for 405 nm excitation path."
+    manufacturer: Semrock
+    center_wavelength_in_nm: 406.0
+    bandwidth_in_nm: 15.0
+    filter_type: Bandpass
+
+  bofm_em:
+    type: BandOpticalFilterModel
+    name: emission_filter_model
+    description: "Semrock FF01-540/50-25 bandpass emission filter for green fluorescence."
+    manufacturer: Semrock
+    center_wavelength_in_nm: 540.0
+    bandwidth_in_nm: 50.0
+    filter_type: Bandpass
+
+  dmm_em:
+    type: DichroicMirrorModel
+    name: emission_dichroic_model
+    description: "Chroma Technology T505lpxr long-pass dichroic mirror (cut-on 505 nm) separating green emission from excitation light."
+    manufacturer: Chroma Technology
+    cut_on_wavelength_in_nm: 505.0
+
+# ---------------------------------------------------------------------------
+# Device instances — one per physical device used in the setup.
+# ---------------------------------------------------------------------------
+
+Devices:
+
+  fiber_dls:
+    type: OpticalFiber
+    name: optical_fiber_dls
+    description: "Photometry fiber implanted in dorsal lateral striatum (DLS), right hemisphere. Ferrule length 2 mm = tip depth from dura surface."
+    device_model_metadata_key: ofm_photometry
+    fiber_insertion:
+      depth_in_mm: 2.0
+      insertion_position_ap_in_mm: 0.50
+      insertion_position_ml_in_mm: 1.80
+      insertion_position_dv_in_mm: 2.0
+      hemisphere: right
+      position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+
+  fiber_dms:
+    type: OpticalFiber
+    name: optical_fiber_dms
+    description: "Photometry fiber implanted in dorsal medial striatum (DMS), right hemisphere. Ferrule length 3 mm = tip depth from dura surface."
+    device_model_metadata_key: ofm_photometry
+    fiber_insertion:
+      depth_in_mm: 3.0
+      insertion_position_ap_in_mm: 0.50
+      insertion_position_ml_in_mm: 1.40
+      insertion_position_dv_in_mm: 3.0
+      hemisphere: right
+      position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+
+  es_470:
+    type: ExcitationSource
+    name: signal_excitation_source
+    description: "470 nm LED (GRAB-DA3m functional excitation). Power: 0.5 mW at fiber cannula tip. Alternated with 405 nm LED at 100 Hz via waveform generator."
+    device_model_metadata_key: esm_470
+    power_in_W: 0.0005
+
+  es_405:
+    type: ExcitationSource
+    name: isosbestic_excitation_source
+    description: "405 nm LED (isosbestic control for motion artifact correction). Power: 0.5 mW at fiber cannula tip. Alternated with 470 nm LED at 100 Hz."
+    device_model_metadata_key: esm_405
+    power_in_W: 0.0005
+
+  pd:
+    type: Photodetector
+    name: photodetector
+    description: "GaAsP PMT (Hamamatsu H10770PA-40) for green fluorescence detection. Signal amplified with Stanford Research Systems SR570 preamplifier."
+    device_model_metadata_key: pdm
+
+  ef_470:
+    type: BandOpticalFilter
+    name: signal_excitation_filter
+    description: "Bandpass filter for 470 nm LED excitation path (Semrock FF02-472/30-25)."
+    device_model_metadata_key: bofm_470
+
+  ef_405:
+    type: BandOpticalFilter
+    name: isosbestic_excitation_filter
+    description: "Bandpass filter for 405 nm LED excitation path (Semrock FF01-406/15-25)."
+    device_model_metadata_key: bofm_405
+
+  emf:
+    type: BandOpticalFilter
+    name: emission_filter
+    description: "Bandpass emission filter for green fluorescence (Semrock FF01-540/50-25)."
+    device_model_metadata_key: bofm_em
+
+  em_dichroic:
+    type: DichroicMirror
+    name: emission_dichroic_mirror
+    description: "Emission dichroic mirror (Chroma T505lpxr) separating green fluorescence from 405/470 nm excitation light before the PMT."
+    device_model_metadata_key: dmm_em
+
+# ---------------------------------------------------------------------------
+# FiberPhotometry block — indicators, viruses, injections, table, and series.
+# ---------------------------------------------------------------------------
+
+FiberPhotometry:
+
+  FiberPhotometryViruses:
+    grab_da3m_aav:
+      name: GRAB_DA3m_AAV1
+      construct_name: pAAV-hSyn-GRAB-gDA3m
+      manufacturer: Addgene
+      titer_in_vg_per_ml: 7000000000000.0
+      description: "AAV1 serotype. Addgene catalog #208698. Titer ≥ 7×10¹² vg/mL. Diluted 1:2 in PBS before injection (0.1 µL per site)."
+
+  FiberPhotometryVirusInjections:
+    inj_grab_dls:
+      name: GRAB_DA3m_injection_DLS
+      description: "Unilateral injection of pAAV-hSyn-GRAB-gDA3m (AAV1, Addgene #208698) into the right dorsal lateral striatum (DLS) for GRAB-DA3m dopamine sensor expression in Anxa-LRRK2 animals."
+      location: dorsal lateral striatum
+      hemisphere: right
+      ap_in_mm: 0.50
+      ml_in_mm: 1.80
+      dv_in_mm: 1.90
+      volume_in_uL: 0.10
+      reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      viral_vector_metadata_key: grab_da3m_aav
+
+    inj_grab_dms:
+      name: GRAB_DA3m_injection_DMS
+      description: "Unilateral injection of pAAV-hSyn-GRAB-gDA3m (AAV1, Addgene #208698) into the right dorsal medial striatum (DMS) for GRAB-DA3m dopamine sensor expression in Calb-LRRK2 animals."
+      location: dorsal medial striatum
+      hemisphere: right
+      ap_in_mm: 0.50
+      ml_in_mm: 1.40
+      # TODO: DV not stated in manuscript; using estimate (0.1 mm shallower than fiber tip). Confirm with lab.
+      dv_in_mm: 2.9
+      volume_in_uL: 0.10
+      reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      viral_vector_metadata_key: grab_da3m_aav
+
+  FiberPhotometryIndicators:
+    grab_da3m_dls:
+      name: GRAB_DA3m_DLS
+      label: GRAB-DA3m
+      description: "GPCR-based dopamine fluorescent sensor (dopamine indicator). Excitation at 470 nm (functional) and 405 nm (isosbestic control); emission ~520 nm. Injected into dorsal lateral striatum (Anxa-LRRK2 group)."
+      viral_vector_injection_metadata_key: inj_grab_dls
+
+    grab_da3m_dms:
+      name: GRAB_DA3m_DMS
+      label: GRAB-DA3m
+      description: "GPCR-based dopamine fluorescent sensor (dopamine indicator). Excitation at 470 nm (functional) and 405 nm (isosbestic control); emission ~520 nm. Injected into dorsal medial striatum (Calb-LRRK2 group)."
+      viral_vector_injection_metadata_key: inj_grab_dms
+
+  FiberPhotometryTable:
+    name: fiber_photometry_table
+    description: "Fiber photometry recording setup. Each row = one optical fiber × one excitation wavelength. Two groups: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows)."
+    rows:
+      # Anxa-LRRK2 group — dorsal lateral striatum (DLS)
+      dls_470:
+        location: dorsal lateral striatum
+        excitation_wavelength_in_nm: 470.0
+        emission_wavelength_in_nm: 520.0
+        indicator_metadata_key: grab_da3m_dls
+        optical_fiber_metadata_key: fiber_dls
+        excitation_source_metadata_key: es_470
+        photodetector_metadata_key: pd
+        excitation_filter_metadata_key: ef_470
+        emission_filter_metadata_key: emf
+        dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
+
+      dls_405:
+        location: dorsal lateral striatum
+        excitation_wavelength_in_nm: 405.0
+        emission_wavelength_in_nm: 520.0
+        indicator_metadata_key: grab_da3m_dls
+        optical_fiber_metadata_key: fiber_dls
+        excitation_source_metadata_key: es_405
+        photodetector_metadata_key: pd
+        excitation_filter_metadata_key: ef_405
+        emission_filter_metadata_key: emf
+        dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
+
+      # Calb-LRRK2 group — dorsal medial striatum (DMS)
+      dms_470:
+        location: dorsal medial striatum
+        excitation_wavelength_in_nm: 470.0
+        emission_wavelength_in_nm: 520.0
+        indicator_metadata_key: grab_da3m_dms
+        optical_fiber_metadata_key: fiber_dms
+        excitation_source_metadata_key: es_470
+        photodetector_metadata_key: pd
+        excitation_filter_metadata_key: ef_470
+        emission_filter_metadata_key: emf
+        dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
+
+      dms_405:
+        location: dorsal medial striatum
+        excitation_wavelength_in_nm: 405.0
+        emission_wavelength_in_nm: 520.0
+        indicator_metadata_key: grab_da3m_dms
+        optical_fiber_metadata_key: fiber_dms
+        excitation_source_metadata_key: es_405
+        photodetector_metadata_key: pd
+        excitation_filter_metadata_key: ef_405
+        emission_filter_metadata_key: emf
+        dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
+
+  # ---------------------------------------------------------------------------
+  # Commanded voltage series — the LED switching square wave from the function
+  # generator. One series covers both excitation wavelengths (no need to split):
+  # high voltage (>1 V) = 470 nm LED on; low voltage (<1 V) = 405 nm LED on.
+  # ---------------------------------------------------------------------------
+  CommandedVoltageSeries:
+    fxn_gen:
+      name: CommandedVoltageSeries
+      description: >
+        LED switching square wave from the function generator at 2000 Hz.
+        High voltage (>1 V) marks 470 nm excitation periods; low voltage (<1 V) marks
+        405 nm isosbestic periods.
+      stream_name: fxn_gen
+      unit: V
+      frequency: 100.0
+
+  # ---------------------------------------------------------------------------
+  # Response series entries — one per interface instance (one stream each).
+  # The converter passes metadata_key matching one of these keys to the interface.
+  # ---------------------------------------------------------------------------
+
+  # Anxa-LRRK2 group (DLS) — 470 nm functional signal
+  raw_signal_anxa:
+    name: FiberPhotometryResponseSeriesRawSignal
+    description: >
+      Raw demultiplexed GRAB-DA3m fluorescence from ABF recording (Anxa-LRRK2 group, DLS),
+      470 nm excitation (functional dopamine signal).
+      Recorded at 2 kHz; timestamps are irregular (transition samples between LED cycles discarded).
+      LED alternation at 100 Hz via waveform generator.
+    fiber_photometry_table_region:
+      - dls_470
+    fiber_photometry_table_region_description: "DLS 470 nm functional channel."
+
+  # Anxa-LRRK2 group (DLS) — 405 nm isosbestic control
+  isosbestic_anxa:
+    name: FiberPhotometryResponseSeriesIsosbesticControl
+    description: >
+      Raw demultiplexed GRAB-DA3m isosbestic fluorescence from ABF recording (Anxa-LRRK2 group, DLS),
+      405 nm excitation (isosbestic control for motion artifact correction).
+      Recorded at 2 kHz; timestamps are irregular (transition samples between LED cycles discarded).
+      LED alternation at 100 Hz via waveform generator.
+    fiber_photometry_table_region:
+      - dls_405
+    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel."
+
+  # Calb-LRRK2 group (DMS) — 470 nm functional signal
+  raw_signal_calb:
+    name: FiberPhotometryResponseSeriesRawSignal
+    description: >
+      Raw demultiplexed GRAB-DA3m fluorescence from ABF recording (Calb-LRRK2 group, DMS),
+      470 nm excitation (functional dopamine signal).
+      Recorded at 2 kHz; timestamps are irregular (transition samples between LED cycles discarded).
+      LED alternation at 100 Hz via waveform generator.
+    fiber_photometry_table_region:
+      - dms_470
+    fiber_photometry_table_region_description: "DMS 470 nm functional channel."
+
+  # Calb-LRRK2 group (DMS) — 405 nm isosbestic control
+  isosbestic_calb:
+    name: FiberPhotometryResponseSeriesIsosbesticControl
+    description: >
+      Raw demultiplexed GRAB-DA3m isosbestic fluorescence from ABF recording (Calb-LRRK2 group, DMS),
+      405 nm excitation (isosbestic control for motion artifact correction).
+      Recorded at 2 kHz; timestamps are irregular (transition samples between LED cycles discarded).
+      LED alternation at 100 Hz via waveform generator.
+    fiber_photometry_table_region:
+      - dms_405
+    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel."
+
+  # ---------------------------------------------------------------------------
+  # Processed response series — from *_data.mat (100 Hz, camera-trigger-aligned).
+  # baselineCorrect: sliding-window 8th-percentile subtract-then-divide (window=2001).
+  # df_f: (corrected - F0) / F0 * 100, F0 = 8th percentile; smoothed with 20-sample moving mean.
+  # ---------------------------------------------------------------------------
+
+  # Anxa-LRRK2 group (DLS) — baseline-corrected 470 nm
+  corrected_signal_anxa:
+    name: FiberPhotometryResponseSeriesCorrectedSignal
+    description: >
+      Baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dls_470
+    fiber_photometry_table_region_description: "DLS 470 nm functional channel (baseline-corrected)."
+
+  # Anxa-LRRK2 group (DLS) — baseline-corrected 405 nm isosbestic
+  corrected_isosbestic_anxa:
+    name: FiberPhotometryResponseSeriesCorrectedIsosbesticControl
+    description: >
+      Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dls_405
+    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (baseline-corrected)."
+
+  # Anxa-LRRK2 group (DLS) — ΔF/F 470 nm
+  dff_anxa:
+    name: FiberPhotometryResponseSeriesDfOverF
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dls_470
+    fiber_photometry_table_region_description: "DLS 470 nm functional channel (% ΔF/F, smoothed)."
+
+  # Anxa-LRRK2 group (DLS) — ΔF/F 405 nm isosbestic
+  dff_isosbestic_anxa:
+    name: FiberPhotometryResponseSeriesDfOverFIsosbesticControl
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dls_405
+    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (% ΔF/F, smoothed)."
+
+  # Calb-LRRK2 group (DMS) — baseline-corrected 470 nm
+  corrected_signal_calb:
+    name: FiberPhotometryResponseSeriesCorrectedSignal
+    description: >
+      Baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dms_470
+    fiber_photometry_table_region_description: "DMS 470 nm functional channel (baseline-corrected)."
+
+  # Calb-LRRK2 group (DMS) — baseline-corrected 405 nm isosbestic
+  corrected_isosbestic_calb:
+    name: FiberPhotometryResponseSeriesCorrectedIsosbesticControl
+    description: >
+      Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dms_405
+    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (baseline-corrected)."
+
+  # Calb-LRRK2 group (DMS) — ΔF/F 470 nm
+  dff_calb:
+    name: FiberPhotometryResponseSeriesDfOverF
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dms_470
+    fiber_photometry_table_region_description: "DMS 470 nm functional channel (% ΔF/F, smoothed)."
+
+  # Calb-LRRK2 group (DMS) — ΔF/F 405 nm isosbestic
+  dff_isosbestic_calb:
+    name: FiberPhotometryResponseSeriesDfOverFIsosbesticControl
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dms_405
+    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (% ΔF/F, smoothed)."

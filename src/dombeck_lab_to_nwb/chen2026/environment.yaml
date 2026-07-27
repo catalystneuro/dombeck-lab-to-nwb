@@ -1,0 +1,22 @@
+name: chen2026
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+    - neuroconv @ git+https://github.com/catalystneuro/neuroconv.git
+    - ndx-fiber-photometry>=0.2.3
+    - ndx-ophys-devices>=0.3.1
+    - ndx-optogenetics>=0.4.0
+    - pynwb
+    - pyabf>=2.3.8
+    - pymatreader>=0.5.0
+    - h5py>=3.10.0
+    - nwbinspector>=0.4.35
+    - dandi>=0.65.0
+    - pyyaml>=6.0
+    - numpy>=1.26
+    - tqdm
+    - openpyxl>=3.1

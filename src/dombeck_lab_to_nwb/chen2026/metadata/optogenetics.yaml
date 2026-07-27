@@ -1,0 +1,120 @@
+# Optogenetics metadata for Chen et al. 2026 (LRRK2 dataset).
+#
+# ChRmine-mScarlet expressed in Cre+ SNc dopamine neurons via Cre-dependent AAV5.
+# Activated with a 635 nm red LED (LEDFRJ_635, Doric Lenses) via a 400 µm optical
+# fiber (4 mm ferrule) implanted just above right SNc.
+# TTL signal (100 Hz, binned) is stored in the *_data.mat file and read from there.
+#
+# Confirmed from manuscript (Chen et al. 2026):
+#   - LED: LEDFRJ_635, Doric Lenses; software: Doric Studio (Doric Lenses)
+#   - Craniotomy: AP -3.20 mm, ML +1.60 mm from bregma (right hemisphere)
+#   - Fiber: 4 mm long, 400 µm core, model MFC_400/430-0.66_4.0mm_TS3.0_C60
+#   - ChRmine injection: 4 depths (−3.8, −4.1, −4.4, −4.7 mm from dura), 0.1 µL/depth
+#   - Stim: 8 ms on / 8 ms off pulses, 500 ms trains, ≥20 s between trains, 8 reps/power
+#   - Powers: 0.1, 0.5, 1.0, 4.0 mW (pseudorandom order)
+
+Optogenetics:
+  excitation_lambda: 635.0  # nm
+  stimulation_software: "Doric Studio (Doric Lenses)"
+
+  ExcitationSourceModel:
+    name: led_635nm_model
+    description: "Doric fiber-coupled 635 nm LED for one-photon optogenetic excitation of ChRmine in SNc dopamine neurons."
+    manufacturer: "Doric Lenses"
+    model_number: "LEDFRJ_635"
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    wavelength_range_in_nm: [630.0, 640.0]  # 635 nm nominal
+
+  ExcitationSource:
+    name: led_635nm
+    description: >-
+      635 nm red LED (LEDFRJ_635, Doric Lenses) for Cre-dependent ChRmine optogenetic
+      activation of SNc dopamine neurons (right hemisphere). Coupled via fiber-optic patch
+      cord to the implanted 400 µm fiber cannula. Frequency, power, and duration controlled
+      by Doric Studio software with stimulation trains triggered by a custom LabVIEW script.
+
+  OpticalFiberModel:
+    name: optical_fiber_model_snc
+    description: >-
+      Doric Lenses 4 mm fiber cannula for optogenetic stimulation of SNc.
+      Ferrule length 4 mm corresponds to implant depth from dura surface.
+      Model MFC_400/430-0.66_4.0mm_TS3.0_C60.
+    manufacturer: Doric Lenses
+    model_number: MFC_400/430-0.66_4.0mm_TS3.0_C60
+    numerical_aperture: 0.66
+    core_diameter_in_um: 400.0
+
+  OpticalFibers:
+    - name: optical_fiber_snc
+      hemisphere: right
+      # Craniotomy and fiber placement: -3.20 mm caudal, +1.60 mm lateral from bregma (right SNc).
+      # Fiber ferrule length 4 mm = tip depth from dura surface.
+      insertion_position_ap_in_mm: -3.20
+      insertion_position_ml_in_mm: 1.60
+      insertion_position_dv_in_mm: 4.00
+      position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      description: >-
+        Optical fiber for optogenetic stimulation of ChRmine-expressing Cre+ SNc dopamine
+        neurons, right hemisphere. Implanted via craniotomy at AP -3.20 mm, ML +1.60 mm
+        from bregma. Ferrule length 4 mm = tip depth of 4.00 mm from dura surface.
+
+  ViralVector:
+    name: viral_vector_chrmine
+    construct_name: pAAV-Ef1a-DIO-ChRmine-mScarlet-WPRE
+    manufacturer: Addgene
+    titer_in_vg_per_ml: 2.2e13
+    description: >-
+      AAV5 serotype. Addgene catalog #130998. Titer 2.20×10¹³ vg/mL. Cre-dependent
+      expression of ChRmine-mScarlet in SNc dopamine neurons.
+
+  VirusInjections:
+    - name: snc_injection_right
+      location: "substantia nigra pars compacta"
+      hemisphere: right
+      reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      # Craniotomy at AP -3.20 mm, ML +1.60 mm from bregma (right hemisphere).
+      # Four injection depths: -3.8, -4.1, -4.4, -4.7 mm ventral from dura (0.1 µL each).
+      # DV below uses centroid of the four depths; total volume 0.40 µL (4 × 0.10 µL).
+      ap_in_mm: -3.20
+      ml_in_mm: 1.60
+      dv_in_mm: -4.25
+      volume_in_uL: 0.40
+      description: >-
+        Right SNc injection of pAAV-Ef1a-DIO-ChRmine-mScarlet-WPRE (Addgene #130998, AAV5,
+        2.20×10¹³ vg/mL). Four injection depths: −3.8, −4.1, −4.4, −4.7 mm ventral from
+        dura surface; 0.1 µL per depth (0.4 µL total); injected via pulled glass micropipette.
+
+  Effectors:
+    - name: ChRmine_right
+      hemisphere: right
+      label: ChRmine
+      manufacturer: Addgene
+      description: >-
+        Red-shifted channelrhodopsin ChRmine fused to mScarlet, expressed in Cre+ SNc dopamine
+        neurons via Cre-dependent AAV5 (Addgene #130998). Activated with 635 nm LED light.
+
+  OptogeneticSitesTable:
+    description: >-
+      Right-hemisphere SNc optogenetic stimulation site. Cre+ dopamine neurons express
+      ChRmine-mScarlet via Cre-dependent AAV5 (Addgene #130998) and are activated with
+      a 635 nm LED (LEDFRJ_635, Doric Lenses) via a 400 µm optical fiber
+      (Doric MFC_400/430-0.66_4.0mm_TS3.0_C60, 4 mm ferrule).
+    columns:
+      - name: excitation_source
+        description: "635 nm LED (LEDFRJ_635, Doric Lenses) for ChRmine optogenetic stimulation."
+      - name: optical_fiber
+        description: "400 µm optical fiber (Doric MFC_400/430-0.66_4.0mm_TS3.0_C60) implanted in right SNc."
+      - name: effector
+        description: "ChRmine-mScarlet expressed in Cre+ SNc dopamine neurons."
+
+  OptogeneticEpochsTable:
+    name: OptogeneticEpochsTable
+    description: >-
+      Epochs of optogenetic activation of ChRmine-expressing Cre+ SNc dopamine neurons
+      (635 nm LED, right hemisphere). Each row is one contiguous stimulation epoch
+      (TTL=1 block) extracted from the 100 Hz binned TTL column in *_data.mat.
+      Pulse parameters: 8 ms on / 8 ms off cycles for 500 ms per train; trains spaced
+      at least 20 s apart; 8 repetitions per power level (0.1, 0.5, 1.0, 4.0 mW,
+      pseudorandom order). Power and pulse parameters are passed per-session via
+      conversion_options once confirmed.
