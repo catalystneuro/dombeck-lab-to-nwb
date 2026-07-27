@@ -152,6 +152,25 @@ Fiber implant DV depth = ferrule length (Doric convention), referenced from dura
 
 ---
 
+### CommandedVoltageSeries — LED switching square wave
+
+The `fxn_gen` ABF channel records the function generator square wave that drives the two LEDs.
+It is stored as a `CommandedVoltageSeries` in `nwb.acquisition` and linked to both rows of the
+`FiberPhotometryTable` as the commanded voltage source.
+
+| Voltage level | Meaning | Demultiplexed stream |
+|---------------|---------|----------------------|
+| High (> 1 V) | 470 nm LED on | `FiberPhotometryResponseSeriesRawSignal` |
+| Low (< 1 V) | 405 nm LED on | `FiberPhotometryResponseSeriesIsosbesticControl` |
+
+- **Waveform frequency** (`frequency`): 100 Hz — the LED alternation rate (10 ms per cycle).
+- **Sampling rate** (`rate`): 2000 Hz — the ABF ADC rate at which the waveform is digitised.
+
+Transition samples at each LED switch edge are discarded before storing the demultiplexed
+fluorescence series, explaining why the raw signal timestamps are irregular.
+
+---
+
 ### Time Alignment
 
 #### Recording clocks and reference frame
