@@ -347,93 +347,93 @@ FiberPhotometry:
     fiber_photometry_table_region:
       - dms_405
     fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel."
-#
-#  # ---------------------------------------------------------------------------
-#  # Processed response series — from *_data.mat (100 Hz, camera-trigger-aligned).
-#  # baselineCorrect: sliding-window 8th-percentile subtract-then-divide (window=2001).
-#  # df_f: (corrected - F0) / F0 * 100, F0 = 8th percentile; smoothed with 20-sample moving mean.
-#  # ---------------------------------------------------------------------------
-#
-#  # Anxa-LRRK2 group (DLS) — baseline-corrected 470 nm
-#  corrected_signal_anxa:
-#    name: FiberPhotometryResponseSeriesCorrectedSignal
-#    description: >
-#      Baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
-#      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-#      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
-#    fiber_photometry_table_region:
-#      - dls_470
-#    fiber_photometry_table_region_description: "DLS 470 nm functional channel (baseline-corrected)."
-#
-#  # Anxa-LRRK2 group (DLS) — baseline-corrected 405 nm isosbestic
-#  corrected_isosbestic_anxa:
-#    name: FiberPhotometryResponseSeriesCorrectedIsosbesticControl
-#    description: >
-#      Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
-#      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-#      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
-#    fiber_photometry_table_region:
-#      - dls_405
-#    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (baseline-corrected)."
-#
-#  # Anxa-LRRK2 group (DLS) — ΔF/F 470 nm
-#  dff_anxa:
-#    name: FiberPhotometryResponseSeriesDfOverF
-#    description: >
-#      % ΔF/F of baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
-#      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
-#    fiber_photometry_table_region:
-#      - dls_470
-#    fiber_photometry_table_region_description: "DLS 470 nm functional channel (% ΔF/F, smoothed)."
-#
-#  # Anxa-LRRK2 group (DLS) — ΔF/F 405 nm isosbestic
-#  dff_isosbestic_anxa:
-#    name: FiberPhotometryResponseSeriesDfOverFIsosbesticControl
-#    description: >
-#      % ΔF/F of baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
-#      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
-#    fiber_photometry_table_region:
-#      - dls_405
-#    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (% ΔF/F, smoothed)."
-#
-#  # Calb-LRRK2 group (DMS) — baseline-corrected 470 nm
-#  corrected_signal_calb:
-#    name: FiberPhotometryResponseSeriesCorrectedSignal
-#    description: >
-#      Baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
-#      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-#      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
-#    fiber_photometry_table_region:
-#      - dms_470
-#    fiber_photometry_table_region_description: "DMS 470 nm functional channel (baseline-corrected)."
-#
-#  # Calb-LRRK2 group (DMS) — baseline-corrected 405 nm isosbestic
-#  corrected_isosbestic_calb:
-#    name: FiberPhotometryResponseSeriesCorrectedIsosbesticControl
-#    description: >
-#      Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
-#      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-#      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
-#    fiber_photometry_table_region:
-#      - dms_405
-#    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (baseline-corrected)."
-#
-#  # Calb-LRRK2 group (DMS) — ΔF/F 470 nm
-#  dff_calb:
-#    name: FiberPhotometryResponseSeriesDfOverF
-#    description: >
-#      % ΔF/F of baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
-#      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
-#    fiber_photometry_table_region:
-#      - dms_470
-#    fiber_photometry_table_region_description: "DMS 470 nm functional channel (% ΔF/F, smoothed)."
-#
-#  # Calb-LRRK2 group (DMS) — ΔF/F 405 nm isosbestic
-#  dff_isosbestic_calb:
-#    name: FiberPhotometryResponseSeriesDfOverFIsosbesticControl
-#    description: >
-#      % ΔF/F of baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
-#      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
-#    fiber_photometry_table_region:
-#      - dms_405
-#    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (% ΔF/F, smoothed)."
+
+  # ---------------------------------------------------------------------------
+  # Processed response series — from *_data.mat (100 Hz, camera-trigger-aligned).
+  # baselineCorrect: sliding-window 8th-percentile subtract-then-divide (window=2001).
+  # df_f: (corrected - F0) / F0 * 100, F0 = 8th percentile; smoothed with 20-sample moving mean.
+  # ---------------------------------------------------------------------------
+
+  # Anxa-LRRK2 group (DLS) — baseline-corrected 470 nm
+  corrected_signal_anxa:
+    name: FiberPhotometryResponseSeriesCorrectedSignal
+    description: >
+      Baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dls_470
+    fiber_photometry_table_region_description: "DLS 470 nm functional channel (baseline-corrected)."
+
+  # Anxa-LRRK2 group (DLS) — baseline-corrected 405 nm isosbestic
+  corrected_isosbestic_anxa:
+    name: FiberPhotometryResponseSeriesCorrectedIsosbesticControl
+    description: >
+      Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dls_405
+    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (baseline-corrected)."
+
+  # Anxa-LRRK2 group (DLS) — ΔF/F 470 nm
+  dff_anxa:
+    name: FiberPhotometryResponseSeriesDfOverF
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dls_470
+    fiber_photometry_table_region_description: "DLS 470 nm functional channel (% ΔF/F, smoothed)."
+
+  # Anxa-LRRK2 group (DLS) — ΔF/F 405 nm isosbestic
+  dff_isosbestic_anxa:
+    name: FiberPhotometryResponseSeriesDfOverFIsosbesticControl
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dls_405
+    fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (% ΔF/F, smoothed)."
+
+  # Calb-LRRK2 group (DMS) — baseline-corrected 470 nm
+  corrected_signal_calb:
+    name: FiberPhotometryResponseSeriesCorrectedSignal
+    description: >
+      Baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dms_470
+    fiber_photometry_table_region_description: "DMS 470 nm functional channel (baseline-corrected)."
+
+  # Calb-LRRK2 group (DMS) — baseline-corrected 405 nm isosbestic
+  corrected_isosbestic_calb:
+    name: FiberPhotometryResponseSeriesCorrectedIsosbesticControl
+    description: >
+      Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
+      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+    fiber_photometry_table_region:
+      - dms_405
+    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (baseline-corrected)."
+
+  # Calb-LRRK2 group (DMS) — ΔF/F 470 nm
+  dff_calb:
+    name: FiberPhotometryResponseSeriesDfOverF
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dms_470
+    fiber_photometry_table_region_description: "DMS 470 nm functional channel (% ΔF/F, smoothed)."
+
+  # Calb-LRRK2 group (DMS) — ΔF/F 405 nm isosbestic
+  dff_isosbestic_calb:
+    name: FiberPhotometryResponseSeriesDfOverFIsosbesticControl
+    description: >
+      % ΔF/F of baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
+      F0 = 8th percentile of the corrected trace. Smoothed with a 20-sample moving mean (~0.2 s).
+    fiber_photometry_table_region:
+      - dms_405
+    fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (% ΔF/F, smoothed)."

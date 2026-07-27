@@ -20,11 +20,12 @@
 - [x] `environment.yaml` — conda env, Python 3.13, neuroconv from GitHub main, ndx-fiber-photometry ≥0.2.3, ndx-ophys-devices ≥0.3.1
 - [x] Raw fiber photometry interface (`raw_fiber_photometry_interface.py`) — demultiplexes 470/405 nm from ABF using `fxn_gen` channel; module-level cache avoids double ABF read
 - [x] Processed fiber photometry interface (`processed_fiber_photometry_interface.py`) — reads `*_data.mat` (MATLAB v7.3 HDF5 via h5py reference chain); exposes corrected470, corrected405, dff470, dff405 at 100 Hz
-- [x] `Chen2026NWBConverter` — RawSignal + IsosbesticControl interfaces wired
-- [x] Stub test passes — Anxa group, animal 4007, session 2025-01-24-0002 ✓
-- [x] Stub test — Calb group (need to download a Calb ABF)
-- [x] ABF → animal ID mapping from `LRRK2-animal-list-meta.mat` (which ABF file corresponds to which animal?)
-- [x] `convert_all_sessions.py` — batch script for all 27 animals
+- [x] `Chen2026NWBConverter` — all 6 interfaces wired (RawSignal, IsosbesticControl, CorrectedSignal, CorrectedIsosbestic, DfOverF, DfOverFIsosbestic)
+- [x] Stub test passes — Anxa group, animal 4007, session 2025-08-13-0005 ✓
+- [x] Stub test — Calb group ✓ (all 12 Calb sessions pass)
+- [x] ABF → animal ID mapping from `LRRK2-animal-list-meta.mat` — decoded via `_data.mat` filename field
+- [x] `convert_all_sessions.py` — batch script for all 27 animals (parallel, 4 workers, per-animal error logs)
+- [x] Processed interfaces verified against `LRRK2_binning_and_processing.m` — column order, 100 Hz rate, and processing steps (baselineCorrect/df_f/movmean-20) confirmed
 - [ ] **Pending lab reply** — per-animal sex records, `stim_sequence` 'a' vs 'b' meaning, `initiation` channel meaning (Calb only), Calb DV fiber coordinate, Calb injection DV coordinate, publication DOI, experimenter name(s)
 
 ---
@@ -52,13 +53,15 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 
 #### Processed fluorescence (from `*_data.mat` — 100 Hz, regular timestamps)
 
-- [ ] `FiberPhotometryResponseSeriesCorrectedSignal` — baseline-corrected 470 nm (`corrected470`)
-- [ ] `FiberPhotometryResponseSeriesCorrectedIsosbesticControl` — baseline-corrected 405 nm (`corrected405`)
-- [ ] `FiberPhotometryResponseSeriesDfOverF` — % ΔF/F 470 nm, smoothed (`dff470`)
-- [ ] `FiberPhotometryResponseSeriesDfOverFIsosbesticControl` — % ΔF/F 405 nm (`dff405`)
-- [ ] Processed interface implemented (`processed_fiber_photometry_interface.py`)
-- [ ] Wire processed interfaces back into `Chen2026NWBConverter` and `convert_session.py` (currently commented out)
-- [ ] Stub test processed interfaces
+- [x] `FiberPhotometryResponseSeriesCorrectedSignal` — baseline-corrected 470 nm (`corrected470`)
+- [x] `FiberPhotometryResponseSeriesCorrectedIsosbesticControl` — baseline-corrected 405 nm (`corrected405`)
+- [x] `FiberPhotometryResponseSeriesDfOverF` — % ΔF/F 470 nm, smoothed (`dff470`)
+- [x] `FiberPhotometryResponseSeriesDfOverFIsosbesticControl` — % ΔF/F 405 nm (`dff405`)
+- [x] Processed interface implemented (`processed_fiber_photometry_interface.py`)
+- [x] Wire processed interfaces back into `Chen2026NWBConverter` and `convert_session.py`
+- [x] Stub test processed interfaces — all 27 sessions pass (Anxa + Calb)
+- [x] Processed series routed to `nwbfile.processing["ophys"]` (override in `add_to_nwbfile`)
+- [ ] Open neuroconv PR: add `parent_container: Literal["acquisition", "processing/ophys"]` parameter to `BaseFiberPhotometryInterface.add_to_nwbfile` (workaround in place with TODO comment)
 
 ### Behavior (from `*_data.mat` — 100 Hz)
 
