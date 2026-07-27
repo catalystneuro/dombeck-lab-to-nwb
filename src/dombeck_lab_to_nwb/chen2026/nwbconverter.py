@@ -1,7 +1,6 @@
 from neuroconv import NWBConverter
 
 from .interfaces import (
-    Chen2026ABFEventsInterface,
     Chen2026BehaviorInterface,
     Chen2026OptogeneticsInterface,
     Chen2026ProcessedFiberPhotometryInterface,
@@ -17,7 +16,6 @@ class Chen2026NWBConverter(NWBConverter):
     Raw interfaces (always present):
       RawSignal              — 470 nm demultiplexed from ABF
       IsosbesticControl      — 405 nm demultiplexed from ABF
-      ABFEvents              — individual opto pulses from raw opto_TTL (EventsTable)
       RawTreadmill           — raw rotary-encoder voltage from ABF treadmill channel
 
     Processed interfaces (present when a *_data.mat file is provided):
@@ -32,7 +30,6 @@ class Chen2026NWBConverter(NWBConverter):
     data_interface_classes = dict(
         RawSignal=Chen2026RawFiberPhotometryInterface,
         IsosbesticControl=Chen2026RawFiberPhotometryInterface,
-        ABFEvents=Chen2026ABFEventsInterface,
         RawTreadmill=Chen2026RawTreadmillInterface,
         CorrectedSignal=Chen2026ProcessedFiberPhotometryInterface,
         CorrectedIsosbestic=Chen2026ProcessedFiberPhotometryInterface,

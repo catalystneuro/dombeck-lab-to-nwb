@@ -169,9 +169,6 @@ def convert_session(
             "stream_names": ["405nm"],
             "metadata_key": metadata_keys["IsosbesticControl"],
         },
-        "ABFEvents": {
-            "file_path": str(file_path),
-        },
         "RawTreadmill": {
             "file_path": str(file_path),
         },
@@ -243,7 +240,6 @@ def convert_session(
     conversion_options: dict = {
         "RawSignal": {"stub_test": stub_test},
         "IsosbesticControl": {"stub_test": stub_test},
-        "ABFEvents": {},
         "RawTreadmill": {},
     }
     if mat_file is not None:
