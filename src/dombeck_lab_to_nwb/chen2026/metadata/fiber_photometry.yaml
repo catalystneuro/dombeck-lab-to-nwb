@@ -237,6 +237,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_470
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
       dls_405:
         location: dorsal lateral striatum
@@ -249,6 +250,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_405
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
       # Calb-LRRK2 group — dorsal medial striatum (DMS)
       dms_470:
@@ -262,6 +264,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_470
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
       dms_405:
         location: dorsal medial striatum
@@ -274,6 +277,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_405
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
   # ---------------------------------------------------------------------------
   # Commanded voltage series — the LED switching square wave from the function
