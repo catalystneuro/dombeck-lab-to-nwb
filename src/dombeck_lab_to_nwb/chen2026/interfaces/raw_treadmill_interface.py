@@ -28,6 +28,8 @@ class Chen2026RawTreadmillInterface(BaseDataInterface):
     def add_to_nwbfile(self, nwbfile, metadata, **conversion_options):
         from pynwb.base import TimeSeries
 
+        from neuroconv.utils.checks import calculate_regular_series_rate
+
         from .raw_fiber_photometry_interface import _load_and_demux
 
         if self.SERIES_NAME in nwbfile.acquisition:
@@ -36,12 +38,18 @@ class Chen2026RawTreadmillInterface(BaseDataInterface):
         cache = _load_and_demux(self.source_data["file_path"])
         data, timestamps = cache["treadmill"]
 
-        description = "Raw analog output of the rotary encoder acquired at 2000 Hz, signal range ~1.2–2.0 V. "
+        rate = calculate_regular_series_rate(timestamps)
+        if rate is not None:
+            timing_kwargs = dict(starting_time=float(timestamps[0]), rate=rate)
+        else:
+            timing_kwargs = dict(timestamps=timestamps)
+
+        description = "Raw analog output of the rotary encoder acquired at 2000 Hz, signal range ~1.2–2.0 V."
         treadmill_series = TimeSeries(
             name=self.SERIES_NAME,
             data=data,
             description=description,
-            timestamps=timestamps,
+            **timing_kwargs,
             unit="V",
         )
         nwbfile.add_acquisition(treadmill_series)
