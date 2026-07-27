@@ -17,23 +17,12 @@
 
 DeviceModels:
 
-  ofm_dls:
+  ofm_photometry:
     type: OpticalFiberModel
-    name: optical_fiber_model_dls
-    description: "Doric Lenses fiber cannula used in Anxa-LRRK2 group (DLS). Ferrule length 2 mm = implant tip depth from dura surface."
+    name: optical_fiber_model
+    description: "Doric Lenses fiber cannula (MFC series, ZF1.25(G) ferrule) used for fiber photometry in both experimental groups. Shared model; ferrule length varies by implant site: 2 mm for Anxa-LRRK2 (DLS) and 3 mm for Calb-LRRK2 (DMS); tip depth from dura surface recorded per-fiber in the FiberPhotometryTable."
     manufacturer: Doric Lenses
-    model_number: MFC_200/250-0.66_2.0mm_ZF1.25(G)_FLT
-    numerical_aperture: 0.66
-    core_diameter_in_um: 200.0
-    ferrule_model: ZF1.25(G)
-    ferrule_diameter_in_mm: 1.25
-
-  ofm_dms:
-    type: OpticalFiberModel
-    name: optical_fiber_model_dms
-    description: "Doric Lenses fiber cannula used in Calb-LRRK2 group (DMS). Ferrule length 3 mm = implant tip depth from dura surface."
-    manufacturer: Doric Lenses
-    model_number: MFC_200/250-0.66_3.0mm_ZF1.25(G)_FLT
+    model_number: MFC_200/250-0.66_ZF1.25(G)_FLT
     numerical_aperture: 0.66
     core_diameter_in_um: 200.0
     ferrule_model: ZF1.25(G)
@@ -115,7 +104,7 @@ Devices:
     type: OpticalFiber
     name: optical_fiber_dls
     description: "Photometry fiber implanted in dorsal lateral striatum (DLS), right hemisphere. Ferrule length 2 mm = tip depth from dura surface."
-    device_model_metadata_key: ofm_dls
+    device_model_metadata_key: ofm_photometry
     fiber_insertion:
       depth_in_mm: 2.0
       insertion_position_ap_in_mm: 0.50
@@ -128,7 +117,7 @@ Devices:
     type: OpticalFiber
     name: optical_fiber_dms
     description: "Photometry fiber implanted in dorsal medial striatum (DMS), right hemisphere. Ferrule length 3 mm = tip depth from dura surface."
-    device_model_metadata_key: ofm_dms
+    device_model_metadata_key: ofm_photometry
     fiber_insertion:
       depth_in_mm: 3.0
       insertion_position_ap_in_mm: 0.50
@@ -248,6 +237,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_470
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
       dls_405:
         location: dorsal lateral striatum
@@ -260,6 +250,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_405
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
       # Calb-LRRK2 group — dorsal medial striatum (DMS)
       dms_470:
@@ -273,6 +264,7 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_470
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
 
       dms_405:
         location: dorsal medial striatum
@@ -285,6 +277,23 @@ FiberPhotometry:
         excitation_filter_metadata_key: ef_405
         emission_filter_metadata_key: emf
         dichroic_mirror_metadata_key: em_dichroic
+        commanded_voltage_series_metadata_key: fxn_gen
+
+  # ---------------------------------------------------------------------------
+  # Commanded voltage series — the LED switching square wave from the function
+  # generator. One series covers both excitation wavelengths (no need to split):
+  # high voltage (>1 V) = 470 nm LED on; low voltage (<1 V) = 405 nm LED on.
+  # ---------------------------------------------------------------------------
+  CommandedVoltageSeries:
+    fxn_gen:
+      name: CommandedVoltageSeries
+      description: >
+        LED switching square wave from the function generator at 2000 Hz.
+        High voltage (>1 V) marks 470 nm excitation periods; low voltage (<1 V) marks
+        405 nm isosbestic periods.
+      stream_name: fxn_gen
+      unit: V
+      frequency: 100.0
 
   # ---------------------------------------------------------------------------
   # Response series entries — one per interface instance (one stream each).

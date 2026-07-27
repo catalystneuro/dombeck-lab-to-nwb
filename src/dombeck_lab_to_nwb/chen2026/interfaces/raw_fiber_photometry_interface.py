@@ -66,6 +66,7 @@ def _load_and_demux(file_path: str, threshold_v: float = 1.0) -> dict:
     result = {
         "470nm": (sig520[wave470 & ~border], timestamps[wave470 & ~border]),
         "405nm": (sig520[wave405 & ~border], timestamps[wave405 & ~border]),
+        "fxn_gen": (fxn, timestamps),
         "_datetime": abf_dt,
     }
     _DEMUX_CACHE[file_path] = result
@@ -95,7 +96,7 @@ class Chen2026RawFiberPhotometryInterface(BaseFiberPhotometryInterface):
 
     @classmethod
     def get_available_streams(cls, file_path: str | Path) -> list[str]:
-        return [cls.STREAM_470, cls.STREAM_405]
+        return [cls.STREAM_470, cls.STREAM_405, "fxn_gen"]
 
     def __init__(
         self,
