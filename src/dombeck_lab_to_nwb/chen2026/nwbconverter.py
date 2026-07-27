@@ -5,6 +5,7 @@ from .interfaces import (
     Chen2026OptogeneticsInterface,
     Chen2026ProcessedFiberPhotometryInterface,
     Chen2026RawFiberPhotometryInterface,
+    Chen2026RawTreadmillInterface,
 )
 
 
@@ -15,6 +16,7 @@ class Chen2026NWBConverter(NWBConverter):
     Raw interfaces (always present):
       RawSignal              — 470 nm demultiplexed from ABF
       IsosbesticControl      — 405 nm demultiplexed from ABF
+      RawTreadmill           — raw rotary-encoder voltage from ABF treadmill channel
 
     Processed interfaces (present when a *_data.mat file is provided):
       CorrectedSignal        — baseline-corrected 470 nm (corrected470, 100 Hz)
@@ -28,6 +30,7 @@ class Chen2026NWBConverter(NWBConverter):
     data_interface_classes = dict(
         RawSignal=Chen2026RawFiberPhotometryInterface,
         IsosbesticControl=Chen2026RawFiberPhotometryInterface,
+        RawTreadmill=Chen2026RawTreadmillInterface,
         CorrectedSignal=Chen2026ProcessedFiberPhotometryInterface,
         CorrectedIsosbestic=Chen2026ProcessedFiberPhotometryInterface,
         DfOverF=Chen2026ProcessedFiberPhotometryInterface,

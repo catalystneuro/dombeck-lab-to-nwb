@@ -39,9 +39,11 @@ def _load_and_demux(file_path: str, threshold_v: float = 1.0) -> dict:
 
     sig_idx = channel_names.index("520sig")
     fxn_idx = channel_names.index("fxn_gen")
+    treadmill_idx = channel_names.index("treadmill")
 
     sig520 = abf.data[sig_idx]
     fxn = abf.data[fxn_idx]
+    treadmill = abf.data[treadmill_idx]
 
     n = len(sig520)
     timestamps = np.arange(n, dtype=np.float64) / abf.dataRate
@@ -67,6 +69,7 @@ def _load_and_demux(file_path: str, threshold_v: float = 1.0) -> dict:
         "470nm": (sig520[wave470 & ~border], timestamps[wave470 & ~border]),
         "405nm": (sig520[wave405 & ~border], timestamps[wave405 & ~border]),
         "fxn_gen": (fxn, timestamps),
+        "treadmill": (treadmill, timestamps),
         "_datetime": abf_dt,
     }
     _DEMUX_CACHE[file_path] = result
