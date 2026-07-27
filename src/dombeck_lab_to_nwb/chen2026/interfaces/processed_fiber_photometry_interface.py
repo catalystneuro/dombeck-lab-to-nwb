@@ -173,6 +173,10 @@ class Chen2026ProcessedFiberPhotometryInterface(BaseFiberPhotometryInterface):
     """
 
     def add_to_nwbfile(self, nwbfile, metadata, **conversion_options):
+        # CommandedVoltageSeries is not available for the processed FP data
+        fiber_photometry_metadata = metadata.get("FiberPhotometry", {})
+        if "CommandedVoltageSeries" in fiber_photometry_metadata:
+            fiber_photometry_metadata.pop("CommandedVoltageSeries", None)
         super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, **conversion_options)
 
         series_name = metadata["FiberPhotometry"][self.metadata_key]["name"]
