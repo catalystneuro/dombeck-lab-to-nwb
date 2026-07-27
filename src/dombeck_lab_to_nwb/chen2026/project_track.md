@@ -6,7 +6,7 @@
 **Conversion folder:** `src/dombeck_lab_to_nwb/chen2026/`
 **Detailed data notes:** [`conversion_notes.md`](src/dombeck_lab_to_nwb/chen2026/conversion_notes.md), [`lrrk2_investigation.md`](src/dombeck_lab_to_nwb/chen2026/lrrk2_investigation.md)
 
-**Progress: 0 / 27 sessions converted**
+**Progress: 27 / 27 sessions converted** *(re-run needed after session-688 bug fix — see below)*
 
 ---
 
@@ -17,16 +17,12 @@
 - [x] Metadata extraction from manuscript — hardware, coordinates, virus, indicator
 - [x] `general_metadata.yaml` — NWBFile fields, Subject fields, session/subject description templates
 - [x] `fiber_photometry.yaml` — device models (optical fibers, LEDs, PMT, filters, dichroics), FiberPhotometryTable rows (4 rows: DLS×470, DLS×405, DMS×470, DMS×405), 12 response-series entries
+- [x] `optogenetics.yaml` — OptogeneticStimulusSite (SNc), OptogeneticSeries, ChRmine device metadata (AAV5, Addgene #130998)
 - [x] `environment.yaml` — conda env, Python 3.13, neuroconv from GitHub main, ndx-fiber-photometry ≥0.2.3, ndx-ophys-devices ≥0.3.1
-- [x] Raw fiber photometry interface (`raw_fiber_photometry_interface.py`) — demultiplexes 470/405 nm from ABF using `fxn_gen` channel; module-level cache avoids double ABF read
-- [x] Processed fiber photometry interface (`processed_fiber_photometry_interface.py`) — reads `*_data.mat` (MATLAB v7.3 HDF5 via h5py reference chain); exposes corrected470, corrected405, dff470, dff405 at 100 Hz
-- [x] `Chen2026NWBConverter` — all 6 interfaces wired (RawSignal, IsosbesticControl, CorrectedSignal, CorrectedIsosbestic, DfOverF, DfOverFIsosbestic)
-- [x] Stub test passes — Anxa group, animal 4007, session 2025-08-13-0005 ✓
-- [x] Stub test — Calb group ✓ (all 12 Calb sessions pass)
 - [x] ABF → animal ID mapping from `LRRK2-animal-list-meta.mat` — decoded via `_data.mat` filename field
+- [x] Per-epoch power values decoded from `stimulation sequence LRRK2.xlsx` — stim_sequence 'a'/'b' resolved as pseudorandom power order; all 27 sessions populated
 - [x] `convert_all_sessions.py` — batch script for all 27 animals (parallel, 4 workers, per-animal error logs)
-- [x] Processed interfaces verified against `LRRK2_binning_and_processing.m` — column order, 100 Hz rate, and processing steps (baselineCorrect/df_f/movmean-20) confirmed
-- [ ] **Pending lab reply** — per-animal sex records, `stim_sequence` 'a' vs 'b' meaning, `initiation` channel meaning (Calb only), Calb DV fiber coordinate, Calb injection DV coordinate, publication DOI, experimenter name(s)
+- [ ] **Pending lab reply** — per-animal sex records, `initiation` channel meaning (Calb only), Calb DV fiber coordinate, Calb injection DV coordinate, publication DOI
 
 ---
 
@@ -41,57 +37,92 @@
 
 Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age at surgery ~6 months.
 
+---
+
 ### Fiber Photometry
 
 #### Raw fluorescence (from ABF — 2 kHz, irregular timestamps post-demux)
 
 - [x] `FiberPhotometryResponseSeriesRawSignal` — 470 nm functional channel (GRAB-DA3m)
 - [x] `FiberPhotometryResponseSeriesIsosbesticControl` — 405 nm isosbestic control
-- [x] Interfaces implemented and stub tested (Anxa group)
-- [x] Enable for Calb group (stub test)
-- [x] Wire into `convert_all_sessions.py`
+- [x] Demux uses `fxn_gen` channel (>1 V → 470 nm; <1 V → 405 nm); transition samples discarded; module-level cache avoids double ABF read
+- [x] Wired into converter and `convert_all_sessions.py`; all 27 sessions (Anxa + Calb)
 
-#### Processed fluorescence (from `*_data.mat` — 100 Hz, regular timestamps)
+#### CommandedVoltageSeries — LED switching waveform
+
+- [x] `CommandedVoltageSeries` in `nwb.acquisition` — full 2 kHz `fxn_gen` square wave
+- [x] Linked to both FiberPhotometryTable rows as `commanded_voltage_series` column
+- [x] `frequency=100 Hz` (LED alternation), `rate=2000 Hz` (ADC sample rate)
+
+#### Processed fluorescence (from `*_data.mat` — 100 Hz, camera-trigger timestamps)
 
 - [x] `FiberPhotometryResponseSeriesCorrectedSignal` — baseline-corrected 470 nm (`corrected470`)
 - [x] `FiberPhotometryResponseSeriesCorrectedIsosbesticControl` — baseline-corrected 405 nm (`corrected405`)
 - [x] `FiberPhotometryResponseSeriesDfOverF` — % ΔF/F 470 nm, smoothed (`dff470`)
 - [x] `FiberPhotometryResponseSeriesDfOverFIsosbesticControl` — % ΔF/F 405 nm (`dff405`)
-- [x] Processed interface implemented (`processed_fiber_photometry_interface.py`)
-- [x] Wire processed interfaces back into `Chen2026NWBConverter` and `convert_session.py`
-- [x] Stub test processed interfaces — all 27 sessions pass (Anxa + Calb)
-- [x] Processed series routed to `nwbfile.processing["ophys"]` (override in `add_to_nwbfile`)
-- [ ] Open neuroconv PR: add `parent_container: Literal["acquisition", "processing/ophys"]` parameter to `BaseFiberPhotometryInterface.add_to_nwbfile` (workaround in place with TODO comment)
+- [x] Routed to `nwb.processing["ophys"]` (workaround override; TODO comment marks for future neuroconv PR)
+- [x] Camera-trigger offset (~21 s) handled correctly: first trigger at ~21 s is the `starting_time` of all 100 Hz series
+- [ ] Open neuroconv PR: add `parent_container: Literal["acquisition", "processing/ophys"]` to `BaseFiberPhotometryInterface.add_to_nwbfile`
 
-### Behavior (from `*_data.mat` — 100 Hz)
+---
 
-- [ ] Treadmill velocity (m/s) → `TimeSeries` or `SpatialSeries` in `processing/behavior`
-- [ ] Treadmill acceleration (m/s²) → `TimeSeries` in `processing/behavior`
+### Behavior (from `*_data.mat` — 100 Hz, camera-trigger timestamps)
+
+- [x] `treadmill_velocity` (m/s) → `BehavioralTimeSeries` in `nwb.processing["behavior"]`
+- [x] `treadmill_acceleration` (m/s²) → same `BehavioralTimeSeries`
+- [x] `Chen2026BehaviorInterface` implemented (`behavior_interface.py`); wired into converter and batch script
+
+#### Raw treadmill voltage (from ABF — 2 kHz)
+
+- [x] `RawTreadmillVoltage` → `TimeSeries` in `nwb.acquisition`; ABF `treadmill` channel, ~1.2–2.0 V
+- [x] `Chen2026RawTreadmillInterface` implemented (`raw_treadmill_interface.py`); shares `_DEMUX_CACHE` with `Chen2026RawFiberPhotometryInterface`
+- [x] Bug fixed (2026-07-27): stray `metadata=metadata` kwarg removed from `TimeSeries.__init__` call (caused `TypeError` for session 688)
+
+---
 
 ### Optogenetics
 
-#### Stimulation events (from `*_data.mat` — 100 Hz binary TTL)
+#### Stimulation epochs (from `*_data.mat` TTL — merged to 64 trains)
 
-- [ ] Binary opto TTL column → `TimeIntervals` (onset/offset) in `processing/optogenetics` or `stimulus`
-- [ ] Decide: `TimeIntervals` (NWB epochs) vs `TimeSeries` (raw binary)
+- [x] `OptogeneticEpochsTable` in `nwb.intervals` — 64 trains per session (8 powers × 8 reps)
+- [x] Per-epoch columns: `power_in_mW`, `pulse_length_in_ms`, `period_in_ms`, `number_pulses_per_pulse_train`, `wavelength_in_nm`, `number_trains`, `intertrain_interval_in_ms`
+- [x] TTL fragmentation fix: blobs with gap < 1 s merged; all 27 sessions → exactly 64 epochs
+- [x] `Chen2026OptogeneticsInterface` implemented (`optogenetics_interface.py`); per-epoch pulse params detected from raw ABF via `_detect_opto_pulse_params()` in `convert_session.py`
+- [x] Powers populated from `stimulation sequence LRRK2.xlsx` for all 27 sessions
 
-#### Optogenetic device metadata (ChRmine, 635 nm, SNc)
+#### Individual opto pulses (from ABF — 2 kHz)
 
-- [ ] Add ChRmine virus (`pAAV-Ef1a-DIO-ChRmine-mScarlet-WPRE`, AAV5, Addgene #130998, 2.20×10¹³ vg/mL) to `fiber_photometry.yaml` or a separate `optogenetics.yaml`
-- [ ] Add `OptogeneticStimulusSite` + `OptogeneticSeries` metadata for SNc fiber (Doric MFC_400/430-0.66_4.0mm)
+- [x] `OptoTTL` `EventsTable` in `nwb.events` — ~2048 rows (64 trains × 32 pulses); onset + duration per pulse
+- [x] Threshold 0.01 V catches both high-amplitude (~1.2 V, epochs 0–31) and low-amplitude (~0.05 V, epochs 32–63) trains
+- [x] `Chen2026ABFEventsInterface` implemented (`events_interface.py`); always present (no `mat_file` dependency)
+
+#### Optogenetic device metadata
+
+- [x] `OptogeneticStimulusSite` — SNc, right hemisphere, Cre-dependent ChRmine, 635 nm
+- [x] `OptogeneticSeries` metadata from `optogenetics.yaml`; wired into converter
+
+---
 
 ### Session Metadata
 
-- [ ] `stim_sequence` ('a' vs 'b', MATLAB categorical) → `NWBFile.lab_meta_data` or `LabMetaData` extension — **needs lab clarification on meaning**
-- [ ] `initiation` channel (Calb only) — store or skip? **Needs lab clarification**
+- [x] `stim_sequence` — resolved as pseudorandom power order; per-epoch `power_in_mW` populated in epochs table from Excel sheet (no separate metadata field needed)
+
+---
+
+### Tutorials / Notebooks
+
+- [x] `chen2026_demo.ipynb` — 11-section end-to-end demo (subject metadata → raw FP → CVS → processed FP → ΔF/F → behavior → opto epochs → ABF events → opto metadata → PSTH)
+
+---
 
 ### Post-Conversion
 
+- [ x Re-run batch conversion (27/27 sessions)
 - [ ] Run NWBInspector on a full (non-stub) NWB file
 - [ ] Fix any NWBInspector warnings
 - [ ] Setup Dandiset (embargoed until publication — DOI pending)
 - [ ] Upload all 27 NWB files to DANDI
-- [ ] Example notebook — local read + key figure reproduction
+- [ ] Confirm per-animal sex records with lab and update `Subject.sex` (currently `U` for all)
 
 ---
 
@@ -99,11 +130,8 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 
 | # | Question | Affects |
 |---|----------|---------|
-| 1 | Per-animal sex records | `Subject.sex` (currently `U` placeholder) |
-| 2 | `stim_sequence` 'a' vs 'b' meaning | Session metadata field |
-| 3 | `initiation` channel meaning (Calb only) | Whether to store, and how |
-| 4 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
-| 5 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
-| 6 | Publication DOI | `NWBFile.related_publications` |
-| 7 | Experimenter name(s) who collected photometry data | `NWBFile.experimenter` |
-| 8 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` (wavelength range 300–740 nm already set) |
+| 3 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
+| 4 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
+| 5 | Publication DOI | `NWBFile.related_publications` |
+| 6 | Experimenter name(s) who collected photometry data | `NWBFile.experimenter` (currently `He, Elena`) |
+| 7 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` |
