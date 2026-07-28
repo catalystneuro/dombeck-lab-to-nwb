@@ -109,7 +109,7 @@ Devices:
       depth_in_mm: 2.0
       insertion_position_ap_in_mm: 0.50
       insertion_position_ml_in_mm: 1.80
-      insertion_position_dv_in_mm: 2.0
+      insertion_position_dv_in_mm: -2.0
       hemisphere: right
       position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
 
@@ -122,7 +122,7 @@ Devices:
       depth_in_mm: 3.0
       insertion_position_ap_in_mm: 0.50
       insertion_position_ml_in_mm: 1.40
-      insertion_position_dv_in_mm: 3.0
+      insertion_position_dv_in_mm: -3.0
       hemisphere: right
       position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
 
@@ -192,7 +192,7 @@ FiberPhotometry:
       hemisphere: right
       ap_in_mm: 0.50
       ml_in_mm: 1.80
-      dv_in_mm: 1.90
+      dv_in_mm: -1.90
       volume_in_uL: 0.10
       reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
       viral_vector_metadata_key: grab_da3m_aav
@@ -205,7 +205,7 @@ FiberPhotometry:
       ap_in_mm: 0.50
       ml_in_mm: 1.40
       # TODO: DV not stated in manuscript; using estimate (0.1 mm shallower than fiber tip). Confirm with lab.
-      dv_in_mm: 2.9
+      dv_in_mm: -2.9
       volume_in_uL: 0.10
       reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
       viral_vector_metadata_key: grab_da3m_aav
