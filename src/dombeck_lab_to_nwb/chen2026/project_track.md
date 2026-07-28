@@ -126,6 +126,6 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 
 | # | Question | Affects |
 |---|----------|---------|
-| 1 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
-| 2 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
+| ~~1~~ | ~~Calb group DV fiber coordinate~~ | Resolved 2026-07-28: DLS -1.8 mm, DMS -2.8 mm — updated in `fiber_photometry.yaml` |
+| ~~2~~ | ~~Calb group GRAB-DA3m injection DV~~ | Resolved 2026-07-28: -2.8 mm (same as fiber depth) — updated in `fiber_photometry.yaml` |
 | 3 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` |
