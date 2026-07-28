@@ -1,5 +1,8 @@
 # src/dombeck_lab_to_nwb/chen2026
-NWB conversion scripts for the LRRK2 Dataset from the Dombeck lab (2026-07).
+
+NWB conversion scripts for the LRRK2 fiber photometry dataset from the Dombeck Lab.
+**Preprint:** [https://doi.org/10.1101/2025.08.28.672006](https://doi.org/10.1101/2025.08.28.672006)
+**DANDI archive:** [DANDI:001933](https://dandiarchive.org/dandiset/001933) (embargoed)
 
 ## Installation
 
@@ -33,25 +36,64 @@ overwritten by an older PyPI release.
 chen2026/
 ├── README.md                        # this file
 ├── environment.yaml                 # conda environment specification (Python 3.13 + all dependencies)
-├── convert_session.py               # main entry point — edit paths at the bottom and run
-├── chen2026nwbconverter.py          # NWBConverter subclass wiring all interfaces together
+├── convert_session.py               # convert a single session — edit paths at the bottom and run
+├── convert_all_sessions.py          # batch conversion for all 27 sessions (parallel, 4 workers)
+├── nwbconverter.py                  # NWBConverter subclass wiring all interfaces together
+├── conversion_notes.md              # detailed technical notes on data format and implementation
 ├── interfaces/
+│   ├── __init__.py
 │   ├── raw_fiber_photometry_interface.py       # reads raw .abf; demultiplexes 470/405 nm streams
-└── metadata/
-    ├── general_metadata.yaml        # NWBFile and Subject fields shared across all sessions
-    └── fiber_photometry.yaml        # hardware metadata: devices, fiber implants, virus injections,
-                                     # indicators, FiberPhotometryTable rows, and response series entries
+│   ├── processed_fiber_photometry_interface.py # reads *_data.mat; writes corrected FP + ΔF/F
+│   ├── behavior_interface.py                   # reads *_data.mat; writes treadmill velocity + acceleration
+│   ├── optogenetics_interface.py               # reads *_data.mat TTL; writes OptogeneticEpochsTable
+│   └── raw_treadmill_interface.py              # reads raw .abf treadmill channel; writes RawTreadmillVoltage
+├── metadata/
+│   ├── general_metadata.yaml        # NWBFile and Subject fields shared across all sessions
+│   ├── fiber_photometry.yaml        # hardware metadata: devices, fiber implants, virus injections,
+│   │                                # indicators, FiberPhotometryTable rows, and response series entries
+│   └── optogenetics.yaml            # optogenetics metadata: LED, fiber, ChRmine virus, injection sites
+└── tutorials/
+    └── chen2026_demo.ipynb          # end-to-end tutorial reading a local NWB file
 ```
+
+## NWB file contents
+
+Each converted `.nwb` file contains one session (one animal, one recording). Both groups
+(Anxa-LRRK2 and Calb-LRRK2) share the same structure:
+
+| Location | Object | Source | Notes |
+|----------|--------|--------|-------|
+| `acquisition/` | `FiberPhotometryResponseSeriesRawSignal` | ABF `520sig` (470 nm demux) | 2000 Hz, irregular timestamps |
+| `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, irregular timestamps |
+| `acquisition/` | `CommandedVoltageSeries` | ABF `fxn_gen` (LED switching waveform) | 2000 Hz, rate-based; linked to FiberPhotometryTable |
+| `acquisition/` | `RawTreadmillVoltage` | ABF `treadmill` channel | 2000 Hz, analog ~1.2–2.0 V |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbesticControl` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, % ΔF/F |
+| `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbesticControl` | `_data.mat` `dff405` | 100 Hz, % ΔF/F |
+| `processing/behavior/` | `BehavioralTimeSeries` | `_data.mat` `velocity`, `acceleration` | 100 Hz, m/s and m/s² |
+| `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
 
 ### Key files
 
-**`convert_session.py`** — the script you run to produce an NWB file. Edit the file paths and
-animal parameters in the `if __name__ == "__main__"` block at the bottom.
+**`convert_session.py`** — the script you run to produce a single NWB file. Edit the file paths and
+animal parameters in the `if __name__ == "__main__"` block at the bottom, then run:
+
+```bash
+python src/dombeck_lab_to_nwb/chen2026/convert_session.py
+```
+
+**`convert_all_sessions.py`** — batch conversion for all 27 sessions using a `ProcessPoolExecutor`
+(4 parallel workers by default). Errors are written to per-session log files. Run with:
+
+```bash
+python src/dombeck_lab_to_nwb/chen2026/convert_all_sessions.py
+```
 
 **`metadata/general_metadata.yaml`** — contains static NWBFile fields shared across all sessions
 (`experiment_description`, `keywords`, `institution`, `lab`, `experimenter`) and Subject fields
-(`species`, `strain`, `age`, `sex`). Per-group session descriptions and subject descriptions are
-also stored here as templates; the `{genotype_label}` placeholder is filled in at runtime.
+(`species`, `strain`). Per-group session descriptions and subject descriptions are also stored here
+as templates; the `{genotype_label}` placeholder is filled in at runtime.
 
 **`metadata/fiber_photometry.yaml`** — contains all fiber photometry hardware metadata structured
 as `BaseFiberPhotometryInterface` expects: device models and instances (`DeviceModels`, `Devices`),
@@ -60,23 +102,30 @@ fluorescence indicators (`FiberPhotometryIndicators`), the `FiberPhotometryTable
 fiber × excitation wavelength), and one response series entry per interface instance. Both groups
 are covered in a single file: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows).
 
+**`metadata/optogenetics.yaml`** — contains optogenetics hardware metadata used by
+`Chen2026OptogeneticsInterface`: the 635 nm LED (`ExcitationSourceModel`, `ExcitationSource`),
+opto fiber at SNc (`OpticalFiberModel`, `OpticalFibers`), ChRmine viral vector and injection
+(`ViralVector`, `VirusInjections`), ChRmine effector (`Effectors`), and `OptogeneticSitesTable`.
+
 **`interfaces/raw_fiber_photometry_interface.py`** — subclasses `BaseFiberPhotometryInterface`.
 Reads the multiplexed 520 nm PMT signal from an Axon `.abf` file and demultiplexes it into
 470 nm (functional) and 405 nm (isosbestic) streams using the `fxn_gen` LED-switching channel.
-Instantiated twice per session: once per wavelength.
+Instantiated twice per session (once per wavelength). A module-level cache (`_DEMUX_CACHE`)
+avoids reading the ABF file twice.
 
-### Running the conversion
+**`interfaces/processed_fiber_photometry_interface.py`** — subclasses `BaseFiberPhotometryInterface`.
+Reads baseline-corrected and ΔF/F traces from the per-animal `*_data.mat` file and routes them to
+`nwb.processing["ophys"]` (camera-trigger-aligned, 100 Hz). Instantiated four times per session
+(corrected470, corrected405, dff470, dff405).
 
-You can run the conversion of a single session with the following command:
+**`interfaces/behavior_interface.py`** — reads `velocity` and `acceleration` columns from
+`*_data.mat` and writes them as a `BehavioralTimeSeries` in `nwb.processing["behavior"]` (100 Hz).
 
-```bash
-python src/dombeck_lab_to_nwb/chen2026/convert_session.py
-```
+**`interfaces/optogenetics_interface.py`** — reads the binary `TTL` column from `*_data.mat`,
+merges TTL fragments within 1 s into full trains, and writes an `OptogeneticEpochsTable` with
+per-epoch `pulse_length_in_ms`, `period_in_ms`, `number_pulses_per_pulse_train`, and `power_in_mW`.
+Full ndx-optogenetics device provenance (LED, fiber, ChRmine virus, injection sites) is also added.
 
-### Running the batch conversion
-
-You can run the conversion of all 27 sessions with the following command:
-
-```bash
-python src/dombeck_lab_to_nwb/chen2026/convert_all_sessions.py
-```
+**`interfaces/raw_treadmill_interface.py`** — reads the `treadmill` channel from the `.abf` file
+and writes it as `RawTreadmillVoltage` in `nwb.acquisition` (2000 Hz, ~1.2–2.0 V). Shares the
+`_DEMUX_CACHE` with `raw_fiber_photometry_interface.py` to avoid duplicate ABF reads.
