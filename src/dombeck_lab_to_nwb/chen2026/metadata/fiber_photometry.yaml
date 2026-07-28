@@ -5,8 +5,8 @@
 # converter selects the appropriate FiberPhotometryTable rows and response
 # series entry for each animal based on its group.
 #
-# Coordinates: AP and ML from Bregma at the cortical surface (Paxinos atlas).
-# DV from the dura surface (confirmed by lab): -1.8 mm (DLS/Anxa), -2.8 mm (DMS/Calb).
+# Coordinates: all AP, ML, and DV from Bregma (confirmed by lab).
+# DV: -1.8 mm (DLS/Anxa fiber), -2.8 mm (DMS/Calb fiber and injection).
 # All implants in the right hemisphere.
 #
 # Reference: Chen, He et al. (in preparation).
@@ -111,7 +111,7 @@ Devices:
       insertion_position_ml_in_mm: 1.80
       insertion_position_dv_in_mm: -1.8
       hemisphere: right
-      position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      position_reference: "Bregma"
 
   fiber_dms:
     type: OpticalFiber
@@ -124,7 +124,7 @@ Devices:
       insertion_position_ml_in_mm: 1.40
       insertion_position_dv_in_mm: -2.8
       hemisphere: right
-      position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      position_reference: "Bregma"
 
   es_470:
     type: ExcitationSource
@@ -194,7 +194,7 @@ FiberPhotometry:
       ml_in_mm: 1.80
       dv_in_mm: -1.90
       volume_in_uL: 0.10
-      reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      reference: "Bregma"
       viral_vector_metadata_key: grab_da3m_aav
 
     inj_grab_dms:
@@ -206,7 +206,7 @@ FiberPhotometry:
       ml_in_mm: 1.40
       dv_in_mm: -2.8
       volume_in_uL: 0.10
-      reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
+      reference: "Bregma"
       viral_vector_metadata_key: grab_da3m_aav
 
   FiberPhotometryIndicators:
