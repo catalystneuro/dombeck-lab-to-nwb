@@ -4,8 +4,8 @@
 # are filled in by convert_session.py at runtime.
 
 NWBFile:
-  #  related_publications:
-  #    - https://doi.org/... # The publication DOI can be added here
+  related_publications:
+    - https://doi.org/10.1101/2025.08.28.672006
   experiment_description: >
     In vivo fiber photometry of striatal dopamine release in awake, head-fixed mice expressing
     the dopamine sensor GRAB-DA3m. Two intersectional mouse lines targeting distinct dopamine
