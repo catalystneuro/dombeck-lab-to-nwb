@@ -49,10 +49,10 @@ Optogenetics:
     - name: optical_fiber_snc
       hemisphere: right
       # Craniotomy and fiber placement: -3.20 mm caudal, +1.60 mm lateral from bregma (right SNc).
-      # Fiber ferrule length 4 mm = tip depth from dura surface.
+      # Fiber ferrule length 4 mm → DV -4.00 mm from dura surface (negative = ventral).
       insertion_position_ap_in_mm: -3.20
       insertion_position_ml_in_mm: 1.60
-      insertion_position_dv_in_mm: 4.00
+      insertion_position_dv_in_mm: -4.00
       position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
       description: >-
         Optical fiber for optogenetic stimulation of ChRmine-expressing Cre+ SNc dopamine
@@ -75,15 +75,15 @@ Optogenetics:
       reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
       # Craniotomy at AP -3.20 mm, ML +1.60 mm from bregma (right hemisphere).
       # Four injection depths: -3.8, -4.1, -4.4, -4.7 mm ventral from dura (0.1 µL each).
-      # DV below uses centroid of the four depths; total volume 0.40 µL (4 × 0.10 µL).
+      # DV = centroid of four depths = -4.25 mm from dura surface.
       ap_in_mm: -3.20
       ml_in_mm: 1.60
       dv_in_mm: -4.25
       volume_in_uL: 0.40
       description: >-
         Right SNc injection of pAAV-Ef1a-DIO-ChRmine-mScarlet-WPRE (Addgene #130998, AAV5,
-        2.20×10¹³ vg/mL). Four injection depths: −3.8, −4.1, −4.4, −4.7 mm ventral from
-        dura surface; 0.1 µL per depth (0.4 µL total); injected via pulled glass micropipette.
+        2.20×10¹³ vg/mL). Four depths: −3.8, −4.1, −4.4, −4.7 mm ventral from dura surface;
+        0.1 µL per depth (0.4 µL total); injected via pulled glass micropipette.
 
   Effectors:
     - name: ChRmine_right
