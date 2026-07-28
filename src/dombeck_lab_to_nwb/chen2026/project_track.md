@@ -118,7 +118,7 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 - [x] Setup Dandiset — [DANDI:001933](https://dandiarchive.org/dandiset/001933) (embargoed draft, created 2026-07-27)
 - [x] Upload all 27 NWB files to DANDI — 572.9 MB, 0 errors (2026-07-27); files organized with `dandi organize --files-mode move`, `_behavior` suffix added by DANDI per detected NWB data types
 - [x] Confirm per-animal sex records with lab and update `Subject.sex` (currently `U` for all) — re-upload affected files after update
-- [ ] Update `NWBFile.related_publications` with DOI once manuscript is published and re-upload
+- [x] Update `NWBFile.related_publications` with preprint DOI (https://doi.org/10.1101/2025.08.28.672006) — re-converted and re-uploaded all 27 files (2026-07-28)
 
 ---
 
@@ -126,7 +126,6 @@ Genotypes per group: WT and LRRK2-G2019S (JAX:030961). Background: C57BL/6J. Age
 
 | # | Question | Affects |
 |---|----------|---------|
-| 3 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
-| 4 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
-| 5 | Publication DOI | `NWBFile.related_publications` |
-| 7 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` |
+| 1 | Calb group DV fiber coordinate | `FiberInsertion.depth_in_mm` (currently estimated from ferrule length 3 mm) |
+| 2 | Calb group GRAB-DA3m injection DV | `FiberPhotometryVirusInjection.dv_in_mm` (currently `2.9` estimate) |
+| 3 | Hamamatsu H10770PA-40 gain value | `PhotodetectorModel.gain` |
