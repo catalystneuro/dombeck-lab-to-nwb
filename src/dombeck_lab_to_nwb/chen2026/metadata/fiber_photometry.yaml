@@ -6,7 +6,7 @@
 # series entry for each animal based on its group.
 #
 # Coordinates: AP and ML from Bregma at the cortical surface (Paxinos atlas).
-# DV from the dura surface. Fiber tip depth = ferrule length (Doric convention).
+# DV from the dura surface (confirmed by lab): -1.8 mm (DLS/Anxa), -2.8 mm (DMS/Calb).
 # All implants in the right hemisphere.
 #
 # Reference: Chen, He et al. (in preparation).
@@ -109,7 +109,7 @@ Devices:
       depth_in_mm: 2.0
       insertion_position_ap_in_mm: 0.50
       insertion_position_ml_in_mm: 1.80
-      insertion_position_dv_in_mm: -2.0
+      insertion_position_dv_in_mm: -1.8
       hemisphere: right
       position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
 
@@ -122,7 +122,7 @@ Devices:
       depth_in_mm: 3.0
       insertion_position_ap_in_mm: 0.50
       insertion_position_ml_in_mm: 1.40
-      insertion_position_dv_in_mm: -3.0
+      insertion_position_dv_in_mm: -2.8
       hemisphere: right
       position_reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
 
@@ -204,8 +204,7 @@ FiberPhotometry:
       hemisphere: right
       ap_in_mm: 0.50
       ml_in_mm: 1.40
-      # TODO: DV not stated in manuscript; using estimate (0.1 mm shallower than fiber tip). Confirm with lab.
-      dv_in_mm: -2.9
+      dv_in_mm: -2.8
       volume_in_uL: 0.10
       reference: "Bregma at cortical surface (AP/ML); dura surface (DV)"
       viral_vector_metadata_key: grab_da3m_aav
