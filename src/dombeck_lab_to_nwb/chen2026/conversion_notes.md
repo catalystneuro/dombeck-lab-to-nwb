@@ -338,8 +338,3 @@ NWBInspector version: 0.7.2 · Files scanned: 27
 After fixes: 0 violations, 1 unresolvable suggestion (single-row table) across all 27 files.
 
 ---
-
-### Open Questions (needs lab confirmation)
-
-1. **`stim_sequence` 'a' vs 'b'**: resolved — encodes the pseudorandom power order. Per-epoch `power_in_mW` is now populated in `OptogeneticEpochsTable` for all 27 sessions from `LRRK2.xlsx`.
-2. **Publication DOI** — manuscript not yet published; Zenodo: 10.5281/zenodo.20244434
