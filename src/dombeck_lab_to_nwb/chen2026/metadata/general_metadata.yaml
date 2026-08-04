@@ -5,7 +5,7 @@
 
 NWBFile:
   related_publications:
-    - https://doi.org/10.1101/2025.08.28.672006
+    - https://doi.org/10.1038/s41467-026-75194-3
   experiment_description: >
     In vivo fiber photometry of striatal dopamine release in awake, head-fixed mice expressing
     the dopamine sensor GRAB-DA3m. Two intersectional mouse lines targeting distinct dopamine
