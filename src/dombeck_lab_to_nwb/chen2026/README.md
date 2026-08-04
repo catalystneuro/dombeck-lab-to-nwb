@@ -1,7 +1,7 @@
 # src/dombeck_lab_to_nwb/chen2026
 
 NWB conversion scripts for the LRRK2 fiber photometry dataset from the Dombeck Lab.
-**Preprint:** [https://doi.org/10.1101/2025.08.28.672006](https://doi.org/10.1101/2025.08.28.672006)
+**Publication:** [https://doi.org/10.1038/s41467-026-75194-3](https://doi.org/10.1038/s41467-026-75194-3)
 **DANDI archive:** [DANDI:001933](https://dandiarchive.org/dandiset/001933) (embargoed)
 
 ## Installation
