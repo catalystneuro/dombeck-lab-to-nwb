@@ -54,13 +54,22 @@ def process_extra_metadata(
     location_fiber_2 = processed_photometry_data["chR"].lower()
     allen_location_fiber_1 = allen_location_mapping.get(location_fiber_1, None)
     allen_location_fiber_2 = allen_location_mapping.get(location_fiber_2, None)
-    is_dual_fiber = allen_location_fiber_1 is not None and allen_location_fiber_2 is not None
 
     # Update the metadata for the first fiber
     fiber_photometry_metadata = extra_metadata["Ophys"]["FiberPhotometry"]
     fibers_metadata = fiber_photometry_metadata["OpticalFibers"]
 
     recording_target_type_mapping = {1: "axons in striatum", 0: "cell bodies in SNc"}
+
+    def get_fiber_value(name, fiber_index):
+        # "base" and "norm" hold one value per fiber (chG, chR), also when only one fiber has a location
+        values = np.atleast_1d(processed_photometry_data[name])
+        return values[fiber_index] if values.size == 2 else values[0]
+
+    def to_ap_ml_dv(coordinates):
+        # RecLocGmm and RecLocRmm are [ML, AP, DV] (FiberLocations.m), the table column is (AP, ML, DV)
+        coordinates = np.asarray(coordinates, dtype=float)
+        return coordinates[[1, 0, 2]]
 
     if allen_location_fiber_1 is not None:
         fiber_description = fibers_metadata[0]["description"]
@@ -70,19 +79,17 @@ def process_extra_metadata(
 
         fibers_metadata[0].update(
             description=fiber_description,
-            coordinates=processed_photometry_data["RecLocGmm"],
+            coordinates=to_ap_ml_dv(processed_photometry_data["RecLocGmm"]),
             fiber_depth_in_mm=processed_photometry_data["depthG"],
             location=allen_location_fiber_1,
             label="chGreen",  # the name of the channel in the .mat file
             recording_target_type=recording_target_type,
-            baseline_fluorescence=processed_photometry_data["base"][0]
-            if is_dual_fiber
-            else processed_photometry_data["base"],
-            normalized_fluorescence=processed_photometry_data["norm"][0]
-            if is_dual_fiber
-            else processed_photometry_data["norm"],
+            baseline_fluorescence=get_fiber_value("base", 0),
+            normalized_fluorescence=get_fiber_value("norm", 0),
             signal_to_noise_ratio=processed_photometry_data["sig2noise"][0],
             cross_correlation_with_acceleration=processed_photometry_data["Acc405"][0],
+            running_time_in_s=processed_photometry_data["timeRun"],
+            has_isosbestic_artifacts=processed_photometry_data["Bad405All"][0],
         )
 
     if allen_location_fiber_2 is not None:
@@ -93,19 +100,17 @@ def process_extra_metadata(
 
         fibers_metadata[1].update(
             description=fiber_2_description,
-            coordinates=processed_photometry_data["RecLocRmm"],
+            coordinates=to_ap_ml_dv(processed_photometry_data["RecLocRmm"]),
             fiber_depth_in_mm=processed_photometry_data["depthR"],
             location=allen_location_fiber_2,
             label="chRed",  # the name of the channel in the .mat file
             recording_target_type=recording_target_type,
-            baseline_fluorescence=processed_photometry_data["base"][1]
-            if is_dual_fiber
-            else processed_photometry_data["base"],
-            normalized_fluorescence=processed_photometry_data["norm"][1]
-            if is_dual_fiber
-            else processed_photometry_data["norm"],
+            baseline_fluorescence=get_fiber_value("base", 1),
+            normalized_fluorescence=get_fiber_value("norm", 1),
             signal_to_noise_ratio=processed_photometry_data["sig2noise"][1],
             cross_correlation_with_acceleration=processed_photometry_data["Acc405"][1],
+            running_time_in_s=processed_photometry_data["timeRun"],
+            has_isosbestic_artifacts=processed_photometry_data["Bad405All"][1],
         )
 
     # keep only those fibers metadata that have location information

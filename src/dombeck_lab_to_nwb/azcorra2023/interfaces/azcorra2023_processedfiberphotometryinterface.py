@@ -13,6 +13,12 @@ from pynwb.epoch import TimeIntervals
 
 from dombeck_lab_to_nwb.azcorra2023.photometry_utils import add_fiber_photometry_series
 
+NORMALIZATION_DESCRIPTION = (
+    " The trace of each fiber is normalized so that the largest transient of its 470 nm trace is 1, and the 405 nm "
+    "trace is divided by the same value; the value is in the 'normalized_fluorescence' column of the "
+    "FiberPhotometryTable."
+)
+
 
 class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterface):
     """Data interface for Azcorra2023 fiber photometry data conversion."""
@@ -71,7 +77,11 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 ),
                 Events=dict(
                     name="Events",
-                    description="Contains the times when the mouse was moving and the reward, air puff, light, and licking event times.",
+                    description=(
+                        "Contains the times when the mouse was moving and the reward, air puff, light, and licking "
+                        "event times. 'Reward' rows are the rewards the mouse consumed (licked within 1 s), tagged "
+                        "long, short or rest; 'RewardAll' rows are every reward delivery, consumed or not."
+                    ),
                 ),
                 WheelEvents=dict(
                     EventsTable=dict(
@@ -202,6 +212,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 raw_response_series = nwbfile.acquisition[raw_series_name]
                 raw_response_series_description = raw_response_series.description
                 description = raw_response_series_description.replace("Raw", "DF/F calculated from")
+                description += NORMALIZATION_DESCRIPTION
 
                 fiber_photometry_table_region = raw_response_series.fiber_photometry_table_region
 
@@ -222,7 +233,9 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
                 traces_metadata = metadata["Ophys"]["FiberPhotometry"]["FiberPhotometryResponseSeries"][series_ind]
                 # Override name and description for the DF/F series
                 traces_metadata["name"] = series_name
-                traces_metadata["description"] = traces_metadata["description"].replace("Raw", "DF/F calculated from")
+                traces_metadata["description"] = (
+                    traces_metadata["description"].replace("Raw", "DF/F calculated from") + NORMALIZATION_DESCRIPTION
+                )
                 add_fiber_photometry_series(
                     nwbfile=nwbfile,
                     metadata=metadata,
@@ -275,7 +288,10 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         events = TimeIntervals(**events_metadata)
         events.add_column(
             name="event_type",
-            description="The type of event (licking, air puff, light or reward delivery).",
+            description=(
+                "The type of event (MovOnOff, Licking, AirPuff, Light, Reward for consumed rewards, or RewardAll for "
+                "every reward delivery)."
+            ),
         )
 
         events_start_times, events_end_times, events_types, events_tags = [], [], [], []
@@ -321,6 +337,13 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
             event_tag = reward_events[event_name]
             events_tags.extend([event_tag] * len(start_times))
 
+        # Every reward delivery, including the rewards the mouse did not lick for (selectSignals_paper.m)
+        start_times, end_times = self._get_start_end_times(self._processed_photometry_data["RewardAll"])
+        events_start_times.extend(start_times)
+        events_end_times.extend(end_times)
+        events_types.extend(["RewardAll"] * len(start_times))
+        events_tags.extend([[""]] * len(start_times))
+
         if not len(events_start_times):
             return
 
@@ -349,7 +372,7 @@ class Azcorra2023ProcessedFiberPhotometryInterface(BaseTemporalAlignmentInterfac
         df = df.reset_index(drop=True)
         for row_ind, row in df.iterrows():
             event_type = row["event_type"]
-            time_series_name = "Velocity" if event_type == "MovOnOff" else event_type
+            time_series_name = dict(MovOnOff="Velocity", RewardAll="Reward").get(event_type, event_type)
             events.add_interval(
                 **row,
                 timeseries=nwbfile.acquisition[time_series_name],
