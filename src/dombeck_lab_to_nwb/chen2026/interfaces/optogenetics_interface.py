@@ -6,11 +6,13 @@ camera-trigger-aligned binning) and writes:
   - ``OptogeneticExperimentMetadata`` (lab_meta_data): LED, fiber, virus, injection, effector
   - ``OptogeneticEpochsTable`` (intervals): one row per contiguous TTL-on epoch
 
-Stim parameters measured from raw ABF (2000 Hz, channel 2 = opto_TTL):
-  Epochs 1–32 (high amplitude, ~1.2 V): 32 pulses, 9 ms ON / 1 ms OFF, 10 ms period, ~320 ms train
-  Epochs 33–64 (low amplitude, ~0.05 V): 32 pulses, 8 ms ON / 8 ms OFF, 16 ms period, ~505 ms train
-  Trains spaced ≥ 20 s apart; 8 reps per power level (64 trains total).
-  Powers (pseudo-random order per stim_sequence): 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW
+Stim parameters measured from raw ABF (2000 Hz, channel 2 = opto_TTL), 32 pulses per train:
+  0.1, 0.5, 1.0, 4.0 mW (the powers analysed in the paper): 8 ms ON / 8 ms OFF, ~505 ms train
+  0.25, 1.5, 2.0, 3.0 mW: 9 ms ON / 1 ms OFF (~320 ms train) in Anxa sessions,
+                          8 ms ON / 8 ms OFF in Calb sessions
+  The two sets of powers are delivered in separate halves of the session (order set by the
+  stimulation sequence, 'a' or 'b'). Trains come in pairs of the same power 15.3–15.5 s apart,
+  with ≥ 20 s between pairs; 8 trains per power (64 trains total).
   Per-epoch power comes from stimulation sequence LRRK2.xlsx; ExcitationSource.power_in_W
   stores the peak power and the description notes the full power range.
 """
@@ -57,7 +59,7 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
         alias unevenly across 10 ms camera frames, fragmenting each 500 ms train
         into multiple short blobs separated by a few frames. We merge blobs whose
         gap is smaller than merge_gap_s (default 1 s) to recover the true train
-        boundaries; inter-train intervals are ≥20 s so the threshold is unambiguous.
+        boundaries; inter-train intervals are ≥15 s so the threshold is unambiguous.
         """
         padded = np.concatenate([[0], ttl.astype(np.int8), [0]])
         diff = np.diff(padded)
@@ -278,6 +280,13 @@ class Chen2026OptogeneticsInterface(BaseDataInterface):
         start_times, stop_times = self._extract_epochs(ttl, trigger_times)
         if len(start_times) == 0:
             return
+
+        for values in (pulse_length_in_ms, period_in_ms, number_pulses_per_pulse_train, power_in_mW):
+            if len(values) != len(start_times):
+                raise ValueError(
+                    f"{len(start_times)} stimulation epochs in {self.source_data['file_path']} but "
+                    f"{len(values)} per-epoch parameter values were passed."
+                )
 
         epochs_meta = opto_meta.get("OptogeneticEpochsTable", {})
         epochs_table = OptogeneticEpochsTable(

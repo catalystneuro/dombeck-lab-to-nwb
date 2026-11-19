@@ -12,6 +12,10 @@
 #   - ChRmine injection: 4 depths (−3.8, −4.1, −4.4, −4.7 mm from Bregma), 0.1 µL/depth
 #   - Stim: 8 ms on / 8 ms off pulses, 500 ms trains, ≥20 s between trains, 8 reps/power
 #   - Powers: 0.1, 0.5, 1.0, 4.0 mW (pseudorandom order)
+#
+# The recordings hold more than the manuscript describes (measured from the ABF opto_TTL
+# channel, see OptogeneticEpochsTable below): eight powers, two train types in Anxa sessions,
+# and trains delivered in same-power pairs 15.3–15.5 s apart.
 
 Optogenetics:
   excitation_lambda: 635.0  # nm
@@ -108,10 +112,17 @@ Optogenetics:
   OptogeneticEpochsTable:
     name: OptogeneticEpochsTable
     description: >-
-      Epochs of optogenetic activation of ChRmine-expressing Cre+ SNc dopamine neurons
-      (635 nm LED, right hemisphere). Each row is one contiguous stimulation epoch
-      (TTL=1 block) extracted from the 100 Hz binned TTL column in *_data.mat.
-      Pulse parameters: 8 ms on / 8 ms off cycles for 500 ms per train; trains spaced
-      at least 20 s apart; 8 repetitions per power level (0.1, 0.5, 1.0, 4.0 mW,
-      pseudorandom order). Power and pulse parameters are passed per-session via
-      conversion_options once confirmed.
+      Optogenetic activation of ChRmine-expressing Cre+ SNc dopamine neurons (635 nm LED,
+      right hemisphere). Each row is one stimulation train of 32 pulses. Start and stop times
+      come from the 100 Hz TTL column of *_data.mat, so they are accurate to 10 ms.
+      pulse_length_in_ms, period_in_ms and number_pulses_per_pulse_train are measured for each
+      train from the 2 kHz opto_TTL channel of the ABF file. Each session has 64 trains: eight
+      powers (0.1, 0.25, 0.5, 1, 1.5, 2, 3 and 4 mW) with eight trains per power. The paper
+      analyses the 0.1, 0.5, 1 and 4 mW trains, which are 8 ms on and 8 ms off (about 0.5 s
+      per train) in every session. The 0.25, 1.5, 2 and 3 mW trains are 9 ms on and 1 ms off
+      (about 0.32 s per train) in Anxa1 sessions and 8 ms on and 8 ms off in Calb1 sessions.
+      The two sets of powers are delivered in separate halves of the session. Trains come in
+      pairs of the same power 15.3 to 15.5 s apart, with at least 20 s between pairs.
+      power_in_mW is the power the lab's stimulation sequence sheet assigns to each train.
+      number_trains is 1 because each row is a single train, and intertrain_interval_in_ms is
+      NaN; the spacing between trains is given by start_time.
