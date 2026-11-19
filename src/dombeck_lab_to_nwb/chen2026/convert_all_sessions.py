@@ -75,9 +75,18 @@ def _load_subject_metadata(xlsx_path: Path) -> dict[str, dict]:
 # Complete animal × session table derived from LRRK2-animal-list-meta.mat
 # and the filename column of each *_data.mat file.
 # Columns: animal_id, group, genotype, abf_filename
+# An optional stim_sequence overrides the one in metadata-LRRK2-chen2026.xlsx. The sheet lists
+# 3742 and 4885 as sequence 'b', but the opto_TTL amplitudes and pulse timing of their ABF files
+# follow sequence 'a' train by train (same as 3743, recorded the same day).
 SESSIONS = [
     # Anxa-LRRK2 group (DLS, Anxa1-iCre)
-    {"animal_id": "3742", "group": "Anxa", "genotype": "GS", "abf_filename": "2025_01_24_0006.abf"},
+    {
+        "animal_id": "3742",
+        "group": "Anxa",
+        "genotype": "GS",
+        "abf_filename": "2025_01_24_0006.abf",
+        "stim_sequence": "a",
+    },
     {"animal_id": "3743", "group": "Anxa", "genotype": "GS", "abf_filename": "2025_01_24_0004.abf"},
     {"animal_id": "3947", "group": "Anxa", "genotype": "WT", "abf_filename": "2025_01_27_0000.abf"},
     {"animal_id": "3948", "group": "Anxa", "genotype": "WT", "abf_filename": "2025_01_27_0002.abf"},
@@ -91,7 +100,13 @@ SESSIONS = [
     {"animal_id": "4561", "group": "Anxa", "genotype": "WT", "abf_filename": "2025_07_02_0003.abf"},
     {"animal_id": "4651", "group": "Anxa", "genotype": "GS", "abf_filename": "2025_07_02_0001.abf"},
     {"animal_id": "4652", "group": "Anxa", "genotype": "GS", "abf_filename": "2025_05_20_0003.abf"},
-    {"animal_id": "4885", "group": "Anxa", "genotype": "GS", "abf_filename": "2025_01_24_0002.abf"},
+    {
+        "animal_id": "4885",
+        "group": "Anxa",
+        "genotype": "GS",
+        "abf_filename": "2025_01_24_0002.abf",
+        "stim_sequence": "a",
+    },
     # Calb-LRRK2 group (DMS, Calb1-Cre)
     {"animal_id": "302", "group": "Calb", "genotype": "GS", "abf_filename": "2025_11_10_0005.abf"},
     {"animal_id": "306", "group": "Calb", "genotype": "GS", "abf_filename": "2025_11_10_0009.abf"},
@@ -128,7 +143,7 @@ def _session_to_nwb(
     subject_info = subject_lookup.get(session["abf_filename"], {})
     sex = subject_info.get("sex", "U")
     date_of_birth = subject_info.get("date_of_birth")
-    stim_seq_key = subject_info.get("stim_sequence")
+    stim_seq_key = session.get("stim_sequence", subject_info.get("stim_sequence"))
     power_sequence = stim_sequences.get(stim_seq_key) if stim_seq_key else None
 
     convert_session(
