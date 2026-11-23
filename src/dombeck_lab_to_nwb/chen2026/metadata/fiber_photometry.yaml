@@ -361,7 +361,8 @@ FiberPhotometry:
     description: >
       Baseline-corrected GRAB-DA3m 470 nm fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
       Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+      subtraction of 0.85 times the sliding 8th percentile of the trace (20 s window) as background,
+      then division by the sliding 8th percentile of the background-subtracted trace (20 s window).
     fiber_photometry_table_region:
       - dls_470
     fiber_photometry_table_region_description: "DLS 470 nm functional channel (baseline-corrected)."
@@ -372,7 +373,8 @@ FiberPhotometry:
     description: >
       Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Anxa-LRRK2 group, DLS) at 100 Hz.
       Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+      subtraction of 0.85 times the sliding 8th percentile of the trace (20 s window) as background,
+      then division by the sliding 8th percentile of the background-subtracted trace (20 s window).
     fiber_photometry_table_region:
       - dls_405
     fiber_photometry_table_region_description: "DLS 405 nm isosbestic control channel (baseline-corrected)."
@@ -405,7 +407,8 @@ FiberPhotometry:
     description: >
       Baseline-corrected GRAB-DA3m 470 nm fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
       Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+      subtraction of 0.85 times the sliding 8th percentile of the trace (20 s window) as background,
+      then division by the sliding 8th percentile of the background-subtracted trace (20 s window).
     fiber_photometry_table_region:
       - dms_470
     fiber_photometry_table_region_description: "DMS 470 nm functional channel (baseline-corrected)."
@@ -416,7 +419,8 @@ FiberPhotometry:
     description: >
       Baseline-corrected GRAB-DA3m 405 nm isosbestic fluorescence (Calb-LRRK2 group, DMS) at 100 Hz.
       Processed by LRRK2_binning_and_processing.m: camera-trigger-aligned binning, then
-      sliding-window 8th-percentile baseline subtraction and division (window = 20 s).
+      subtraction of 0.85 times the sliding 8th percentile of the trace (20 s window) as background,
+      then division by the sliding 8th percentile of the background-subtracted trace (20 s window).
     fiber_photometry_table_region:
       - dms_405
     fiber_photometry_table_region_description: "DMS 405 nm isosbestic control channel (baseline-corrected)."
