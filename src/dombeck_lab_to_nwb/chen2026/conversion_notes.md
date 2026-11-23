@@ -281,6 +281,8 @@ Each converted `.nwb` file contains:
 | `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, explicit timestamps |
 | `acquisition/` | `CommandedVoltageSeries` | ABF `fxn_gen` (LED switching waveform) | 2000 Hz, rate-based timestamps; linked to FiberPhotometryTable |
 | `acquisition/` | `RawTreadmillVoltage` | ABF `treadmill` channel | 2000 Hz, analog ~1.2–2.0 V; data provenance for velocity/acceleration |
+| `acquisition/` | `RawOptoStimulationVoltage` | ABF `opto_TTL` channel | 2000 Hz; pulses of the 635 nm stimulation, amplitude increases with power |
+| `acquisition/` | `RawCameraTriggerVoltage` | ABF `camera` channel | 2000 Hz; rising edges are the timestamps of the 100 Hz processed series |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbestic` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, camera-trigger timestamps |
@@ -301,6 +303,17 @@ Class in `interfaces/raw_treadmill_interface.py`, registered as `RawTreadmill` i
 Writes one `TimeSeries` to `nwb.acquisition`:
 
 - **`RawTreadmillVoltage`**: the raw analog voltage from the rotary encoder (ABF `treadmill` channel, 2000 Hz, explicit timestamps). Voltage range ~1.2–2.0 V across the Anxa/Calb cohorts. Unit: V.
+
+#### Raw Triggers Interface (`Chen2026RawTriggersInterface`)
+
+Class in `interfaces/raw_triggers_interface.py`, registered as `RawTriggers` in the converter. Always present (no `mat_file` required).
+
+Writes two `TimeSeries` to `nwb.acquisition` (2000 Hz, unit V):
+
+- **`RawOptoStimulationVoltage`**: the ABF `opto_TTL` channel. The pulse parameters of `OptogeneticEpochsTable` are measured from it.
+- **`RawCameraTriggerVoltage`**: the ABF `camera` channel. Its rising edges (threshold 1 V) are the timestamps of the 100 Hz processed series.
+
+The `initiation` channel present in three Calb ABF files is not written; its meaning is not known.
 
 Shares the module-level `_DEMUX_CACHE` from `raw_fiber_photometry_interface.py` (keyed by `file_path`), so the ABF is read only once regardless of which interface runs first. The cache stores all channels including `treadmill` alongside the demultiplexed 470/405 nm streams.
 

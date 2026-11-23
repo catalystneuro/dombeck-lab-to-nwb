@@ -204,6 +204,9 @@ def convert_session(
         "RawTreadmill": {
             "file_path": str(file_path),
         },
+        "RawTriggers": {
+            "file_path": str(file_path),
+        },
     }
 
     # Processed + optogenetics interfaces — present only when mat_file is provided
@@ -273,6 +276,7 @@ def convert_session(
         "RawSignal": {"stub_test": stub_test},
         "IsosbesticControl": {"stub_test": stub_test},
         "RawTreadmill": {},
+        "RawTriggers": {},
     }
     if mat_file is not None:
         pulse_length_ms, period_ms, n_pulses, amplitude_v = _detect_opto_pulse_params(file_path)

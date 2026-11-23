@@ -6,6 +6,7 @@ from .interfaces import (
     Chen2026ProcessedFiberPhotometryInterface,
     Chen2026RawFiberPhotometryInterface,
     Chen2026RawTreadmillInterface,
+    Chen2026RawTriggersInterface,
 )
 
 
@@ -17,6 +18,7 @@ class Chen2026NWBConverter(NWBConverter):
       RawSignal              — 470 nm demultiplexed from ABF
       IsosbesticControl      — 405 nm demultiplexed from ABF
       RawTreadmill           — raw rotary-encoder voltage from ABF treadmill channel
+      RawTriggers            — raw opto_TTL and camera trigger voltages from ABF
 
     Processed interfaces (present when a *_data.mat file is provided):
       CorrectedSignal        — baseline-corrected 470 nm (corrected470, 100 Hz)
@@ -31,6 +33,7 @@ class Chen2026NWBConverter(NWBConverter):
         RawSignal=Chen2026RawFiberPhotometryInterface,
         IsosbesticControl=Chen2026RawFiberPhotometryInterface,
         RawTreadmill=Chen2026RawTreadmillInterface,
+        RawTriggers=Chen2026RawTriggersInterface,
         CorrectedSignal=Chen2026ProcessedFiberPhotometryInterface,
         CorrectedIsosbestic=Chen2026ProcessedFiberPhotometryInterface,
         DfOverF=Chen2026ProcessedFiberPhotometryInterface,

@@ -70,6 +70,8 @@ def _load_and_demux(file_path: str, threshold_v: float = 1.0) -> dict:
         "405nm": (sig520[wave405 & ~border], timestamps[wave405 & ~border]),
         "fxn_gen": (fxn, timestamps),
         "treadmill": (treadmill, timestamps),
+        "opto_TTL": (abf.data[channel_names.index("opto_TTL")], timestamps),
+        "camera": (abf.data[channel_names.index("camera")], timestamps),
         "_datetime": abf_dt,
     }
     _DEMUX_CACHE[file_path] = result
