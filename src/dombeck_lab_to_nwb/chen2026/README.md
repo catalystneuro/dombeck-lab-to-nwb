@@ -27,8 +27,8 @@ pip install -e . --no-deps
 ```
 
 The `--no-deps` flag skips the root `requirements.txt` so that the dependencies already installed
-by the conda environment (in particular `neuroconv` from the GitHub main branch) are not
-overwritten by an older PyPI release.
+by the conda environment (in particular the pinned `neuroconv` release) are not overwritten
+by another version.
 
 ## Folder structure
 
@@ -39,6 +39,8 @@ chen2026/
 ├── convert_session.py               # convert a single session — edit paths at the bottom and run
 ├── convert_all_sessions.py          # batch conversion for all 27 sessions (parallel, 4 workers)
 ├── nwbconverter.py                  # NWBConverter subclass wiring all interfaces together
+├── external_resources.py            # writes the ontology terms of external_resources.yaml as HERD references
+├── value_meanings.py                # writes the value meanings and HED annotations of value_meanings.yaml
 ├── conversion_notes.md              # detailed technical notes on data format and implementation
 ├── interfaces/
 │   ├── __init__.py
@@ -52,7 +54,9 @@ chen2026/
 │   ├── general_metadata.yaml        # NWBFile and Subject fields shared across all sessions
 │   ├── fiber_photometry.yaml        # hardware metadata: devices, fiber implants, virus injections,
 │   │                                # indicators, FiberPhotometryTable rows, and response series entries
-│   └── optogenetics.yaml            # optogenetics metadata: LED, fiber, ChRmine virus, injection sites
+│   ├── optogenetics.yaml            # optogenetics metadata: LED, fiber, ChRmine virus, injection sites
+│   ├── external_resources.yaml      # ontology terms for species, institution and anatomical locations (HERD)
+│   └── value_meanings.yaml          # meaning and HED annotation of each value of categorical columns
 └── tutorials/
     └── chen2026_demo.ipynb          # end-to-end tutorial reading a local NWB file
 ```
@@ -76,6 +80,26 @@ Each converted `.nwb` file contains one session (one animal, one recording). Bot
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverFIsosbesticControl` | `_data.mat` `dff405` | 100 Hz, % ΔF/F |
 | `processing/behavior/` | `BehavioralTimeSeries` | `_data.mat` `velocity`, `acceleration` | 100 Hz, m/s and m/s² |
 | `intervals/` | `OptogeneticEpochsTable` | `_data.mat` `TTL` (merged) | 64 train epochs; per-epoch pulse params and power |
+| `intervals/OptogeneticEpochsTable/` | `stimulation_on_meanings` | `metadata/value_meanings.yaml` | meaning and HED annotation of each `stimulation_on` value |
+| `general/` | `external_resources` | `metadata/external_resources.yaml` | HERD references to ontology terms |
+
+### Annotations (HERD and HED)
+
+`metadata/external_resources.yaml` links values in the files to ontology terms: the species (NCBITaxon), the
+institution (ROR) and the anatomical locations of the photometry fiber and the virus injections (Allen Mouse
+Brain Atlas). They are stored as HERD references. `metadata/value_meanings.yaml` gives the meaning and a HED
+annotation of each value of the `stimulation_on` column of `OptogeneticEpochsTable`, stored as a MeaningsTable
+with an `ndx-hed` `HED` column. Reading the files requires `pynwb>=4.2.0`; `ndx-hed` is optional for reading.
+
+```python
+from pynwb import NWBHDF5IO
+
+with NWBHDF5IO("session.nwb", "r") as io:
+    nwbfile = io.read()
+    terms = nwbfile.external_resources.to_dataframe()  # object, field, key, entity_id, entity_uri
+    epochs = nwbfile.intervals["OptogeneticEpochsTable"]
+    meanings = epochs.get_meanings_for_column("stimulation_on").to_dataframe()  # value, meaning, HED
+```
 
 ### Key files
 

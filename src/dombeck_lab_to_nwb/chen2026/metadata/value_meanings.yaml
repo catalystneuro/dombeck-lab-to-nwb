@@ -1,0 +1,17 @@
+# Meanings of the values of categorical columns, with HED (Hierarchical Event Descriptors) annotations.
+# Written into the files by dombeck_lab_to_nwb.chen2026.value_meanings.add_value_meanings.
+# The HED strings were drafted from the meanings and validated against HED 8.4.0 with hedtools.
+# They were not reviewed by a HED expert.
+hed_schema_version: "8.4.0"
+tables:
+  OptogeneticEpochsTable:
+    stimulation_on:
+      true:
+        meaning: >-
+          The 635 nm LED was on. One train of 32 light pulses was delivered through the optical fiber
+          above the substantia nigra pars compacta during this epoch. The pulse parameters and the
+          light power of the train are in the other columns of the row.
+        hed: Experimental-stimulus, Condition-variable/Optogenetic-stimulation-on
+      false:
+        meaning: The 635 nm LED was off during this epoch. The conversion writes no such epochs.
+        hed: Condition-variable/Optogenetic-stimulation-off
