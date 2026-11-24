@@ -36,26 +36,59 @@ GROUP_TO_METADATA_KEYS = {
     },
 }
 
+# Map group → (key suffix of the group's recording site, key suffix of the other group's site) in
+# fiber_photometry.yaml. Each mouse has one photometry fiber: DLS for Anxa-LRRK2, DMS for Calb-LRRK2.
+GROUP_TO_SITE_SUFFIXES = {
+    "Anxa": ("_dls", "_anxa"),
+    "Calb": ("_dms", "_calb"),
+}
+
+
+def _select_recording_site(fp_metadata: dict, group: str) -> dict:
+    """Drop the fiber, injection, indicator, table rows and series entries of the other group's recording site.
+
+    fiber_photometry.yaml describes both sites. A file holds one mouse with one fiber, so only the entries of
+    that mouse's site are written.
+    """
+    other_group = "Calb" if group == "Anxa" else "Anxa"
+    other_site, other_series = GROUP_TO_SITE_SUFFIXES[other_group]
+
+    def keep(key: str) -> bool:
+        return not (key.endswith(other_site) or key.endswith(other_series) or key.startswith(other_site[1:] + "_"))
+
+    fp_metadata = dict(fp_metadata)
+    fp_metadata["Devices"] = {key: value for key, value in fp_metadata["Devices"].items() if keep(key)}
+    fiber_photometry = dict(fp_metadata["FiberPhotometry"])
+    for section in ("FiberPhotometryVirusInjections", "FiberPhotometryIndicators"):
+        fiber_photometry[section] = {key: value for key, value in fiber_photometry[section].items() if keep(key)}
+    table = dict(fiber_photometry["FiberPhotometryTable"])
+    table["rows"] = {key: value for key, value in table["rows"].items() if keep(key)}
+    fiber_photometry["FiberPhotometryTable"] = table
+    fp_metadata["FiberPhotometry"] = {key: value for key, value in fiber_photometry.items() if keep(key)}
+    return fp_metadata
+
+
 GENOTYPE_LABELS = {
     "WT": "LRRK2-WT",
     "GS": "LRRK2-G2019S",
 }
 
 _OPTO_THRESHOLD_V = 0.01  # V — catches both high (~1.2 V) and low (~0.05 V) amplitude trains
+_MIN_PULSE_S = 0.002  # pulses are 8 or 9 ms; single-sample (0.5 ms) threshold crossings are noise
+_MIN_POWER_AMPLITUDE_CORRELATION = 0.9
 
 
 def _detect_opto_pulse_params(
     abf_file: str | Path,
-) -> tuple[list[float], list[float], list[int]]:
+) -> tuple[list[float], list[float], list[int], list[float]]:
     """Detect per-epoch pulse parameters from the raw ABF opto_TTL channel.
 
-    Returns (pulse_length_in_ms, period_in_ms, number_pulses_per_pulse_train),
+    Returns (pulse_length_in_ms, period_in_ms, number_pulses_per_pulse_train, amplitude_in_V),
     one value per detected stimulation train. Trains are separated by gaps > 1 s
     between consecutive pulse onsets; intra-train inter-onset intervals are used
-    to compute the period.
+    to compute the period. The amplitude is the median opto_TTL voltage while the
+    pulses of the train are on; it scales with the commanded LED power.
     """
-    import math
-
     import numpy as np
     import pyabf
 
@@ -77,8 +110,15 @@ def _detect_opto_pulse_params(
     rising = rising[:n]
     falling = falling[:n]
 
+    # Drop isolated threshold crossings (two sessions have one 0.5 ms blip between trains);
+    # counted as a train they shift the parameters of every later epoch by one row.
+    is_pulse = (falling - rising) / sr >= _MIN_PULSE_S
+    rising = rising[is_pulse]
+    falling = falling[is_pulse]
+    n = len(rising)
+
     if n == 0:
-        return [], [], []
+        return [], [], [], []
 
     onsets = rising / sr
     durations = (falling - rising) / sr
@@ -92,15 +132,39 @@ def _detect_opto_pulse_params(
     pulse_length_ms: list[float] = []
     period_ms: list[float] = []
     n_pulses: list[int] = []
+    amplitude_v: list[float] = []
 
     for s, e in zip(starts, ends):
         epoch_onsets = onsets[s:e]
         epoch_durations = durations[s:e]
         pulse_length_ms.append(round(float(np.mean(epoch_durations)) * 1000, 0))
-        period_ms.append(round(float(np.mean(np.diff(epoch_onsets))) * 1000, 0) if len(epoch_onsets) > 1 else math.nan)
+        period_ms.append(round(float(np.mean(np.diff(epoch_onsets))) * 1000, 0))
         n_pulses.append(int(e - s))
+        train = opto[rising[s] : falling[e - 1] + 1]
+        amplitude_v.append(float(np.median(train[train > 0.5 * train.max()])))
 
-    return pulse_length_ms, period_ms, n_pulses
+    return pulse_length_ms, period_ms, n_pulses, amplitude_v
+
+
+def _check_power_sequence(power_sequence: list[float], amplitude_v: list[float], abf_file: str | Path) -> None:
+    """Raise if the labelled power order disagrees with the opto_TTL amplitude of the trains.
+
+    The opto_TTL amplitude increases with the commanded power, so the rank correlation
+    between the two is ~0.99 when the stimulation sequence label is right and negative
+    when the session was run with the other sequence.
+    """
+    from scipy.stats import spearmanr
+
+    if len(power_sequence) != len(amplitude_v):
+        raise ValueError(
+            f"{Path(abf_file).name}: {len(power_sequence)} labelled powers for {len(amplitude_v)} detected trains."
+        )
+    correlation = spearmanr(power_sequence, amplitude_v).statistic
+    if correlation < _MIN_POWER_AMPLITUDE_CORRELATION:
+        raise ValueError(
+            f"{Path(abf_file).name}: the labelled power sequence does not follow the opto_TTL amplitude "
+            f"(Spearman correlation {correlation:.2f}). Check the stimulation sequence of this session."
+        )
 
 
 def convert_session(
@@ -172,6 +236,9 @@ def convert_session(
         "RawTreadmill": {
             "file_path": str(file_path),
         },
+        "RawTriggers": {
+            "file_path": str(file_path),
+        },
     }
 
     # Processed + optogenetics interfaces — present only when mat_file is provided
@@ -212,6 +279,7 @@ def convert_session(
     metadata = converter.get_metadata()
 
     fp_metadata = load_dict_from_file(METADATA_DIR / "fiber_photometry.yaml")
+    fp_metadata = _select_recording_site(fp_metadata, group)
     metadata = dict_deep_update(metadata, fp_metadata)
 
     if mat_file is not None:
@@ -241,10 +309,13 @@ def convert_session(
         "RawSignal": {"stub_test": stub_test},
         "IsosbesticControl": {"stub_test": stub_test},
         "RawTreadmill": {},
+        "RawTriggers": {},
     }
     if mat_file is not None:
-        pulse_length_ms, period_ms, n_pulses = _detect_opto_pulse_params(file_path)
+        pulse_length_ms, period_ms, n_pulses, amplitude_v = _detect_opto_pulse_params(file_path)
         n_epochs = len(pulse_length_ms)
+        if power_sequence is not None:
+            _check_power_sequence(power_sequence, amplitude_v, file_path)
         conversion_options.update(
             {
                 "CorrectedSignal": {"stub_test": stub_test},
@@ -258,7 +329,6 @@ def convert_session(
                     "period_in_ms": period_ms,
                     "number_pulses_per_pulse_train": n_pulses,
                     "number_trains": 1,
-                    "intertrain_interval_in_ms": 20000.0,
                     "power_in_mW": power_sequence if power_sequence is not None else [float("nan")] * n_epochs,
                 },
             }

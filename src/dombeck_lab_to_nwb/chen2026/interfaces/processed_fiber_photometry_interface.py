@@ -183,6 +183,12 @@ class Chen2026ProcessedFiberPhotometryInterface(BaseFiberPhotometryInterface):
         series = nwbfile.acquisition[series_name]
         del nwbfile.acquisition[series_name]
 
+        # TODO: BaseFiberPhotometryInterface writes unit="a.u." for every series; pynwb does not
+        # allow resetting it through the attribute, so the unit from the metadata is set on the fields.
+        unit = metadata["FiberPhotometry"][self.metadata_key].get("unit")
+        if unit is not None:
+            series.fields["unit"] = unit
+
         if "ophys" not in nwbfile.processing:
             nwbfile.create_processing_module("ophys", "Processed optical physiology data.")
         nwbfile.processing["ophys"].add(series)

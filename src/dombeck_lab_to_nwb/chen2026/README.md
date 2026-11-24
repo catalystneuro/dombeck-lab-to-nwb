@@ -46,7 +46,8 @@ chen2026/
 │   ├── processed_fiber_photometry_interface.py # reads *_data.mat; writes corrected FP + ΔF/F
 │   ├── behavior_interface.py                   # reads *_data.mat; writes treadmill velocity + acceleration
 │   ├── optogenetics_interface.py               # reads *_data.mat TTL; writes OptogeneticEpochsTable
-│   └── raw_treadmill_interface.py              # reads raw .abf treadmill channel; writes RawTreadmillVoltage
+│   ├── raw_treadmill_interface.py              # reads raw .abf treadmill channel; writes RawTreadmillVoltage
+│   └── raw_triggers_interface.py               # reads raw .abf opto_TTL and camera channels; writes the two raw trigger series
 ├── metadata/
 │   ├── general_metadata.yaml        # NWBFile and Subject fields shared across all sessions
 │   ├── fiber_photometry.yaml        # hardware metadata: devices, fiber implants, virus injections,
@@ -67,6 +68,8 @@ Each converted `.nwb` file contains one session (one animal, one recording). Bot
 | `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, irregular timestamps |
 | `acquisition/` | `CommandedVoltageSeries` | ABF `fxn_gen` (LED switching waveform) | 2000 Hz, rate-based; linked to FiberPhotometryTable |
 | `acquisition/` | `RawTreadmillVoltage` | ABF `treadmill` channel | 2000 Hz, analog ~1.2–2.0 V |
+| `acquisition/` | `RawOptoStimulationVoltage` | ABF `opto_TTL` channel | 2000 Hz; pulses of the 635 nm stimulation, amplitude increases with power |
+| `acquisition/` | `RawCameraTriggerVoltage` | ABF `camera` channel | 2000 Hz; rising edges are the timestamps of the 100 Hz processed series |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbesticControl` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, % ΔF/F |
@@ -100,7 +103,8 @@ as `BaseFiberPhotometryInterface` expects: device models and instances (`DeviceM
 virus and injection records (`FiberPhotometryViruses`, `FiberPhotometryVirusInjections`),
 fluorescence indicators (`FiberPhotometryIndicators`), the `FiberPhotometryTable` rows (one per
 fiber × excitation wavelength), and one response series entry per interface instance. Both groups
-are covered in a single file: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows).
+are covered in a single file: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows). `convert_session.py` keeps
+only the entries of the session's own site, so each NWB file has one optical fiber and two table rows.
 
 **`metadata/optogenetics.yaml`** — contains optogenetics hardware metadata used by
 `Chen2026OptogeneticsInterface`: the 635 nm LED (`ExcitationSourceModel`, `ExcitationSource`),
@@ -129,3 +133,7 @@ Full ndx-optogenetics device provenance (LED, fiber, ChRmine virus, injection si
 **`interfaces/raw_treadmill_interface.py`** — reads the `treadmill` channel from the `.abf` file
 and writes it as `RawTreadmillVoltage` in `nwb.acquisition` (2000 Hz, ~1.2–2.0 V). Shares the
 `_DEMUX_CACHE` with `raw_fiber_photometry_interface.py` to avoid duplicate ABF reads.
+
+**`interfaces/raw_triggers_interface.py`** — reads the `opto_TTL` and `camera` channels from the `.abf` file
+and writes them as `RawOptoStimulationVoltage` and `RawCameraTriggerVoltage` in `nwb.acquisition` (2000 Hz),
+so that the stimulation onsets and the 100 Hz binning can be recomputed from the raw recording.

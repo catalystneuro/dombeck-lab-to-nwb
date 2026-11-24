@@ -3,6 +3,7 @@ from .optogenetics_interface import Chen2026OptogeneticsInterface
 from .processed_fiber_photometry_interface import Chen2026ProcessedFiberPhotometryInterface
 from .raw_fiber_photometry_interface import Chen2026RawFiberPhotometryInterface
 from .raw_treadmill_interface import Chen2026RawTreadmillInterface
+from .raw_triggers_interface import Chen2026RawTriggersInterface
 
 __all__ = [
     "Chen2026RawFiberPhotometryInterface",
@@ -10,4 +11,5 @@ __all__ = [
     "Chen2026OptogeneticsInterface",
     "Chen2026BehaviorInterface",
     "Chen2026RawTreadmillInterface",
+    "Chen2026RawTriggersInterface",
 ]

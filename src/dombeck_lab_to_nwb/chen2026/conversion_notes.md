@@ -145,17 +145,21 @@ Fiber implant DV depth = ferrule length (Doric convention), referenced from dura
 
 **Confirmed stimulation parameters (measured from raw ABF, channel `opto_TTL`, 2000 Hz):**
 
-Each session contains **64 trains total** (8 power levels × 8 repetitions). The two halves of the session use different pulse protocols:
+Each session contains **64 trains total** (8 power levels × 8 repetitions), 32 pulses per train. The pulse protocol goes with the power set:
 
-| Epoch range | Amplitude | Pulse ON | Pulse OFF | Period | Pulses/train | Train duration |
-|-------------|-----------|----------|-----------|--------|--------------|----------------|
-| 0 – 31 (first half) | ~1.2 V | 9 ms | 1 ms | 10 ms (100 Hz) | 32 | ~320 ms |
-| 32 – 63 (second half) | ~0.05 V | 8 ms | 8 ms | 16 ms (62.5 Hz) | 32 | ~505 ms |
+| Powers | Group | Pulse ON | Pulse OFF | Period | Pulses/train | Train duration |
+|--------|-------|----------|-----------|--------|--------------|----------------|
+| 0.1, 0.5, 1.0, 4.0 mW (analysed in the paper) | Anxa and Calb | 8 ms | 8 ms | 16 ms (62.5 Hz) | 32 | ~505 ms |
+| 0.25, 1.5, 2.0, 3.0 mW | Anxa | 9 ms | 1 ms | 10 ms (100 Hz) | 32 | ~320 ms |
+| 0.25, 1.5, 2.0, 3.0 mW | Calb | 8 ms | 8 ms | 16 ms (62.5 Hz) | 32 | ~505 ms |
 
-The manuscript states "8 ms on / 8 ms off" (16 ms period, ~31 pulses), which describes only the second half. Both halves have exactly 32 pulses per train. The first-half trains fire at 100 Hz (one pulse per camera frame). Per-epoch values are stored in `OptogeneticEpochsTable` columns — see `convert_session.py`.
+The two power sets are delivered in separate halves of the session. Sequence 'a' starts with the 0.25/1.5/2/3 mW set, sequence 'b' with the 0.1/0.5/1/4 mW set. Per-epoch values are stored in `OptogeneticEpochsTable` columns — see `convert_session.py`.
 
-- Powers: 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW at cannula tip (pseudorandom order, 8 reps each)
-- Intertrain interval: ≥20 s; each recording session = 20 minutes
+- Powers: 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0 mW at cannula tip (8 reps each)
+- The `opto_TTL` amplitude increases with the commanded power (about 0.05–0.15 V at 0.1 mW up to 2.45 V at 4 mW). `convert_session.py` checks the labelled power sequence against it and raises on a mismatch.
+- `metadata-LRRK2-chen2026.xlsx` lists 3742 and 4885 as sequence 'b', but their ABF files follow sequence 'a' train by train (amplitude and pulse timing). `convert_all_sessions.py` overrides the label for these two sessions. To be confirmed with the lab.
+- Trains come in pairs of the same power 15.3–15.5 s apart, with ≥20 s between pairs; each recording session = 20 minutes
+- Sessions 4652 and 740 have one 0.5 ms threshold crossing on `opto_TTL` between the two halves; pulses shorter than 2 ms are ignored.
 - TTL in `_data.mat` is HIGH for the full train duration (not per-pulse)
 
 ---
@@ -257,7 +261,7 @@ The trigger spacing is nominally 10 ms (100 Hz) with ±0.5 ms quantization noise
 
 - **Source:** `TTL` column in `_data.mat` (uint8, 0 or 1, 100 Hz). The MATLAB script binarizes via `any(opto > 0.05 V)` per 10 ms camera bin.
 - **TTL fragmentation problem:** first-half trains (~1.2 V, 10 ms period) appear as clean single blobs in the mat TTL. Second-half trains (~0.05 V, barely above the 0.05 V threshold) fragment into 2–10 blobs per train because the low-amplitude ABF pulses alias unevenly across 10 ms camera bins. Naively detected blobs = 122 for these sessions; correct train count = 64.
-- **Merge fix:** `_extract_epochs()` merges blobs whose gap is < 1 s into a single epoch. Inter-train intervals are ≥20 s, so the 1 s threshold is unambiguous. All 27 sessions yield exactly 64 epochs after merging.
+- **Merge fix:** `_extract_epochs()` merges blobs whose gap is < 1 s into a single epoch. Inter-train intervals are ≥15 s, so the 1 s threshold is unambiguous. All 27 sessions yield exactly 64 epochs after merging.
 - **Epoch times:** `start_time = camera_trigger_times[first_high_sample]`, `stop_time = camera_trigger_times[first_low_sample_after_epoch]`. These are in the ABF clock, aligned with all other signals.
 - **Note:** stimulation begins at ~30–50 s into the session (well after the ~21 s camera-start offset), so all 64 epochs fall within the processed FP time range.
 
@@ -277,6 +281,8 @@ Each converted `.nwb` file contains:
 | `acquisition/` | `FiberPhotometryResponseSeriesIsosbesticControl` | ABF `520sig` (405 nm demux) | 2000 Hz, explicit timestamps |
 | `acquisition/` | `CommandedVoltageSeries` | ABF `fxn_gen` (LED switching waveform) | 2000 Hz, rate-based timestamps; linked to FiberPhotometryTable |
 | `acquisition/` | `RawTreadmillVoltage` | ABF `treadmill` channel | 2000 Hz, analog ~1.2–2.0 V; data provenance for velocity/acceleration |
+| `acquisition/` | `RawOptoStimulationVoltage` | ABF `opto_TTL` channel | 2000 Hz; pulses of the 635 nm stimulation, amplitude increases with power |
+| `acquisition/` | `RawCameraTriggerVoltage` | ABF `camera` channel | 2000 Hz; rising edges are the timestamps of the 100 Hz processed series |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedSignal` | `_data.mat` `corrected470` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesCorrectedIsosbestic` | `_data.mat` `corrected405` | 100 Hz, camera-trigger timestamps |
 | `processing/ophys/` | `FiberPhotometryResponseSeriesDfOverF` | `_data.mat` `dff470` | 100 Hz, camera-trigger timestamps |
@@ -297,6 +303,17 @@ Class in `interfaces/raw_treadmill_interface.py`, registered as `RawTreadmill` i
 Writes one `TimeSeries` to `nwb.acquisition`:
 
 - **`RawTreadmillVoltage`**: the raw analog voltage from the rotary encoder (ABF `treadmill` channel, 2000 Hz, explicit timestamps). Voltage range ~1.2–2.0 V across the Anxa/Calb cohorts. Unit: V.
+
+#### Raw Triggers Interface (`Chen2026RawTriggersInterface`)
+
+Class in `interfaces/raw_triggers_interface.py`, registered as `RawTriggers` in the converter. Always present (no `mat_file` required).
+
+Writes two `TimeSeries` to `nwb.acquisition` (2000 Hz, unit V):
+
+- **`RawOptoStimulationVoltage`**: the ABF `opto_TTL` channel. The pulse parameters of `OptogeneticEpochsTable` are measured from it.
+- **`RawCameraTriggerVoltage`**: the ABF `camera` channel. Its rising edges (threshold 1 V) are the timestamps of the 100 Hz processed series.
+
+The `initiation` channel present in three Calb ABF files is not written; its meaning is not known.
 
 Shares the module-level `_DEMUX_CACHE` from `raw_fiber_photometry_interface.py` (keyed by `file_path`), so the ABF is read only once regardless of which interface runs first. The cache stores all channels including `treadmill` alongside the demultiplexed 470/405 nm streams.
 

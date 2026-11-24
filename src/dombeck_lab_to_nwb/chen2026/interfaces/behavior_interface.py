@@ -54,8 +54,10 @@ class Chen2026BehaviorInterface(BaseDataInterface):
             name="treadmill_velocity",
             description=(
                 "Treadmill velocity at 100 Hz (camera-trigger-aligned binning). "
-                "Derived from rotary encoder voltage using calibration factor 1.3532 m/s per V. "
-                "Positive values indicate forward locomotion. "
+                "Computed by LRRK2_binning_and_processing.m as the rotary encoder voltage multiplied by the "
+                "calibration factor 1.3532 m/s per V. No zero offset is removed, so the series reads about "
+                "2.2 m/s (about 1.64 V) when the treadmill is at rest and locomotion appears as deviations "
+                "from that value."
             ),
             data=velocity,
             unit="m/s",
