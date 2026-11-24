@@ -95,6 +95,11 @@ def session_to_nwb(
     subjects_metadata = load_dict_from_file(subjects_metadata_path)
     subject_type = processed_photometry_mat_file_path.stem.split("-")[0]
     subject_metadata = subjects_metadata["Subjects"][subject_type]
+    # A folder name ending in "L" (e.g. 'Anxa-I765L') holds recordings from the left hemisphere of the same mouse
+    # (RewardPuffAnalysis.m strips the "L" to group recordings by mouse)
+    if subject_id.endswith("L"):
+        subject_id = subject_id[:-1]
+        metadata["NWBFile"]["session_description"] += "This session was recorded from the left hemisphere.\n"
     subject_metadata["subject_id"] = subject_id
     virus_metadata = subject_metadata.pop("virus")
     metadata["Subject"].update(**subject_metadata)

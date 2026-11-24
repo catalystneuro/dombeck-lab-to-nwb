@@ -69,7 +69,11 @@ def add_fiber_photometry_series(
         )
         fiber_photometry_table.add_column(
             name="normalized_fluorescence",
-            description="The normalized fluorescence value for each fiber.",
+            description=(
+                "The amplitude of the largest transient of the 470 nm ΔF/F trace of each fiber. The 470 nm and 405 nm "
+                "ΔF/F traces of the fiber were divided by this value, so that the largest transient is 1; multiply by "
+                "it to undo the normalization."
+            ),
         )
         fiber_photometry_table.add_column(
             name="recording_target_type",
@@ -81,7 +85,26 @@ def add_fiber_photometry_series(
         )
         fiber_photometry_table.add_column(
             name="cross_correlation_with_acceleration",
-            description="The cross-correlation between ΔF/F and acceleration.",
+            description=(
+                "The peak absolute cross-correlation between the 405 nm (isosbestic control) ΔF/F trace and "
+                "acceleration ('Acc405'). Recordings with a value of 0.1 or more were excluded from the locomotion "
+                "analyses. NaN where the mouse ran for 100 s or less, for which it was not calculated."
+            ),
+        )
+        fiber_photometry_table.add_column(
+            name="running_time_in_s",
+            description=(
+                "The time the mouse spent running during the recording, in seconds ('timeRun'). Recordings with "
+                "100 s or less were excluded from the locomotion analyses."
+            ),
+        )
+        fiber_photometry_table.add_column(
+            name="has_isosbestic_artifacts",
+            description=(
+                "Whether the 405 nm (isosbestic control) trace has too many movement artifacts ('Bad405All'): 1 when "
+                "more than 5% of the recording was marked as artifact and the recording was excluded, 0 when it "
+                "passed, NaN when it was not checked because the signal-to-noise ratio was 10 or below."
+            ),
         )
 
         fiber_photometry_lab_meta_data = FiberPhotometry(
