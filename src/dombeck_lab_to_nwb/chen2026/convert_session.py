@@ -36,6 +36,38 @@ GROUP_TO_METADATA_KEYS = {
     },
 }
 
+# Map group → (key suffix of the group's recording site, key suffix of the other group's site) in
+# fiber_photometry.yaml. Each mouse has one photometry fiber: DLS for Anxa-LRRK2, DMS for Calb-LRRK2.
+GROUP_TO_SITE_SUFFIXES = {
+    "Anxa": ("_dls", "_anxa"),
+    "Calb": ("_dms", "_calb"),
+}
+
+
+def _select_recording_site(fp_metadata: dict, group: str) -> dict:
+    """Drop the fiber, injection, indicator, table rows and series entries of the other group's recording site.
+
+    fiber_photometry.yaml describes both sites. A file holds one mouse with one fiber, so only the entries of
+    that mouse's site are written.
+    """
+    other_group = "Calb" if group == "Anxa" else "Anxa"
+    other_site, other_series = GROUP_TO_SITE_SUFFIXES[other_group]
+
+    def keep(key: str) -> bool:
+        return not (key.endswith(other_site) or key.endswith(other_series) or key.startswith(other_site[1:] + "_"))
+
+    fp_metadata = dict(fp_metadata)
+    fp_metadata["Devices"] = {key: value for key, value in fp_metadata["Devices"].items() if keep(key)}
+    fiber_photometry = dict(fp_metadata["FiberPhotometry"])
+    for section in ("FiberPhotometryVirusInjections", "FiberPhotometryIndicators"):
+        fiber_photometry[section] = {key: value for key, value in fiber_photometry[section].items() if keep(key)}
+    table = dict(fiber_photometry["FiberPhotometryTable"])
+    table["rows"] = {key: value for key, value in table["rows"].items() if keep(key)}
+    fiber_photometry["FiberPhotometryTable"] = table
+    fp_metadata["FiberPhotometry"] = {key: value for key, value in fiber_photometry.items() if keep(key)}
+    return fp_metadata
+
+
 GENOTYPE_LABELS = {
     "WT": "LRRK2-WT",
     "GS": "LRRK2-G2019S",
@@ -247,6 +279,7 @@ def convert_session(
     metadata = converter.get_metadata()
 
     fp_metadata = load_dict_from_file(METADATA_DIR / "fiber_photometry.yaml")
+    fp_metadata = _select_recording_site(fp_metadata, group)
     metadata = dict_deep_update(metadata, fp_metadata)
 
     if mat_file is not None:

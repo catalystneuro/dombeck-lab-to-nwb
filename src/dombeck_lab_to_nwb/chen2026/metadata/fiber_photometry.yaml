@@ -224,7 +224,7 @@ FiberPhotometry:
 
   FiberPhotometryTable:
     name: fiber_photometry_table
-    description: "Fiber photometry recording setup. Each row = one optical fiber × one excitation wavelength. Two groups: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows)."
+    description: "Fiber photometry recording setup of this session. Each row is the one implanted optical fiber combined with one excitation wavelength (470 nm functional, 405 nm isosbestic)."
     rows:
       # Anxa-LRRK2 group — dorsal lateral striatum (DLS)
       dls_470:

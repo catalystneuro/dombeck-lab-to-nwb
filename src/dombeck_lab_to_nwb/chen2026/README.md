@@ -103,7 +103,8 @@ as `BaseFiberPhotometryInterface` expects: device models and instances (`DeviceM
 virus and injection records (`FiberPhotometryViruses`, `FiberPhotometryVirusInjections`),
 fluorescence indicators (`FiberPhotometryIndicators`), the `FiberPhotometryTable` rows (one per
 fiber × excitation wavelength), and one response series entry per interface instance. Both groups
-are covered in a single file: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows).
+are covered in a single file: Anxa-LRRK2 (DLS rows) and Calb-LRRK2 (DMS rows). `convert_session.py` keeps
+only the entries of the session's own site, so each NWB file has one optical fiber and two table rows.
 
 **`metadata/optogenetics.yaml`** — contains optogenetics hardware metadata used by
 `Chen2026OptogeneticsInterface`: the 635 nm LED (`ExcitationSourceModel`, `ExcitationSource`),
