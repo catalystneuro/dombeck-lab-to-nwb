@@ -332,6 +332,41 @@ A TODO comment in the interface marks this for removal once a neuroconv PR adds 
 
 ---
 
+### Ontology Annotation (HERD)
+
+`metadata/external_resources.yaml` links values in the files to external terms, in the `ExternalResources`
+layout of the NeuroConv ontology guide (https://neuroconv.readthedocs.io/en/main/user_guide/ontology.html).
+The NeuroConv release this conversion runs on (0.10.2) does not write that block, and the conversion does not
+run on the NeuroConv main branch, where the fiber photometry interface changed (commanded voltage streams
+moved from metadata to a constructor argument). `external_resources.py` therefore writes the references
+(`nwbfile.external_resources`). Every id was checked in its registry on 2026-11-24.
+
+- Species `Mus musculus`: NCBITaxon:10090.
+- Institution `Northwestern University`: ror:000e0be47.
+- Fiber photometry `location` and GRAB-DA3m injection `location`: `dorsal lateral striatum` and
+  `dorsal medial striatum` are both linked to MBA:672 (Caudoputamen). The Allen atlas has no lateral or
+  medial subdivision of the dorsal striatum, so the two sites get the structure that contains them.
+- ChRmine injection `location` `substantia nigra pars compacta`: MBA:374 (Substantia nigra, compact part).
+- Strain `C57BL/6J` is not linked. Every mouse is a cross of a Cre line with LRRK2-WT or LRRK2-G2019S mice
+  kept on a C57BL/6J background, so the RRID of the C57BL/6J stock (IMSR_JAX:000664) does not name these
+  colonies. The paper gives JAX:030961 for the LRRK2-G2019S knock-in line; the Anxa1-iCre line was made at
+  Northwestern University.
+- Experimenters `He, Elena` and `Quinn, Kaitlyn` are not linked. The Crossref record of the paper lists no
+  ORCID for either.
+
+### Value Meanings and HED
+
+`metadata/value_meanings.yaml` gives the meaning and a HED string for each value of the `stimulation_on`
+column of `OptogeneticEpochsTable`. `value_meanings.py` writes them as a MeaningsTable with an ndx-hed `HED`
+column, and records the HED schema version in `lab_meta_data["hed_schema"]`. `true` is
+`Experimental-stimulus, Condition-variable/Optogenetic-stimulation-on` and `false` is
+`Condition-variable/Optogenetic-stimulation-off`. The conversion writes only `true` rows. The HED strings
+were drafted from the meanings and validated against HED 8.4.0 with hedtools. They were not reviewed by a
+HED expert.
+
+Files with a MeaningsTable cannot be read with pynwb 4.0 and hdmf 6.1 (the read fails with a
+`ConstructError` on the MeaningsTable). They need `pynwb>=4.2.0` and `hdmf>=6.2.0`.
+
 ### NWBInspector Report (2026-07-27)
 
 Run command: `nwbinspector /Users/weian/lrrk2_data/nwb-output/ --config dandi`

@@ -1,0 +1,29 @@
+# Ontology terms for values written in the NWB files of Chen et al. 2026 (LRRK2 dataset).
+#
+# Stored as HERD references under /general/external_resources by
+# dombeck_lab_to_nwb.chen2026.external_resources.add_external_resources. The layout is the
+# ExternalResources block of NeuroConv's ontology guide
+# (https://neuroconv.readthedocs.io/en/main/user_guide/ontology.html). Each key is the value exactly as
+# written in the file. Every id was checked in its registry on 2026-11-24: NCBITaxon on the EBI Ontology
+# Lookup Service, ROR on api.ror.org, and MBA on api.brain-map.org (adult mouse structure graph), with the
+# MBA URI pattern from the Bioregistry.
+#
+# Not annotated:
+# - Subject.strain (C57BL/6J): every mouse is a cross of a Cre line with LRRK2-WT or LRRK2-G2019S mice
+#   kept on a C57BL/6J background, so the RRID of the C57BL/6J stock (IMSR_JAX:000664) does not name
+#   these colonies.
+# - NWBFile.experimenter: the Crossref record of the paper (10.1038/s41467-026-75194-3) lists no ORCID
+#   for either experimenter.
+
+ExternalResources:
+  species:
+    Mus musculus: {id: "NCBITaxon:10090", uri: "http://purl.obolibrary.org/obo/NCBITaxon_10090"}
+  institution:
+    Northwestern University: {id: "ror:000e0be47", uri: "https://ror.org/000e0be47"}
+  anatomical_structures:
+    # The Allen Mouse Brain Atlas has no lateral or medial subdivision of the dorsal striatum, so both
+    # photometry sites are linked to the caudoputamen (MBA:672), the atlas structure that contains them.
+    dorsal lateral striatum: {id: "MBA:672", uri: "https://purl.brain-bican.org/ontology/mbao/MBA_672"}
+    dorsal medial striatum: {id: "MBA:672", uri: "https://purl.brain-bican.org/ontology/mbao/MBA_672"}
+    # Location of the ChRmine virus injection (SNc)
+    substantia nigra pars compacta: {id: "MBA:374", uri: "https://purl.brain-bican.org/ontology/mbao/MBA_374"}

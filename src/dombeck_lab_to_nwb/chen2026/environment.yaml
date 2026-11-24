@@ -6,11 +6,12 @@ dependencies:
   - python=3.13
   - pip
   - pip:
-    - neuroconv @ git+https://github.com/catalystneuro/neuroconv.git
+    - neuroconv==0.10.2
     - ndx-fiber-photometry>=0.2.3
     - ndx-ophys-devices>=0.3.1
     - ndx-optogenetics>=0.4.0
-    - pynwb
+    - ndx-hed>=0.3.0
+    - pynwb>=4.2.0
     - pyabf>=2.3.8
     - pymatreader>=0.5.0
     - h5py>=3.10.0

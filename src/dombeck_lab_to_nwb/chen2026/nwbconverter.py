@@ -1,5 +1,9 @@
-from neuroconv import NWBConverter
+from pathlib import Path
 
+from neuroconv import NWBConverter
+from neuroconv.utils import load_dict_from_file
+
+from .external_resources import add_external_resources
 from .interfaces import (
     Chen2026BehaviorInterface,
     Chen2026OptogeneticsInterface,
@@ -8,6 +12,7 @@ from .interfaces import (
     Chen2026RawTreadmillInterface,
     Chen2026RawTriggersInterface,
 )
+from .value_meanings import add_value_meanings
 
 
 class Chen2026NWBConverter(NWBConverter):
@@ -41,3 +46,10 @@ class Chen2026NWBConverter(NWBConverter):
         Behavior=Chen2026BehaviorInterface,
         Optogenetics=Chen2026OptogeneticsInterface,
     )
+
+    def add_to_nwbfile(self, nwbfile, metadata, conversion_options=None):
+        super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
+        terms = load_dict_from_file(Path(__file__).parent / "metadata" / "external_resources.yaml")
+        add_external_resources(nwbfile=nwbfile, terms=terms["ExternalResources"])
+        annotations = load_dict_from_file(Path(__file__).parent / "metadata" / "value_meanings.yaml")
+        add_value_meanings(nwbfile=nwbfile, annotations=annotations)
